@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "could-you-mcp-cli"
 version = "0.1.0"
-description = "An MCP client CLI assistant with sane session management."
+description = "An MCP client CLI with sane session management."
 authors = [
     { name = "g" }
 ]
@@ -28,7 +28,7 @@ could-you = "could_you.__main__:main"
 cy = "could_you.__main__:main"
 
 [tool.black]
-line-length = 88
+line-length = 100
 target-version = ["py37", "py38", "py39", "py310", "py311"]
 include = '\.pyi?$'
 exclude = '''
@@ -45,3 +45,12 @@ exclude = '''
     | dist
 )/
 '''
+
+[dependency-groups]
+dev = [
+    "pytest-black>=0.6.0",
+    "pytest>=8.3.5",
+]
+
+[tool.pytest.ini_options]
+addopts = "--black"  # Automatically run black as part of pytest

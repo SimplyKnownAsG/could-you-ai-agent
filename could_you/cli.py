@@ -14,6 +14,7 @@ CACHE_PATH = Path(XDG_CACHE_HOME) / "could-you"
 CACHE_PATH.mkdir(parents=True, exist_ok=True)
 CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
+
 def main():
     parser = argparse.ArgumentParser(description="Could-You MCP CLI")
 
@@ -22,9 +23,15 @@ def main():
 
     group.add_argument("query", nargs="?", help="A question or request to process")
     group.add_argument("-l", "--list-sessions", action="store_true", help="List existing sessions")
-    group.add_argument("-i", "--init-session", action="store_true", help="Initialize a session in this directory")
-    group.add_argument("-c", "--clear-sessions", action="store_true", help="Clear existing sessions")
-    group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
+    group.add_argument(
+        "-i", "--init-session", action="store_true", help="Initialize a session in this directory"
+    )
+    group.add_argument(
+        "-c", "--clear-sessions", action="store_true", help="Clear existing sessions"
+    )
+    group.add_argument(
+        "-d", "--delete-session", metavar="session_path", help="Delete a specific session"
+    )
 
     args = parser.parse_args()
 
@@ -34,7 +41,9 @@ def main():
         # List all sessions
         sessions = session_manager.list_sessions()
         for session in sessions:
-            print(f"Session: {session['name']}, Tokens Used: {session['tokens_used']}, Directory: {session['directory']}")
+            print(
+                f"Session: {session['name']}, Tokens Used: {session['tokens_used']}, Directory: {session['directory']}"
+            )
     elif args.init_session:
         # Create or switch to a session
         session_manager.switch_session(args.session)
@@ -53,6 +62,7 @@ def main():
             print(f"Query: {args.query}")
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()
