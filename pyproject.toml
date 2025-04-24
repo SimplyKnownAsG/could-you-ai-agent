@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "uv", "black"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "could-you-mcp-cli"
+version = "0.1.0"
+description = "An MCP client CLI assistant with sane session management."
+authors = [
+    { name = "g" }
+]
+license = { text = "MIT" }
+keywords = ["cli", "assistant", "command-line", "tool", "mcp"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+dependencies = []
+requires-python = ">=3.11"
+
+[project.urls]
+"Homepage" = "https://github.com/SimplyKnownAsG/could-you-mcp-cli"
+"Repository" = "https://github.com/SimplyKnownAsG/could-you-mcp-cli"
+
+[project.scripts]
+could-you = "could_you.__main__:main"
+cy = "could_you.__main__:main"
+
+[tool.black]
+line-length = 88
+target-version = ["py37", "py38", "py39", "py310", "py311"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.pytest_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+)/
+'''
