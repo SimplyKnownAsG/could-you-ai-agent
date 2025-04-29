@@ -2,24 +2,11 @@ import os
 import json
 from pathlib import Path
 
-# Constants for XDG paths
-XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
-XDG_CACHE_HOME = os.getenv("XDG_CACHE_HOME", Path.home() / ".cache")
-CONFIG_PATH = Path(XDG_CONFIG_HOME) / "could-you" / "config.json"
-CACHE_PATH = Path(XDG_CACHE_HOME) / "could-you"
 
-# Ensure directories exist
-CACHE_PATH.mkdir(parents=True, exist_ok=True)
-CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-
-class SessionManager:
-    def __init__(self, *, cache_path=CACHE_PATH, config_path=CONFIG_PATH):
+class Session:
+    def __init__(self):
         self.cache_path = cache_path
         self.current_session = None
-
-    def init_session(self):
-        """Create a new session."""
 
     def list_sessions(self):
         """List all existing sessions."""

@@ -16,7 +16,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent"
 ]
-dependencies = []
+dependencies = [
+    "anthropic>=0.50.0",
+    "dotenv>=0.9.9",
+    "mcp>=1.6.0",
+]
 requires-python = ">=3.11"
 
 [project.urls]
@@ -53,4 +57,4 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--black"  # Automatically run black as part of pytest
+addopts = "--black"
