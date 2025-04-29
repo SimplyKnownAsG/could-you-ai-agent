@@ -1,37 +1,34 @@
 from typing import Optional, List, Dict, Tuple
+from datetime import datetime
 from contextlib import AsyncExitStack
-import asyncio
-
 from mcp import ClientSession, Tool
-
-from anthropic import Anthropic
 from .mcp_server import MCPServer
+from .config import Config
+import boto3
 
 
 class MCPClient:
-    def __init__(self, *, servers: List[MCPServer]):
+    def __init__(self, *, config: Config):
         # Initialize session and client objects
-        self.servers: List[MCPServer] = servers
+        self.servers: List[MCPServer] = config.servers
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
-        self.anthropic = Anthropic()
-        self.tools: Dict[str, Tuple[str, Tool]] = {}
+        self.config = config
+        self.tools: Dict[str, Tuple[MCPServer, Tool]] = {}
 
     async def __aenter__(self):
         # TODO: should this use create_task or TaskGroup?
         for s in self.servers:
             await s.connect(exit_stack=self.exit_stack)
 
-        tool_dict: Dict[str, Tuple[str, Tool]] = {}
-
         for s in self.servers:
             for t in s.tools:
-                old_server_name, old_tool = tool_dict.get(t.name, (None, None))
-                if old_server_name and old_tool:
+                older_server, old_tool = self.tools.get(t.name, (None, None))
+                if older_server and old_tool:
                     print(
-                        f"warning: duplicate {t.name} tool found. using {s.name} version instead of {old_server_name}"
+                        f"warning: duplicate {t.name} tool found. using {s.name} version instead of {old_server.name}"
                     )
-                tool_dict[t.name] = (s.name, t)
+                self.tools[t.name] = (s, t)
 
         return self
 
@@ -39,55 +36,92 @@ class MCPClient:
         """Clean up resources"""
         await self.exit_stack.aclose()
 
-    async def process_query(self, query: str) -> str:
-        """Process a query using Claude and available tools"""
-        messages = [{"role": "user", "content": query}]
+    async def process_query_aws(self, query: str):
+        bedrock = boto3.client("bedrock-runtime")
+        # Prepare the request for Nova Pro model
+        system = [{"text": self.config.prompt}]
 
-        # Initial Claude API call
-        response = self.anthropic.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1000,
-            messages=messages,
-            tools=self.tools.values(),
-        )
+        messages = [{"role": "user", "content": [{"text": query}]}]
 
-        # Process response and handle tool calls
-        tool_results = []
-        final_text = []
+        while True:
+            # Call Bedrock with Nova Pro model
+            response = bedrock.converse(
+                modelId="us.amazon.nova-pro-v1:0",
+                messages=messages,
+                system=system,
+                inferenceConfig={"maxTokens": 300, "topP": 0.1, "temperature": 0.3},
+                toolConfig=convert_tool_format([t[1] for t in self.tools.values()]),
+            )
 
-        for content in response.content:
-            if content.type == "text":
-                final_text.append(content.text)
-            elif content.type == "tool_use":
-                tool_name = content.name
-                tool_args = content.input
+            output_message = response["output"]["message"]
+            messages.append(output_message)
+            role = output_message["role"]
 
-                # Execute tool call
-                result = await self.session.call_tool(tool_name, tool_args)
-                tool_results.append({"call": tool_name, "result": result})
-                final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
+            # Print the model's response
+            for content in output_message["content"]:
+                text = content.get("text", None)
+                tool_use = content.get("toolUse", None)
 
-                # Continue conversation with tool results
-                if hasattr(content, "text") and content.text:
-                    messages.append({"role": "assistant", "content": content.text})
-                messages.append({"role": "user", "content": result.content})
+                if text:
+                    print(f">>> *** {role} *** ===")
+                    print(text)
+                    print(f"<<< *** {role} *** ===")
 
-                # Get next response from Claude
-                response = self.anthropic.messages.create(
-                    model="claude-3-5-sonnet-20241022",
-                    max_tokens=1000,
-                    messages=messages,
-                )
+                elif tool_use:
+                    tool_name = tool_use["name"]
+                    tool_input = tool_use["input"]
+                    server = self.tools[tool_name][0]
+                    print(f">>> *** tool:{server.name}.{tool_name} *** ===")
 
-                final_text.append(response.content[0].text)
+                    tool_result = {"toolUseId": tool_use["toolUseId"], "content": []}
 
-        return "\n".join(final_text)
+                    try:
+                        tool_response = await server.call_tool(tool_name, tool_input)
+
+                        # Convert tool response to expected format
+                        tool_result["content"].append({"text": tool_response.content[0].text})
+                    except Exception as err:
+                        tool_result["content"].append({"text": f"Error: {str(err)}"})
+                        tool_result["status"] = "error"
+
+                    print(tool_result["content"][0]["text"])
+                    print(f"<<< *** tool:{server.name}.{tool_name} *** ===")
+
+                    # Add tool result to messages
+                    messages.append({"role": "user", "content": [{"toolResult": tool_result}]})
+
+            if response.get("stopReason", None) != "tool_use":
+                break
 
     async def chat_loop(self, query: str):
         """Run an interactive chat loop"""
         try:
-            response = await self.process_query(query)
-            print("\n" + response)
+            await self.process_query_aws(query)
 
         except Exception as e:
             print(f"\nError: {str(e)}")
+
+
+def convert_tool_format(tools: List[Tool]):
+    """
+    Converts tools into the format required for the Bedrock API.
+
+    Args:
+        tools (list): List of tool objects
+
+    Returns:
+        dict: Tools in the format required by Bedrock
+    """
+    converted_tools = []
+
+    for tool in tools:
+        converted_tool = {
+            "toolSpec": {
+                "name": tool.name,
+                "description": tool.description,
+                "inputSchema": {"json": tool.inputSchema},
+            }
+        }
+        converted_tools.append(converted_tool)
+
+    return {"tools": converted_tools}

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from mcp import ClientSession, StdioServerParameters, Tool
 from contextlib import AsyncExitStack
 from mcp.client.stdio import stdio_client
@@ -37,3 +37,6 @@ class MCPServer:
         self.tools = response.tools
         print(f"Connected to {self.name} server with tools:", [tool.name for tool in self.tools])
         return True
+
+    async def call_tool(self, tool_name: str, tool_args: Dict[str, Any]):
+        return await self.session.call_tool(tool_name, tool_args)

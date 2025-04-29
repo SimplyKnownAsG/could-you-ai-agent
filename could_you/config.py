@@ -11,10 +11,12 @@ CONFIG_FILE_NAME = ".could-you-config.json"
 
 
 class Config:
+    prompt: str | None
     llm: Dict[str, Any]
     servers: List[MCPServer]
 
-    def __init__(self, llm: Dict[str, Any], servers: List[MCPServer]):
+    def __init__(self, prompt: str | None, llm: Dict[str, Any], servers: List[MCPServer]):
+        self.prompt = prompt
         self.llm = llm
         self.servers = servers
 
@@ -23,7 +25,7 @@ def load():
     g_config = _parse(GLOBAL_CONFIG_PATH if GLOBAL_CONFIG_PATH.is_file() else None)
     local_config_path = _find_up(Path(".").resolve())
     l_config = _parse(local_config_path)
-    print("GRAHAM", l_config)
+    prompt = l_config.prompt or g_config.prompt or "You are an agent to help a software developer"
     llm = l_config.llm or g_config.llm
 
     if not llm:
@@ -39,7 +41,7 @@ def load():
         else:
             print(f"Ignoring {g_server.name} MCP server from global config")
 
-    return Config(llm, servers)
+    return Config(prompt, llm, servers)
 
 
 def _find_up(current_path: Path) -> Path | None:
@@ -83,7 +85,7 @@ def _parse(config_file: Path | None) -> Config:
     llm = {}
     servers = []
 
-    config = Config(llm=llm, servers=servers)
+    config = Config(prompt=None, llm=llm, servers=servers)
 
     if config_file is None:
         return config
@@ -92,6 +94,7 @@ def _parse(config_file: Path | None) -> Config:
         with open(config_file, "r") as file:
             json_config = json.load(file)
 
+        config.prompt = json_config.get("systemPrompt", None)
         llm.update(json_config.get("llm", {}))
 
         for name, server_config in json_config["mcpServers"].items():

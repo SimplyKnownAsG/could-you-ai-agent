@@ -50,7 +50,6 @@ async def amain():
     else:
         config = load()
         # Handle a user query
-        print(f"GRAHAM here")
         session = None  # session_manager.get_current_session()
         if session:
             print(f"Processing query in session: {session['name']}")
@@ -58,7 +57,7 @@ async def amain():
             print(f"Query: {args.query}")
 
         # client = MCPClient(servers=servers)
-        async with MCPClient(servers=config.servers) as client:
+        async with MCPClient(config=config) as client:
             await client.chat_loop(args.query)
 
 
