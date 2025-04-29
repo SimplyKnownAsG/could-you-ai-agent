@@ -1,5 +1,4 @@
 from typing import Optional, List, Dict, Tuple
-from datetime import datetime
 from contextlib import AsyncExitStack
 from mcp import ClientSession, Tool
 from .mcp_server import MCPServer
@@ -7,7 +6,7 @@ from .config import Config
 import boto3
 
 
-class MCPClient:
+class MCPHost:
     def __init__(self, *, config: Config):
         # Initialize session and client objects
         self.servers: List[MCPServer] = config.servers
@@ -42,15 +41,16 @@ class MCPClient:
         system = [{"text": self.config.prompt}]
 
         messages = [{"role": "user", "content": [{"text": query}]}]
+        ran_tool = False
 
         while True:
             # Call Bedrock with Nova Pro model
             response = bedrock.converse(
-                modelId="us.amazon.nova-pro-v1:0",
+                modelId="anthropic.claude-3-5-sonnet-20240620-v1:0",
                 messages=messages,
                 system=system,
                 inferenceConfig={"maxTokens": 300, "topP": 0.1, "temperature": 0.3},
-                toolConfig=convert_tool_format([t[1] for t in self.tools.values()]),
+                toolConfig=convert_tools_for_bedrock([t[1] for t in self.tools.values()]),
             )
 
             output_message = response["output"]["message"]
@@ -68,6 +68,7 @@ class MCPClient:
                     print(f"<<< *** {role} *** ===")
 
                 elif tool_use:
+                    ran_tool = True
                     tool_name = tool_use["name"]
                     tool_input = tool_use["input"]
                     server = self.tools[tool_name][0]
@@ -90,7 +91,8 @@ class MCPClient:
                     # Add tool result to messages
                     messages.append({"role": "user", "content": [{"toolResult": tool_result}]})
 
-            if response.get("stopReason", None) != "tool_use":
+            if not ran_tool:
+                print(f"stopping as there is nothing to do")
                 break
 
     async def chat_loop(self, query: str):
@@ -102,16 +104,7 @@ class MCPClient:
             print(f"\nError: {str(e)}")
 
 
-def convert_tool_format(tools: List[Tool]):
-    """
-    Converts tools into the format required for the Bedrock API.
-
-    Args:
-        tools (list): List of tool objects
-
-    Returns:
-        dict: Tools in the format required by Bedrock
-    """
+def convert_tools_for_bedrock(tools: List[Tool]):
     converted_tools = []
 
     for tool in tools:

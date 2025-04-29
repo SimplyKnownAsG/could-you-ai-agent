@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import asyncio
 import argparse
 from .session_manager import SessionManager
-from .mcp_client import MCPClient
+from .mcp_host import MCPHost
 import sys
 from .config import load
 
@@ -56,9 +56,8 @@ async def amain():
             # Here, you would process the query and return a response
             print(f"Query: {args.query}")
 
-        # client = MCPClient(servers=servers)
-        async with MCPClient(config=config) as client:
-            await client.chat_loop(args.query)
+        async with MCPHost(config=config) as host:
+            await host.chat_loop(args.query)
 
 
 def main():
