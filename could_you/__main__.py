@@ -1,6 +1,9 @@
 from dotenv import load_dotenv
 import asyncio
 import argparse
+import os
+import tempfile
+import subprocess
 from .session_manager import SessionManager
 from .mcp_host import MCPHost
 from .config import load
@@ -45,20 +48,37 @@ async def amain():
     elif args.clear_sessions:
         # Create or switch to a session
         session_manager.clear_sessions()
-    elif not args.query:
-        parser.print_help()
     else:
         config = load()
-        # Handle a user query
-        session = None  # session_manager.get_current_session()
-        if session:
-            print(f"Processing query in session: {session['name']}")
-            # Here, you would process the query and return a response
-            print(f"Query: {args.query}")
+        query = args.query if args.query else _get_editor_input(config)
+
+        if not query:
+            parser.print_help()
+            return
 
         with MessageHistory(config.root) as message_history:
             async with MCPHost(config=config, message_history=message_history) as host:
-                await host.chat_loop(args.query)
+                await host.chat_loop(query)
+
+
+def _get_editor_input(config):
+    """Open a temporary file in the user's preferred editor and return the content."""
+
+    with tempfile.NamedTemporaryFile(suffix=".md", mode="w+") as tf:
+        # Write initial instructions to the file
+        tf.write("# Enter your query below. Lines starting with # will be ignored.\n\n")
+        tf.flush()
+
+        # Open the editor
+        subprocess.call([config.editor, tf.name])
+
+        # Read the content
+        tf.seek(0)
+        content = tf.read()
+
+    # Filter out comment lines and empty lines
+    lines = [line for line in content.split("\n") if line and not line.startswith("#")]
+    return "\n".join(lines)
 
 
 def main():

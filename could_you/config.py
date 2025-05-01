@@ -15,22 +15,31 @@ class Config:
     llm: Dict[str, Any]
     servers: List[MCPServer]
     root: Path
+    editor: str | None
 
     def __init__(
-        self, *, prompt: str | None, llm: Dict[str, Any], servers: List[MCPServer], root: Path
+        self,
+        *,
+        prompt: str | None,
+        llm: Dict[str, Any],
+        servers: List[MCPServer],
+        root: Path,
+        editor: str | None = None,
     ):
         self.prompt = prompt
         self.llm = llm
         self.servers = servers
         self.root = root
+        self.editor = editor
 
 
 def load():
     g_config = _parse(GLOBAL_CONFIG_PATH)
     local_config_path = _find_up(Path(".").resolve())
     l_config = _parse(local_config_path)
-    prompt = l_config.prompt or g_config.prompt or "You are an agent to help a software developer"
     llm = l_config.llm or g_config.llm
+    prompt = l_config.prompt or g_config.prompt or "You are an agent to help a software developer"
+    editor = l_config.editor or g_config.editor or os.environ.get("EDITOR", "vim")
 
     if not llm:
         print(f'ERROR: Must specify "llm" in config')
@@ -49,7 +58,7 @@ def load():
         else:
             print(f"Ignoring {g_server.name} MCP server from global config")
 
-    return Config(prompt=prompt, llm=llm, servers=servers, root=l_config.root)
+    return Config(prompt=prompt, llm=llm, servers=servers, root=l_config.root, editor=editor)
 
 
 def _find_up(current_path: Path) -> Path:
