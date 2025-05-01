@@ -2,7 +2,7 @@ import json
 import sys
 import os
 from pathlib import Path
-from typing import List, NamedTuple, Dict, Any
+from typing import List, Dict, Any
 from .mcp_server import MCPServer
 
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -14,22 +14,30 @@ class Config:
     prompt: str | None
     llm: Dict[str, Any]
     servers: List[MCPServer]
+    root: Path
 
-    def __init__(self, prompt: str | None, llm: Dict[str, Any], servers: List[MCPServer]):
+    def __init__(
+        self, *, prompt: str | None, llm: Dict[str, Any], servers: List[MCPServer], root: Path
+    ):
         self.prompt = prompt
         self.llm = llm
         self.servers = servers
+        self.root = root
 
 
 def load():
-    g_config = _parse(GLOBAL_CONFIG_PATH if GLOBAL_CONFIG_PATH.is_file() else None)
+    g_config = _parse(GLOBAL_CONFIG_PATH)
     local_config_path = _find_up(Path(".").resolve())
     l_config = _parse(local_config_path)
     prompt = l_config.prompt or g_config.prompt or "You are an agent to help a software developer"
     llm = l_config.llm or g_config.llm
 
     if not llm:
-        print(f'Must specify "llm" in config')
+        print(f'ERROR: Must specify "llm" in config')
+        sys.exit(1)
+
+    if llm["provider"] != "boto3":
+        print(f"ERROR: boto3 is the only supported provider, got {llm['provider']}")
         sys.exit(1)
 
     servers = l_config.servers
@@ -41,15 +49,15 @@ def load():
         else:
             print(f"Ignoring {g_server.name} MCP server from global config")
 
-    return Config(prompt, llm, servers)
+    return Config(prompt=prompt, llm=llm, servers=servers, root=l_config.root)
 
 
-def _find_up(current_path: Path) -> Path | None:
+def _find_up(current_path: Path) -> Path:
     """
     Recursively searches upward for the closest file named CONFIG_FILE_NAME.
 
     Args:
-        start_path (Path): The starting directory for the search.
+        current_path (Path): The starting directory for the search.
                            Defaults to the current directory (".")
 
     Returns:
@@ -66,13 +74,15 @@ def _find_up(current_path: Path) -> Path | None:
 
     # Stop recursion if we've reached the root directory
     if current_path == parent_path:
-        return None
+        print("error: did not find .could-you-config.json in this or above directories.")
+        print("error: could-you must be run from within a workspace.")
+        sys.exit(1)
 
     # Recurse into the parent directory
     return _find_up(parent_path)
 
 
-def _parse(config_file: Path | None) -> Config:
+def _parse(config_file: Path) -> Config:
     """
     Load the configuration JSON file compliant with the Claude Desktop format.
 
@@ -85,9 +95,9 @@ def _parse(config_file: Path | None) -> Config:
     llm = {}
     servers = []
 
-    config = Config(prompt=None, llm=llm, servers=servers)
+    config = Config(prompt=None, llm=llm, servers=servers, root=config_file.parent)
 
-    if config_file is None:
+    if not config_file.is_file():
         return config
 
     try:

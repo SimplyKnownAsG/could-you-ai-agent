@@ -3,8 +3,8 @@ import asyncio
 import argparse
 from .session_manager import SessionManager
 from .mcp_host import MCPHost
-import sys
 from .config import load
+from .message_history import MessageHistory
 
 
 async def amain():
@@ -56,8 +56,9 @@ async def amain():
             # Here, you would process the query and return a response
             print(f"Query: {args.query}")
 
-        async with MCPHost(config=config) as host:
-            await host.chat_loop(args.query)
+        with MessageHistory(config.root) as message_history:
+            async with MCPHost(config=config, message_history=message_history) as host:
+                await host.chat_loop(args.query)
 
 
 def main():

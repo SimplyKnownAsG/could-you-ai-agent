@@ -9,3 +9,6 @@ wheels/
 # Virtual environments
 .venv
 .could-you-config.json
+.could-you-messages.json
+.env
+.ropeproject/
