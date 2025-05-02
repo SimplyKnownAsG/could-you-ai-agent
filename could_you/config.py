@@ -1,9 +1,13 @@
 import json
-import sys
 import os
+import sys
 from pathlib import Path
-from typing import List, Dict, Any
+import subprocess
+from typing import List, Dict, Any, Set
+
 from .mcp_server import MCPServer
+from .message import _Dynamic
+
 
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
 GLOBAL_CONFIG_PATH = Path(XDG_CONFIG_HOME) / "could-you" / "config.json"
@@ -68,7 +72,9 @@ def load():
             print(f"Ignoring {g_server.name} MCP server from global config")
 
     # Create the final config
-    config = Config(prompt=prompt, llm=llm, servers=servers, root=l_config.root, editor=editor, env=env)
+    config = Config(
+        prompt=prompt, llm=llm, servers=servers, root=l_config.root, editor=editor, env=env
+    )
 
     # Apply environment variables
     for key, value in config.env.items():
@@ -76,6 +82,43 @@ def load():
             os.environ[key] = value
 
     return config
+
+
+def init() -> Path:
+    g_config = _parse(GLOBAL_CONFIG_PATH)
+
+    with open(CONFIG_FILE_NAME, "w") as l_config:
+        jsonable = _Dynamic(g_config).to_dict()
+        del jsonable["root"]
+
+        for key in list(jsonable.keys()):
+            if jsonable[key] is None:
+                del jsonable[key]
+
+        servers = jsonable.get("servers", [])
+        del jsonable["servers"]
+
+        mcp_servers = jsonable["mcpServers"] = {}
+
+        for s in servers:
+            name = s["name"]
+            del s["name"]
+            mcp_servers[name] = s
+
+        dirnames = list_directories(".")
+
+        mcp_servers["filesystem"] = {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                *dirnames,
+            ],
+        }
+
+        json.dump(jsonable, l_config, indent=2)
+
+    return Path(CONFIG_FILE_NAME)
 
 
 def _find_up(current_path: Path) -> Path:
@@ -151,3 +194,68 @@ def _parse(config_file: Path) -> Config:
         sys.exit(1)
 
     return config
+
+
+def list_directories(root_path: str) -> List[str]:
+    """
+    Recursively lists all unique directories, using `git ls-files` for folders containing `.git`.
+    Includes parent directories, ignoring hidden directories and symlinks.
+
+    Args:
+        root_path (str): The root directory to start traversal.
+
+    Returns:
+        List[str]: A list of unique directory paths.
+    """
+    root_path = os.path.abspath(root_path)
+    result = set([root_path])
+
+    for dirpath, dirnames, _ in os.walk(root_path):
+        # If the directory contains a `.git` folder, use `git ls-files` and short circuit
+        if ".git" in dirnames:
+            result.update(run_git_ls_files(dirpath))
+            dirnames[:] = []  # Stop os.walk from descending into subdirectories
+            continue
+
+        # Remove hidden directories and symlinks
+        dirnames[:] = [
+            d
+            for d in dirnames
+            if not d.startswith(".") and not os.path.islink(os.path.join(dirpath, d))
+        ]
+
+        # Add the current directory to the result set
+        result.add(dirpath)
+
+    return sorted(result)
+
+
+def run_git_ls_files(repo_path: str) -> Set[str]:
+    """
+    Runs `git ls-files` in the given repository path and returns the unique directories,
+    including parent directories of all files.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files"],
+            cwd=repo_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+        files = result.stdout.splitlines()
+        directories = set()
+
+        for file in files:
+            # Add all parent directories of the file
+            dir_path = os.path.dirname(file)
+
+            while dir_path:
+                directories.add(dir_path)
+                dir_path = os.path.dirname(dir_path)
+
+        return {os.path.join(repo_path, d) for d in directories}
+    except subprocess.CalledProcessError:
+        # If `git ls-files` fails, return an empty set
+        return set()

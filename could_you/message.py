@@ -1,12 +1,9 @@
-import json
-from enum import Enum
-from pathlib import Path
 from typing import List, Dict, Optional, Literal, Any
 
 
 class _Dynamic:
 
-    def __init__(self, input_dict: Dict[str, Any] = None, **kwargs: Any) -> None:
+    def __init__(self, input_dict: Any = None, **kwargs: Any) -> None:
         # Merge input_dict and kwargs, with kwargs taking precedence
         input_dict = input_dict or {}
 
