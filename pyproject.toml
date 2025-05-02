@@ -3,9 +3,9 @@ requires = ["setuptools>=42", "wheel", "uv", "black"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "could-you-mcp-cli"
+name = "could-you-mcp-host"
 version = "0.1.0"
-description = "An MCP client CLI with sane session management."
+description = "could-you MCP Host"
 authors = [
     { name = "g" }
 ]
@@ -23,8 +23,8 @@ dependencies = [
 requires-python = ">=3.11"
 
 [project.urls]
-"Homepage" = "https://github.com/SimplyKnownAsG/could-you-mcp-cli"
-"Repository" = "https://github.com/SimplyKnownAsG/could-you-mcp-cli"
+"Homepage" = "https://github.com/SimplyKnownAsG/could-you-mcp-host"
+"Repository" = "https://github.com/SimplyKnownAsG/could-you-mcp-host"
 
 [project.scripts]
 could-you = "could_you.__main__:main"
@@ -32,7 +32,7 @@ cy = "could_you.__main__:main"
 
 [tool.black]
 line-length = 100
-target-version = ["py37", "py38", "py39", "py310", "py311"]
+target-version = ["py310", "py311"]
 include = '\.pyi?$'
 exclude = '''
 /(
