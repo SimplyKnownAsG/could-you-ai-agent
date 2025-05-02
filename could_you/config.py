@@ -16,6 +16,7 @@ class Config:
     servers: List[MCPServer]
     root: Path
     editor: str | None
+    env: Dict[str, str]
 
     def __init__(
         self,
@@ -25,21 +26,29 @@ class Config:
         servers: List[MCPServer],
         root: Path,
         editor: str | None = None,
+        env: Dict[str, str],
     ):
         self.prompt = prompt
         self.llm = llm
         self.servers = servers
         self.root = root
         self.editor = editor
+        self.env = env or {}
 
 
 def load():
     g_config = _parse(GLOBAL_CONFIG_PATH)
     local_config_path = _find_up(Path(".").resolve())
     l_config = _parse(local_config_path)
+
+    # Merge configurations with local taking priority
     llm = l_config.llm or g_config.llm
     prompt = l_config.prompt or g_config.prompt or "You are an agent to help a software developer"
     editor = l_config.editor or g_config.editor or os.environ.get("EDITOR", "vim")
+
+    # Merge env dictionaries with local taking priority
+    env = g_config.env.copy()
+    env.update(l_config.env)  # Local overrides global
 
     if not llm:
         print(f'ERROR: Must specify "llm" in config')
@@ -58,7 +67,15 @@ def load():
         else:
             print(f"Ignoring {g_server.name} MCP server from global config")
 
-    return Config(prompt=prompt, llm=llm, servers=servers, root=l_config.root, editor=editor)
+    # Create the final config
+    config = Config(prompt=prompt, llm=llm, servers=servers, root=l_config.root, editor=editor, env=env)
+
+    # Apply environment variables
+    for key, value in config.env.items():
+        if value is not None:
+            os.environ[key] = value
+
+    return config
 
 
 def _find_up(current_path: Path) -> Path:
@@ -104,7 +121,7 @@ def _parse(config_file: Path) -> Config:
     llm = {}
     servers = []
 
-    config = Config(prompt=None, llm=llm, servers=servers, root=config_file.parent)
+    config = Config(prompt=None, llm=llm, servers=servers, root=config_file.parent, env={})
 
     if not config_file.is_file():
         return config
@@ -115,6 +132,7 @@ def _parse(config_file: Path) -> Config:
 
         config.prompt = json_config.get("systemPrompt", None)
         llm.update(json_config.get("llm", {}))
+        config.env.update(json_config.get("env", {}))
 
         for name, server_config in json_config["mcpServers"].items():
             if not all(key in server_config for key in ["command", "args"]):

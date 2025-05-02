@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 import asyncio
 import argparse
 import os
@@ -82,7 +81,6 @@ def _get_editor_input(config):
 
 
 def main():
-    load_dotenv()
     asyncio.run(amain())
 
 
