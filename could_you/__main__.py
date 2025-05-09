@@ -51,7 +51,7 @@ async def amain():
 
         with MessageHistory(config.root) as message_history:
             async with MCPHost(config=config, message_history=message_history) as host:
-                await host.chat_loop(query)
+                await host.process_query(query)
 
 
 def _get_editor_input(config):

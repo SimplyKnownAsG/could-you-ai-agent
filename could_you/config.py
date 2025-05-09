@@ -58,8 +58,8 @@ def load():
         print(f'ERROR: Must specify "llm" in config')
         sys.exit(1)
 
-    if llm["provider"] != "boto3":
-        print(f"ERROR: boto3 is the only supported provider, got {llm['provider']}")
+    if llm["provider"] not in ["boto3", "ollama"]:
+        print(f"ERROR: supported providers are boto3 and ollama, got {llm['provider']}")
         sys.exit(1)
 
     servers = l_config.servers

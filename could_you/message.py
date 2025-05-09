@@ -84,6 +84,7 @@ class ToolResult(_Dynamic):
 
 
 class Content(_Dynamic):
+    type: Literal["text"]
     text: Optional[str]
     # image: Optional[Image]
     # document: Optional[Document]
