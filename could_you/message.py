@@ -1,4 +1,6 @@
 from typing import List, Dict, Optional, Literal, Any
+import json
+import sys
 
 
 class _Dynamic:
@@ -66,6 +68,7 @@ class _Dynamic:
         return result
 
 
+
 class ToolUse(_Dynamic):
     tool_use_id: str
     name: str
@@ -99,3 +102,24 @@ class Content(_Dynamic):
 class Message(_Dynamic):
     role: Literal["user", "assistant"]
     content: List[Content]
+
+    def print(self, file=None):
+        output = file if file is not None else sys.stdout
+
+        print(f"*** {self.role} ***", file=output)
+        for content in self.content:
+            for key, val in vars(content).items():
+                print(f"    {key}:", file=output)
+                if isinstance(val, str):
+                    for line in val.splitlines():
+                        print(f"        {line}", file=output)
+                elif isinstance(val, _Dynamic):
+                    # Pretty print JSON with consistent indentation
+                    v = val.to_dict() if isinstance(val, _Dynamic) else val
+                    json_lines = json.dumps(v, indent=2).splitlines()
+                    for line in json_lines:
+                        print(f"        {line}", file=output)
+                else:
+                    # For other types, convert to string
+                    print(f"        {str(val)}", file=output)
+        print(file=output)

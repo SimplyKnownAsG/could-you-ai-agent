@@ -1,8 +1,9 @@
 import json
+import sys
 from pathlib import Path
 from typing import List, Dict, Any
 
-from .message import Message
+from .message import Message, _Dynamic
 
 
 class MessageHistory:
@@ -26,19 +27,18 @@ class MessageHistory:
 
     def add(self, message: Message):
         self.messages.append(message)
-        print(f">>> *** {message.role} *** ===")
-
-        for content in message.content:
-            for key, val in vars(content).items():
-                print(f"  {key}:")
-
-                if key == "text":
-                    for line in val.splitlines():
-                        print("    " + line)
-                else:
-                    print(f"    <{key}>")
-
-        print(f"<<< *** {message.role} *** ===")
+        message.print()
 
     def to_dict(self) -> List[Dict[str, Any]]:
         return [m.to_dict() for m in self.messages]
+
+    def print_history(self, file=None):
+        """Print message history in a detailed format.
+
+        Args:
+            file: Optional file-like object to write to. If None, writes to sys.stdout
+        """
+        output = file if file is not None else sys.stdout
+
+        for message in self.messages:
+            message.print(output)

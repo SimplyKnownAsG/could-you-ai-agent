@@ -24,6 +24,9 @@ async def amain():
     group.add_argument(
         "-d", "--delete-session", metavar="session_path", help="Delete a specific session"
     )
+    group.add_argument(
+        "-p", "--print-history", action="store_true", help="Print the message history"
+    )
 
     args = parser.parse_args()
 
@@ -43,6 +46,11 @@ async def amain():
     elif args.delete_session:
         # Create or switch to a session
         session_manager.delete_session(args.delete_session)
+    elif args.print_history:
+        # Print message history
+        config = load()
+        with MessageHistory(config.root) as message_history:
+            message_history.print_history()
     else:
         config = load()
         query = args.query if args.query else _get_editor_input(config)
@@ -62,24 +70,7 @@ def _get_editor_input(config):
     with tempfile.NamedTemporaryFile(suffix=".md", mode="w+") as tf:
         # Write message history to the file
         with MessageHistory(config.root) as message_history:
-            for message in message_history.messages:
-                tf.write(f"*** {message.role} ***\n")
-                for content in message.content:
-                    for key, val in vars(content).items():
-                        tf.write(f"    {key}:\n")
-                        if isinstance(val, str):
-                            for line in val.splitlines():
-                                tf.write(f"        {line}\n")
-                        elif isinstance(val, (dict, list, _Dynamic)):
-                            # Pretty print JSON with consistent indentation
-                            v = val.to_dict() if isinstance(val, _Dynamic) else val
-                            json_lines = json.dumps(v, indent=2).splitlines()
-                            for line in json_lines:
-                                tf.write(f"        {line}\n")
-                        else:
-                            # For other types, convert to string
-                            tf.write(f"        {str(val)}\n")
-                tf.write("\n")
+            message_history.print_history(tf)
 
         # Write the special editor input marker - this exact line is used to find user input
         marker = "# *** PROVIDE_INPUT_AFTER_THIS_LINE ***"
