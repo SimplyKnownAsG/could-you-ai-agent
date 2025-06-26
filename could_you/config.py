@@ -12,6 +12,16 @@ from .message import _Dynamic
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
 GLOBAL_CONFIG_PATH = Path(XDG_CONFIG_HOME) / "could-you" / "config.json"
 CONFIG_FILE_NAME = ".could-you-config.json"
+DEFAULT_PROMPT = """
+You are an agent responsible for helping a software developer perform a task named `could-you`.
+
+DO ASSUME file content is correct.
+
+DO NOT ASSUME any file edits you have previously made will be persisted, or were correct.
+
+DO NOT ASSUME that you should make file edits, only make file changes if asked. For example, if asked to "show" or
+"tell" only provide an answer.
+"""
 
 
 class Config:
@@ -47,7 +57,7 @@ def load():
 
     # Merge configurations with local taking priority
     llm = l_config.llm or g_config.llm
-    prompt = l_config.prompt or g_config.prompt or "You are an agent to help a software developer"
+    prompt = l_config.prompt or g_config.prompt or DEFAULT_PROMPT
     editor = l_config.editor or g_config.editor or os.environ.get("EDITOR", "vim")
 
     # Merge env dictionaries with local taking priority
