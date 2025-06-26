@@ -25,20 +25,21 @@ class MessageHistory:
         with open(self.path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
-    def add(self, message: Message):
+    def add(self, message: Message, verbose=False):
         self.messages.append(message)
-        message.print()
+        message.print(verbose=verbose)
 
     def to_dict(self) -> List[Dict[str, Any]]:
         return [m.to_dict() for m in self.messages]
 
-    def print_history(self, file=None):
+    def print_history(self, file=None, verbose=False):
         """Print message history in a detailed format.
 
         Args:
             file: Optional file-like object to write to. If None, writes to sys.stdout
+            verbose: Whether to show verbose output including tool details
         """
         output = file if file is not None else sys.stdout
 
         for message in self.messages:
-            message.print(output)
+            message.print(output, verbose=verbose)

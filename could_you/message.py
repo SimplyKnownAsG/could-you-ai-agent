@@ -103,23 +103,36 @@ class Message(_Dynamic):
     role: Literal["user", "assistant"]
     content: List[Content]
 
-    def print(self, file=None):
+    def print(self, file=None, verbose=False):
         output = file if file is not None else sys.stdout
 
         print(f"*** {self.role} ***", file=output)
         for content in self.content:
             for key, val in vars(content).items():
-                print(f"    {key}:", file=output)
-                if isinstance(val, str):
+                if key == 'text':
+                    # Always print text content
+                    print(f"    {key}:", file=output)
                     for line in val.splitlines():
                         print(f"        {line}", file=output)
-                elif isinstance(val, _Dynamic):
-                    # Pretty print JSON with consistent indentation
-                    v = val.to_dict() if isinstance(val, _Dynamic) else val
-                    json_lines = json.dumps(v, indent=2).splitlines()
-                    for line in json_lines:
-                        print(f"        {line}", file=output)
+                elif verbose:
+                    # Print full details in verbose mode
+                    print(f"    {key}:", file=output)
+                    if isinstance(val, str):
+                        for line in val.splitlines():
+                            print(f"        {line}", file=output)
+                    elif isinstance(val, _Dynamic):
+                        # Pretty print JSON with consistent indentation
+                        v = val.to_dict() if isinstance(val, _Dynamic) else val
+                        json_lines = json.dumps(v, indent=2).splitlines()
+                        for line in json_lines:
+                            print(f"        {line}", file=output)
+                    else:
+                        # For other types, convert to string
+                        print(f"        {str(val)}", file=output)
                 else:
-                    # For other types, convert to string
-                    print(f"        {str(val)}", file=output)
+                    # In non-verbose mode, print simplified content
+                    if key == 'toolUse' and isinstance(val, _Dynamic):
+                        print(f"    {key}: {val.name}", file=output)
+                    elif isinstance(val, _Dynamic):
+                        print(f"    <{key}>", file=output)
         print(file=output)

@@ -40,20 +40,24 @@ class BaseLLM(ABC):
         """
         pass
 
-    async def process_query(self, query: str) -> None:
+    async def process_query(self, query: str, verbose: bool = False) -> None:
         """
         Process a user query through the LLM and handle any tool calls.
 
         Args:
             query: The user's input query
+            verbose: Whether to show verbose output including tool details
         """
-        self.message_history.add(Message(role="user", content=[Content(text=query, type="text")]))
+        self.message_history.add(
+            Message(role="user", content=[Content(text=query, type="text")]),
+            verbose=verbose
+        )
         should_continue = True
 
         while should_continue:
             should_continue = False
             output_message = await self.converse()
-            self.message_history.add(output_message)
+            self.message_history.add(output_message, verbose=verbose)
 
             for content in output_message.content:
                 tool_use = content.tool_use
@@ -89,7 +93,7 @@ class BaseLLM(ABC):
                     )
 
                 tool_message = Message(role="user", content=tool_content)
-                self.message_history.add(tool_message)
+                self.message_history.add(tool_message, verbose=verbose)
 
 
 class Boto3LLM(BaseLLM):

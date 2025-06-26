@@ -12,6 +12,7 @@ from .message import _Dynamic
 
 async def amain():
     parser = argparse.ArgumentParser(description="Could-You MCP CLI")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output mode")
 
     # Define a mutually exclusive group
     group = parser.add_mutually_exclusive_group()
@@ -50,10 +51,10 @@ async def amain():
         # Print message history
         config = load()
         with MessageHistory(config.root) as message_history:
-            message_history.print_history()
+            message_history.print_history(verbose=args.verbose)
     else:
         config = load()
-        query = args.query if args.query else _get_editor_input(config)
+        query = args.query if args.query else _get_editor_input(config, args.verbose)
 
         if not query:
             parser.print_help()
@@ -61,16 +62,16 @@ async def amain():
 
         with MessageHistory(config.root) as message_history:
             async with MCPHost(config=config, message_history=message_history) as host:
-                await host.process_query(query)
+                await host.process_query(query, verbose=args.verbose)
 
 
-def _get_editor_input(config):
+def _get_editor_input(config, verbose=False):
     """Open a temporary file in the user's preferred editor and return the content."""
 
     with tempfile.NamedTemporaryFile(suffix=".md", mode="w+") as tf:
         # Write message history to the file
         with MessageHistory(config.root) as message_history:
-            message_history.print_history(tf)
+            message_history.print_history(tf, verbose=verbose)
 
         # Write the special editor input marker - this exact line is used to find user input
         marker = "# *** PROVIDE_INPUT_AFTER_THIS_LINE ***"
