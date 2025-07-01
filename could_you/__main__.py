@@ -28,6 +28,9 @@ async def amain():
     group.add_argument(
         "-p", "--print-history", action="store_true", help="Print the message history"
     )
+    group.add_argument(
+        "-t", "--test-connect", action="store_true", help="Test connection, and stop"
+    )
 
     args = parser.parse_args()
 
@@ -52,6 +55,12 @@ async def amain():
         config = load()
         with MessageHistory(config.root) as message_history:
             message_history.print_history(verbose=args.verbose)
+    elif args.test_connect:
+        # List servers and their tools
+        config = load()
+        with MessageHistory(config.root) as message_history:
+            async with MCPHost(config=config, message_history=message_history) as host:
+                pass
     else:
         config = load()
         query = args.query if args.query else _get_editor_input(config, args.verbose)

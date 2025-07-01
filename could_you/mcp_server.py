@@ -35,7 +35,9 @@ class MCPServer:
         # List available tools
         response = await self.session.list_tools()
         self.tools = response.tools
-        print(f"Connected to {self.name} server with tools:", [tool.name for tool in self.tools])
+        print(f"Connected to {self.name} server with tools:")
+        for tool in self.tools:
+            print(f"    {tool.name}")
         return True
 
     async def call_tool(self, tool_name: str, tool_args: Dict[str, Any]):

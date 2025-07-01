@@ -4,7 +4,6 @@ from typing import Optional, List, Dict, Tuple
 from mcp import ClientSession, Tool
 
 from .config import Config
-from .message import Content, Message
 from .mcp_server import MCPServer
 from .message_history import MessageHistory
 from .llm import create_llm, BaseLLM
@@ -28,10 +27,12 @@ class MCPHost:
 
             for t in s.tools:
                 old_server, old_tool = self.tools.get(t.name, (None, None))
+
                 if old_server and old_tool:
                     print(
-                        f"warning: duplicate {t.name} tool found. using {s.name} version instead of {old_server.name}"
+                        f"warning: Duplicate {t.name} tool found, using {s.name} version instead of {old_server.name}."
                     )
+
                 self.tools[t.name] = (s, t)
 
         self.llm = create_llm(self.config, self.message_history, self.tools)
