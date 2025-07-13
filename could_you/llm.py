@@ -133,7 +133,6 @@ class Boto3LLM(BaseLLM):
             toolConfig=self.converted_tools,
         )
 
-        print(response["output"]["message"])
         return Message(response["output"]["message"])
 
 
@@ -174,7 +173,6 @@ class OpenAILLM(BaseLLM):
                     raise NotImplementedError(f'Cannot handle response, sry... {response}')
 
             msg_result = Message(role="assistant", content=content)
-            print(msg_result)
             return msg_result
 
         except Exception as err:
@@ -198,8 +196,6 @@ class OpenAILLM(BaseLLM):
             for content in msg["content"]:
                 if "text" in content:
                     ollama_messages.append({"role": msg["role"], "content": content["text"]})
-
-        print(ollama_messages)
 
         return ollama_messages
 
