@@ -9,8 +9,13 @@ class MCPServer:
     enabled: bool
 
     def __init__(
-        self, *, name: str, command: str, args: List[str], env: Optional[Dict[str, str]] = None,
-        enabled: bool = True
+        self,
+        *,
+        name: str,
+        command: str,
+        args: List[str],
+        env: Optional[Dict[str, str]] = None,
+        enabled: bool = True,
     ):
         """
         Initialize an MCPServer instance.
@@ -30,7 +35,9 @@ class MCPServer:
 
     async def connect(self, *, exit_stack: AsyncExitStack) -> bool:
         if self.enabled:
-            server_params = StdioServerParameters(command=self.command, args=self.args, env=self.env)
+            server_params = StdioServerParameters(
+                command=self.command, args=self.args, env=self.env
+            )
             the_client = await exit_stack.enter_async_context(stdio_client(server_params))
             stdio, write = the_client
             self.session = await exit_stack.enter_async_context(ClientSession(stdio, write))

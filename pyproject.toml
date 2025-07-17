@@ -63,30 +63,24 @@ dev = [
 addopts = "--black"
 
 [tool.tox]
-env_list = ["py311", "py312"]
+legacy_tox_ini = """
+[tox]
+envlist = py311,py312
 
-[tool.tox.env_run_base]
-deps = [
-    "pytest>=8.3.5",
-    "pytest-black>=0.6.0",
-    "pytest-cov>=6.0.0",
-    "jsonmerge>=1.9.0",
-]
-commands = [
-    "pytest {posargs}",
-]
+[testenv]
+deps =
+    pytest>=8.3.5
+    pytest-black>=0.6.0
+    pytest-cov>=6.0.0
+    jsonmerge>=1.9.0
+commands = pytest {posargs}
 
-[tool.tox.env.cov]
-commands = [
-    "pytest --cov=could_you --cov-report=term-missing {posargs}",
-]
+[testenv:cov]
+commands = pytest --cov=could_you --cov-report=term-missing {posargs}
 
-[tool.tox.env.black]
-commands = [
-    "pytest --black {posargs}",
-]
+[testenv:black]
+commands = pytest --black {posargs}
 
-[tool.tox.env.all]
-commands = [
-    "pytest --black --cov=could_you --cov-report=term-missing {posargs}",
-]
+[testenv:all]
+commands = pytest --black --cov=could_you --cov-report=term-missing {posargs}
+"""

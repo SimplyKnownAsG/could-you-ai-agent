@@ -12,3 +12,4 @@ wheels/
 .could-you-messages.json
 .env
 .ropeproject/
+.tox
