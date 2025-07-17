@@ -47,11 +47,36 @@ Thank you for your interest in contributing to `could-you`! This document provid
 # Run all tests
 pytest
 
-# Run tests with coverage
-pytest --cov=could_you
+# Run specific test file with verbose output
+pytest tests/test_config.py -v
 
-# Run tests with black formatting check
+# Run tests with coverage
+pytest --cov=could_you --cov-report=term-missing
+
+# Run tests with black formatting check (default behavior)
 pytest --black
+
+# Run everything (formatting + coverage)
+pytest --black --cov=could_you --cov-report=term-missing
+```
+
+#### Using Tox for Multi-Environment Testing
+
+```bash
+# Test with current Python version
+tox -e py311  # or py312
+
+# Test with coverage
+tox -e cov
+
+# Test with formatting check
+tox -e black
+
+# Test everything
+tox -e all
+
+# Test all configured environments
+tox
 ```
 
 ## Code Style and Standards

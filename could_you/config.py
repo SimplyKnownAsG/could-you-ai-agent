@@ -5,8 +5,9 @@ from pathlib import Path
 import subprocess
 from typing import List, Dict, Any, Set
 
+from jsonmerge import merge
+
 from .mcp_server import MCPServer
-from .message import _Dynamic
 
 
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -51,40 +52,31 @@ class Config:
 
 
 def load():
-    g_config = _parse(GLOBAL_CONFIG_PATH)
+    # Load raw JSON configurations
+    g_config_json = _load_raw_json(GLOBAL_CONFIG_PATH)
     local_config_path = _find_up(Path(".").resolve())
-    l_config = _parse(local_config_path)
+    l_config_json = _load_raw_json(local_config_path)
 
     # Merge configurations with local taking priority
-    llm = l_config.llm or g_config.llm
-    prompt = l_config.prompt or g_config.prompt or DEFAULT_PROMPT
-    editor = l_config.editor or g_config.editor or os.environ.get("EDITOR", "vim")
+    merged_config_json = merge(g_config_json, l_config_json)
 
-    # Merge env dictionaries with local taking priority
-    env = g_config.env.copy()
-    env.update(l_config.env)  # Local overrides global
+    # Parse the merged configuration
+    config = _parse_from_json(merged_config_json, local_config_path.parent)
 
-    if not llm:
+    # Apply defaults
+    if not config.prompt:
+        config.prompt = DEFAULT_PROMPT
+    if not config.editor:
+        config.editor = os.environ.get("EDITOR", "vim")
+
+    # Validate required fields
+    if not config.llm:
         print(f'ERROR: Must specify "llm" in config')
         sys.exit(1)
 
-    if llm["provider"] not in ["boto3", "ollama"]:
-        print(f"ERROR: supported providers are boto3 and ollama, got {llm['provider']}")
+    if config.llm["provider"] not in ["boto3", "ollama"]:
+        print(f"ERROR: supported providers are boto3 and ollama, got {config.llm['provider']}")
         sys.exit(1)
-
-    servers = l_config.servers
-
-    for g_server in g_config.servers:
-        if not any(g_server.name == s.name for s in servers):
-            print(f"Adding {g_server.name} MCP server from global config")
-            servers.append(g_server)
-        else:
-            print(f"Ignoring {g_server.name} MCP server from global config")
-
-    # Create the final config
-    config = Config(
-        prompt=prompt, llm=llm, servers=servers, root=l_config.root, editor=editor, env=env
-    )
 
     # Apply environment variables
     for key, value in config.env.items():
@@ -95,25 +87,34 @@ def load():
 
 
 def init() -> Path:
-    g_config = _parse(GLOBAL_CONFIG_PATH)
+    g_config_json = _load_raw_json(GLOBAL_CONFIG_PATH)
 
     with open(CONFIG_FILE_NAME, "w") as l_config:
-        jsonable = _Dynamic(g_config).to_dict()
-        del jsonable["root"]
+        # Create a copy to avoid modifying the original
+        jsonable = g_config_json.copy()
 
+        # Remove root if it exists (shouldn't be in local config)
+        if "root" in jsonable:
+            del jsonable["root"]
+
+        # Remove None values
         for key in list(jsonable.keys()):
             if jsonable[key] is None:
                 del jsonable[key]
 
+        # Handle servers -> mcpServers conversion
         servers = jsonable.get("servers", [])
-        del jsonable["servers"]
+        if "servers" in jsonable:
+            del jsonable["servers"]
 
-        mcp_servers = jsonable["mcpServers"] = {}
+        mcp_servers = jsonable.get("mcpServers", {})
 
+        # Convert old server format to new mcpServers format if needed
         for s in servers:
             name = s["name"]
-            del s["name"]
-            mcp_servers[name] = s
+            server_config = s.copy()
+            del server_config["name"]
+            mcp_servers[name] = server_config
 
         dirnames = list_directories(".")
 
@@ -125,6 +126,8 @@ def init() -> Path:
                 *dirnames,
             ],
         }
+
+        jsonable["mcpServers"] = mcp_servers
 
         json.dump(jsonable, l_config, indent=2)
 
@@ -161,41 +164,22 @@ def _find_up(current_path: Path) -> Path:
     return _find_up(parent_path)
 
 
-def _parse(config_file: Path) -> Config:
+def _load_raw_json(config_file: Path) -> Dict[str, Any]:
     """
-    Load the configuration JSON file compliant with the Claude Desktop format.
+    Load raw JSON configuration from file.
 
     Args:
-        config_file (str): Path to the configuration JSON file.
+        config_file (Path): Path to the configuration JSON file.
 
-    Raises:
-        ValueError: If the JSON file is missing required keys or is malformed.
+    Returns:
+        Dict[str, Any]: Raw JSON configuration or empty dict if file doesn't exist.
     """
-    llm = {}
-    servers = []
-
-    config = Config(prompt=None, llm=llm, servers=servers, root=config_file.parent, env={})
-
     if not config_file.is_file():
-        return config
+        return {}
 
     try:
         with open(config_file, "r") as file:
-            json_config = json.load(file)
-
-        config.prompt = json_config.get("systemPrompt", None)
-        llm.update(json_config.get("llm", {}))
-        config.env.update(json_config.get("env", {}))
-
-        for name, server_config in json_config["mcpServers"].items():
-            if not all(key in server_config for key in ["command", "args"]):
-                raise ValueError(
-                    "The configuration file is missing required keys: 'name', 'command', or 'args'."
-                )
-
-            server = MCPServer(name=name, **server_config)
-            servers.append(server)
-
+            return json.load(file)
     except json.JSONDecodeError as e:
         print(f"Failed to parse the JSON configuration file at {config_file}: {e}")
         sys.exit(1)
@@ -203,7 +187,36 @@ def _parse(config_file: Path) -> Config:
         print(f"internal error: Could not load configuration file at {config_file}: {e}")
         sys.exit(1)
 
-    return config
+
+def _parse_from_json(json_config: Dict[str, Any], root: Path) -> Config:
+    """
+    Parse a Config object from merged JSON configuration.
+
+    Args:
+        json_config (Dict[str, Any]): Merged JSON configuration.
+        root (Path): Root directory for the configuration.
+
+    Returns:
+        Config: Parsed configuration object.
+    """
+    llm = json_config.get("llm", {})
+    servers = []
+    env = json_config.get("env", {})
+    prompt = json_config.get("systemPrompt", None)
+    editor = json_config.get("editor", None)
+
+    # Parse MCP servers
+    mcp_servers = json_config.get("mcpServers", {})
+    for name, server_config in mcp_servers.items():
+        if not all(key in server_config for key in ["command", "args"]):
+            raise ValueError(
+                "The configuration file is missing required keys: 'command' or 'args'."
+            )
+
+        server = MCPServer(name=name, **server_config)
+        servers.append(server)
+
+    return Config(prompt=prompt, llm=llm, servers=servers, root=root, editor=editor, env=env)
 
 
 def list_directories(root_path: str) -> List[str]:
