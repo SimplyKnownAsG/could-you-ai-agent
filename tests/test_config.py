@@ -7,6 +7,102 @@ from jsonmerge import merge
 from could_you.config import _load_raw_json, _parse_from_json
 
 
+def test_parse_from_json_with_disabled_tools():
+    """Test parsing Config with disabled tools."""
+    json_config = {
+        "llm": {"provider": "boto3", "model": "test"},
+        "mcpServers": {
+            "test-server": {
+                "command": "test-command",
+                "args": ["arg1", "arg2"],
+                "disabledTools": ["tool1", "tool2"],
+            }
+        },
+    }
+
+    config = _parse_from_json(json_config, Path("/test/root"))
+
+    assert len(config.servers) == 1
+    server = config.servers[0]
+    assert server.name == "test-server"
+    assert server.disabled_tools == {"tool1", "tool2"}
+
+
+def test_parse_from_json_with_enabled_false():
+    """Test parsing Config with server disabled."""
+    json_config = {
+        "llm": {"provider": "boto3", "model": "test"},
+        "mcpServers": {
+            "disabled-server": {"command": "test-command", "args": ["arg1"], "enabled": False}
+        },
+    }
+
+    config = _parse_from_json(json_config, Path("/test/root"))
+
+    assert len(config.servers) == 1
+    server = config.servers[0]
+    assert server.name == "disabled-server"
+    assert server.enabled is False
+    assert server.disabled_tools == set()  # Empty set when not specified
+
+
+def test_parse_from_json_with_both_disabled_server_and_tools():
+    """Test parsing Config with both server disabled and specific tools disabled."""
+    json_config = {
+        "llm": {"provider": "boto3", "model": "test"},
+        "mcpServers": {
+            "complex-server": {
+                "command": "test-command",
+                "args": ["arg1"],
+                "enabled": False,
+                "disabledTools": ["unwanted_tool"],
+            }
+        },
+    }
+
+    config = _parse_from_json(json_config, Path("/test/root"))
+
+    assert len(config.servers) == 1
+    server = config.servers[0]
+    assert server.name == "complex-server"
+    assert server.enabled is False
+    assert server.disabled_tools == {"unwanted_tool"}
+
+
+def test_config_merging_with_disabled_tools():
+    """Test that jsonmerge uses the local config value for disabledTools."""
+    global_config = {
+        "llm": {"provider": "boto3", "model": "global-model"},
+        "mcpServers": {
+            "shared-server": {
+                "command": "global-command",
+                "args": ["global-arg"],
+                "disabledTools": ["global_disabled_tool"],
+            }
+        },
+    }
+
+    local_config = {
+        "mcpServers": {
+            "shared-server": {
+                "enabled": True,
+                "disabledTools": ["local_disabled_tool", "another_disabled_tool"],
+            }
+        }
+    }
+
+    merged = merge(global_config, local_config)
+
+    # The local disabled_tools should override the global ones
+    assert "shared-server" in merged["mcpServers"]
+    server_config = merged["mcpServers"]["shared-server"]
+    assert server_config["enabled"] is True
+    assert server_config["disabledTools"] == ["local_disabled_tool", "another_disabled_tool"]
+    # Global command and args should still be present
+    assert server_config["command"] == "global-command"
+    assert server_config["args"] == ["global-arg"]
+
+
 def test_load_raw_json_existing_file():
     """Test loading raw JSON from an existing file."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:

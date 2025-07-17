@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Tuple
 from mcp import ClientSession, Tool
 
 from .config import Config
-from .mcp_server import MCPServer
+from .mcp_server import MCPServer, MCPTool
 from .message_history import MessageHistory
 from .llm import create_llm, BaseLLM
 
@@ -16,7 +16,7 @@ class MCPHost:
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
         self.config = config
-        self.tools: Dict[str, Tuple[MCPServer, Tool]] = {}
+        self.tools: Dict[str, Tuple[MCPServer, MCPTool]] = {}
         self.message_history = message_history
         self.llm: Optional[BaseLLM] = None
 
@@ -26,6 +26,10 @@ class MCPHost:
             await s.connect(exit_stack=self.exit_stack)
 
             for t in s.tools:
+                # Only register enabled tools
+                if not t.enabled:
+                    continue
+
                 old_server, old_tool = self.tools.get(t.name, (None, None))
 
                 if old_server and old_tool:

@@ -213,7 +213,14 @@ def _parse_from_json(json_config: Dict[str, Any], root: Path) -> Config:
                 "The configuration file is missing required keys: 'command' or 'args'."
             )
 
-        server = MCPServer(name=name, **server_config)
+        # Extract disabled_tools if present
+        disabled_tools = server_config.get("disabledTools", [])
+
+        # Create server config without disabled_tools for MCPServer constructor
+        server_kwargs = server_config.copy()
+        server_kwargs.pop("disabledTools", None)
+
+        server = MCPServer(name=name, disabled_tools=disabled_tools, **server_kwargs)
         servers.append(server)
 
     return Config(prompt=prompt, llm=llm, servers=servers, root=root, editor=editor, env=env)

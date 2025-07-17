@@ -55,6 +55,7 @@ exclude = '''
 dev = [
     "pytest-black>=0.6.0",
     "pytest>=8.3.5",
+    "pytest-asyncio>=0.21.0",
     "pytest-cov>=6.0.0",
     "tox>=4.0.0",
 ]
@@ -68,9 +69,10 @@ legacy_tox_ini = """
 envlist = py311,py312
 
 [testenv]
-deps =
+deps = 
     pytest>=8.3.5
     pytest-black>=0.6.0
+    pytest-asyncio>=0.21.0
     pytest-cov>=6.0.0
     jsonmerge>=1.9.0
 commands = pytest {posargs}

@@ -95,6 +95,48 @@ Example configuration:
 }
 ```
 
+#### Server Configuration Options
+
+Each MCP server in the `mcpServers` section supports the following options:
+
+- **`command`** (required): The command to execute the MCP server
+- **`args`** (required): Array of arguments to pass to the command
+- **`env`** (optional): Environment variables to set for the server process
+- **`enabled`** (optional, default: `true`): Whether to enable this server
+- **`disabledTools`** (optional): Array of tool names to disable from this server
+
+Example configuration with tool disabling:
+```json
+{
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4"
+  },
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "enabled": true,
+      "disabledTools": ["write_file", "create_directory"]
+    },
+    "git": {
+      "command": "mcp-server-git",
+      "args": ["/workspace"],
+      "env": {
+        "GIT_AUTHOR_NAME": "AI Assistant"
+      }
+    },
+    "experimental-server": {
+      "command": "experimental-mcp-server",
+      "args": [],
+      "enabled": false
+    }
+  }
+}
+```
+
+**Tool Disabling**: Use `disabledTools` to prevent specific dangerous operations while keeping the server enabled. Tools listed here are filtered out during server connection and reported in logs for transparency.
+
 ## MCP Server Integration
 
 `could-you` acts as an MCP host, connecting to various MCP servers to extend functionality. Popular MCP servers include:
