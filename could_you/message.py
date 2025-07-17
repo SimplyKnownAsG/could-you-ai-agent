@@ -68,7 +68,6 @@ class _Dynamic:
         return result
 
 
-
 class ToolUse(_Dynamic):
     tool_use_id: str
     name: str
@@ -109,7 +108,7 @@ class Message(_Dynamic):
         print(f"*** {self.role} ***", file=output)
         for content in self.content:
             for key, val in vars(content).items():
-                if key == 'text':
+                if key == "text":
                     # Always print text content
                     print(f"    {key}:", file=output)
                     for line in val.splitlines():
@@ -131,7 +130,7 @@ class Message(_Dynamic):
                         print(f"        {str(val)}", file=output)
                 else:
                     # In non-verbose mode, print simplified content
-                    if key == 'toolUse' and isinstance(val, _Dynamic):
+                    if key == "toolUse" and isinstance(val, _Dynamic):
                         print(f"    {key}: {val.name}", file=output)
                     elif isinstance(val, _Dynamic):
                         print(f"    <{key}>", file=output)

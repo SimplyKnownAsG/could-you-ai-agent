@@ -97,8 +97,8 @@ def _get_editor_input(config, verbose=False):
     # Split content at the marker line, looking for complete lines only
     lines = content.splitlines(keepends=True)
     for i, line in enumerate(lines):
-        if line == marker+"\n":
-            input_lines = lines[i+1:]
+        if line == marker + "\n":
+            input_lines = lines[i + 1 :]
             break
     else:
         input_lines = lines

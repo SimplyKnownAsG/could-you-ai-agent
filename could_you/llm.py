@@ -49,8 +49,7 @@ class BaseLLM(ABC):
             verbose: Whether to show verbose output including tool details
         """
         self.message_history.add(
-            Message(role="user", content=[Content(text=query, type="text")]),
-            verbose=verbose
+            Message(role="user", content=[Content(text=query, type="text")]), verbose=verbose
         )
         should_continue = True
 
@@ -122,7 +121,7 @@ class Boto3LLM(BaseLLM):
         # why, oh why, are they not the same? claude via boto3 fails if "type" is specified
         for m in messages:
             for c in m["content"]:
-                if 'type' in c:
+                if "type" in c:
                     del c["type"]
 
         response = self.bedrock.converse(
@@ -152,10 +151,10 @@ class OpenAILLM(BaseLLM):
     async def converse(self) -> Message:
         try:
             response = self.client.chat.completions.create(
-                    model=self.model,
-                    tools=self._converted_tools,
-                    messages=self.message_history.to_dict(), # type: ignore
-                    )
+                model=self.model,
+                tools=self._converted_tools,
+                messages=self.message_history.to_dict(),  # type: ignore
+            )
             content = []
 
             for choice in response.choices:
@@ -168,9 +167,13 @@ class OpenAILLM(BaseLLM):
                         tool_use_id = tool_call.id
                         name = tool_call.function.name
                         input = json.loads(tool_call.function.arguments)
-                        content.append(Content(tool_use=ToolUse(tool_use_id=tool_use_id, name=name, input=input)))
+                        content.append(
+                            Content(
+                                tool_use=ToolUse(tool_use_id=tool_use_id, name=name, input=input)
+                            )
+                        )
                 else:
-                    raise NotImplementedError(f'Cannot handle response, sry... {response}')
+                    raise NotImplementedError(f"Cannot handle response, sry... {response}")
 
             msg_result = Message(role="assistant", content=content)
             return msg_result
@@ -203,14 +206,14 @@ class OpenAILLM(BaseLLM):
         converted_tools: Iterable[ChatCompletionToolParam] = []
         for [_server, tool] in self.tools.values():
             converted_tools.append(
-                    {
-                    "type":"function",
+                {
+                    "type": "function",
                     "function": {
                         "name": tool.name,
                         "description": str(tool.description),
-                        "parameters": tool.inputSchema
-                        }
-                    }
+                        "parameters": tool.inputSchema,
+                    },
+                }
             )
         return converted_tools
 
