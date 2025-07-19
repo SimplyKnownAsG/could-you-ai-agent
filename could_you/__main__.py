@@ -88,6 +88,7 @@ async def amain():
         query = args.query if args.query else _get_editor_input(config, args.legacy_verbose)
 
         if not query:
+            LOGGER.warn("no imput provided")
             parser.print_help()
             return
 

@@ -103,27 +103,29 @@ class Message(_Dynamic):
     content: List[Content]
 
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
-        info(f"*** {self.role} ***")
+        info(f"## {self.role}")
         for content in self.content:
             for key, val in vars(content).items():
                 if key == "text":
                     # Always print text content
-                    info(f"    {key}:")
+                    info(f"* {key}:")
                     for line in val.splitlines():
-                        info(f"        {line}")
+                        info(f"   > {line}")
                 else:
                     # Print full details in verbose mode
                     suffix = f" {val.name}" if key == "toolUse" and isinstance(val, _Dynamic) else ""
-                    info(f"    {key}:{suffix}")
+                    info(f"* {key}:{suffix}")
                     if isinstance(val, str):
                         for line in val.splitlines():
-                            debug(f"        {line}")
+                            debug(f"> {line}")
                     elif isinstance(val, _Dynamic):
                         # Pretty print JSON with consistent indentation
                         v = val.to_dict() if isinstance(val, _Dynamic) else val
                         json_lines = json.dumps(v, indent=2).splitlines()
+                        debug("  ```json")
                         for line in json_lines:
-                            debug(f"        {line}")
+                            debug(f"   {line}")
+                        debug("  ```")
                     else:
                         # For other types, convert to string
-                        debug(f"        {str(val)}")
+                        debug(f"    {str(val)}")
