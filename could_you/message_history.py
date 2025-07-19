@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Callable
 
 from .message import Message, _Dynamic
+from .logging_config import LOGGER
 
 
 class MessageHistory:
@@ -24,9 +25,9 @@ class MessageHistory:
         with open(self.path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
-    def add(self, message: Message, verbose=False):
+    def add(self, message: Message):
         self.messages.append(message)
-        message.print(verbose=verbose)
+        message.print(info=LOGGER.info, debug=LOGGER.debug)
 
     def to_dict(self) -> List[Dict[str, Any]]:
         return [m.to_dict() for m in self.messages]
@@ -36,7 +37,6 @@ class MessageHistory:
 
         Args:
             file: Optional file-like object to write to. If None, writes to sys.stdout
-            verbose: Whether to show verbose output including tool details
         """
         for message in self.messages:
             message.print(info=info, debug=debug)

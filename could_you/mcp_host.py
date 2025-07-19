@@ -48,9 +48,9 @@ class MCPHost:
         """Clean up resources"""
         await self.exit_stack.aclose()
 
-    async def process_query(self, query: str, verbose: bool = False):
+    async def process_query(self, query: str):
         """Run an interactive chat loop"""
         try:
-            await self.llm.process_query(query, verbose=verbose)
+            await self.llm.process_query(query)
         except Exception as e:
             LOGGER.error(f"Error: {str(e)}")

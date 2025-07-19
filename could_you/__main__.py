@@ -19,9 +19,6 @@ async def amain():
     log_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)")
     log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
 
-    # Keep the old verbose flag for backward compatibility with existing code
-    parser.add_argument("--legacy-verbose", action="store_true", help=argparse.SUPPRESS)
-
     # Define a mutually exclusive group
     group = parser.add_mutually_exclusive_group()
 
@@ -53,9 +50,6 @@ async def amain():
     # Initialize logging
     setup_logging(log_level)
 
-    # For backward compatibility, set legacy_verbose based on verbose flag
-    args.legacy_verbose = args.verbose
-
     session_manager = SessionManager()
 
     if args.list_sessions:
@@ -85,7 +79,7 @@ async def amain():
                 pass
     else:
         config = load()
-        query = args.query if args.query else _get_editor_input(config, args.legacy_verbose)
+        query = args.query if args.query else _get_editor_input(config)
 
         if not query:
             LOGGER.warn("no imput provided")
@@ -94,10 +88,10 @@ async def amain():
 
         with MessageHistory(config.root) as message_history:
             async with MCPHost(config=config, message_history=message_history) as host:
-                await host.process_query(query, verbose=args.legacy_verbose)
+                await host.process_query(query)
 
 
-def _get_editor_input(config, verbose=False):
+def _get_editor_input(config):
     """Open a temporary file in the user's preferred editor and return the content."""
 
     with tempfile.NamedTemporaryFile(suffix=".md", mode="w+") as tf:

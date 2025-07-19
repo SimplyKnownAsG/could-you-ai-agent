@@ -112,9 +112,9 @@ class Message(_Dynamic):
                     for line in val.splitlines():
                         info(f"   > {line}")
                 else:
-                    # Print full details in verbose mode
                     suffix = f" {val.name}" if key == "toolUse" and isinstance(val, _Dynamic) else ""
                     info(f"* {key}:{suffix}")
+
                     if isinstance(val, str):
                         for line in val.splitlines():
                             debug(f"> {line}")
