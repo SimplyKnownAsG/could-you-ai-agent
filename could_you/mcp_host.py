@@ -7,6 +7,8 @@ from .config import Config
 from .mcp_server import MCPServer, MCPTool
 from .message_history import MessageHistory
 from .llm import create_llm, BaseLLM
+from .logging_config import LOGGER
+
 
 
 class MCPHost:
@@ -33,8 +35,8 @@ class MCPHost:
                 old_server, old_tool = self.tools.get(t.name, (None, None))
 
                 if old_server and old_tool:
-                    print(
-                        f"warning: Duplicate {t.name} tool found, using {s.name} version instead of {old_server.name}."
+                    LOGGER.warning(
+                        f"Duplicate {t.name} tool found, using {s.name} version instead of {old_server.name}."
                     )
 
                 self.tools[t.name] = (s, t)
@@ -51,4 +53,4 @@ class MCPHost:
         try:
             await self.llm.process_query(query, verbose=verbose)
         except Exception as e:
-            print(f"\nError: {str(e)}")
+            LOGGER.error(f"Error: {str(e)}")

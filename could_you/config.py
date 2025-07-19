@@ -8,6 +8,8 @@ from typing import List, Dict, Any, Set
 from jsonmerge import merge
 
 from .mcp_server import MCPServer
+from .logging_config import LOGGER
+
 
 
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -71,11 +73,11 @@ def load():
 
     # Validate required fields
     if not config.llm:
-        print(f'ERROR: Must specify "llm" in config')
+        LOGGER.error('Must specify "llm" in config')
         sys.exit(1)
 
-    if config.llm["provider"] not in ["boto3", "ollama"]:
-        print(f"ERROR: supported providers are boto3 and ollama, got {config.llm['provider']}")
+    if config.llm["provider"] not in ["boto3", "ollama", "openai"]:
+        LOGGER.error(f"supported providers are boto3, ollama, and openai, got {config.llm['provider']}")
         sys.exit(1)
 
     # Apply environment variables
@@ -156,8 +158,8 @@ def _find_up(current_path: Path) -> Path:
 
     # Stop recursion if we've reached the root directory
     if current_path == parent_path:
-        print("error: did not find .could-you-config.json in this or above directories.")
-        print("error: could-you must be run from within a workspace.")
+        LOGGER.error("did not find .could-you-config.json in this or above directories.")
+        LOGGER.error("could-you must be run from within a workspace.")
         sys.exit(1)
 
     # Recurse into the parent directory
@@ -181,10 +183,10 @@ def _load_raw_json(config_file: Path) -> Dict[str, Any]:
         with open(config_file, "r") as file:
             return json.load(file)
     except json.JSONDecodeError as e:
-        print(f"Failed to parse the JSON configuration file at {config_file}: {e}")
+        LOGGER.error(f"Failed to parse the JSON configuration file at {config_file}: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"internal error: Could not load configuration file at {config_file}: {e}")
+        LOGGER.error(f"internal error: Could not load configuration file at {config_file}: {e}")
         sys.exit(1)
 
 

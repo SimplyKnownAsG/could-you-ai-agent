@@ -1,7 +1,6 @@
 import json
-import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Callable
 
 from .message import Message, _Dynamic
 
@@ -32,14 +31,12 @@ class MessageHistory:
     def to_dict(self) -> List[Dict[str, Any]]:
         return [m.to_dict() for m in self.messages]
 
-    def print_history(self, file=None, verbose=False):
+    def print_history(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
         """Print message history in a detailed format.
 
         Args:
             file: Optional file-like object to write to. If None, writes to sys.stdout
             verbose: Whether to show verbose output including tool details
         """
-        output = file if file is not None else sys.stdout
-
         for message in self.messages:
-            message.print(output, verbose=verbose)
+            message.print(info=info, debug=debug)

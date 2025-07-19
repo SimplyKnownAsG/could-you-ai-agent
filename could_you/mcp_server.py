@@ -2,6 +2,8 @@ from typing import Dict, List, Optional, Any, Set
 from mcp import ClientSession, StdioServerParameters, Tool
 from contextlib import AsyncExitStack
 from mcp.client.stdio import stdio_client
+from .logging_config import LOGGER
+
 
 
 class MCPTool:
@@ -83,12 +85,12 @@ class MCPServer:
                 self.tools.append(mcp_tool)
 
             # Report enabled tools
-            print(f"Connected to {self.name} server with tools:")
+            LOGGER.info(f"Connected to {self.name} server with tools:")
             for tool in self.tools:
                 suffix = "" if tool.enabled else " (disabled)"
-                print(f"    {tool.name}{suffix}")
+                LOGGER.info(f"    {tool.name}{suffix}")
         else:
-            print(f"Server {self.name} is not enabled.")
+            LOGGER.info(f"Server {self.name} is not enabled.")
             self.tools = []
 
         return True

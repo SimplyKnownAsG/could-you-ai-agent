@@ -13,6 +13,8 @@ from .message import Message, Content, ToolResult, ToolUse
 from .config import Config
 from .message_history import MessageHistory
 from .mcp_server import MCPServer
+from .logging_config import LOGGER
+
 
 
 class BaseLLM(ABC):
@@ -179,9 +181,9 @@ class OpenAILLM(BaseLLM):
             return msg_result
 
         except Exception as err:
-            print(err)
-            print(type(err))
-            print(traceback.print_exc())
+            LOGGER.error(f"Error: {err}")
+            LOGGER.debug(f"Error type: {type(err)}")
+            LOGGER.debug(traceback.format_exc())
             raise err
 
     def convert_messages_for_openai(
@@ -243,5 +245,7 @@ def create_llm(
         return Boto3LLM(config, message_history, tools)
     elif provider == "ollama":
         return OllamaLLM(config, message_history, tools)
+    elif provider == "openai":
+        return OpenAILLM(config, message_history, tools)
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")

@@ -8,11 +8,19 @@ from .mcp_host import MCPHost
 from .config import load, init
 from .message_history import MessageHistory
 from .message import _Dynamic
+from .logging_config import setup_logging, LOGGER
 
 
 async def amain():
     parser = argparse.ArgumentParser(description="Could-You MCP CLI")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output mode")
+
+    # Logging options (mutually exclusive)
+    log_group = parser.add_mutually_exclusive_group()
+    log_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)")
+    log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
+
+    # Keep the old verbose flag for backward compatibility with existing code
+    parser.add_argument("--legacy-verbose", action="store_true", help=argparse.SUPPRESS)
 
     # Define a mutually exclusive group
     group = parser.add_mutually_exclusive_group()
@@ -34,19 +42,33 @@ async def amain():
 
     args = parser.parse_args()
 
+    # Set up logging based on command line arguments
+    if args.verbose:
+        log_level = 'DEBUG'
+    elif args.quiet:
+        log_level = 'WARNING'
+    else:
+        log_level = 'INFO'
+
+    # Initialize logging
+    setup_logging(log_level)
+
+    # For backward compatibility, set legacy_verbose based on verbose flag
+    args.legacy_verbose = args.verbose
+
     session_manager = SessionManager()
 
     if args.list_sessions:
         # List all sessions
         sessions = session_manager.list_sessions()
         for session in sessions:
-            print(
+            LOGGER.info(
                 f"Session: {session['name']}, Tokens Used: {session['tokens_used']}, Directory: {session['directory']}"
             )
     elif args.init_session:
         # Create or switch to a session
         l_config_path = init()
-        print(f"initialized config file: {l_config_path}")
+        LOGGER.info(f"initialized config file: {l_config_path}")
     elif args.delete_session:
         # Create or switch to a session
         session_manager.delete_session(args.delete_session)
@@ -54,7 +76,7 @@ async def amain():
         # Print message history
         config = load()
         with MessageHistory(config.root) as message_history:
-            message_history.print_history(verbose=args.verbose)
+            message_history.print_history(info=LOGGER.info, debug=LOGGER.debug)
     elif args.test_connect:
         # List servers and their tools
         config = load()
@@ -63,7 +85,7 @@ async def amain():
                 pass
     else:
         config = load()
-        query = args.query if args.query else _get_editor_input(config, args.verbose)
+        query = args.query if args.query else _get_editor_input(config, args.legacy_verbose)
 
         if not query:
             parser.print_help()
@@ -71,7 +93,7 @@ async def amain():
 
         with MessageHistory(config.root) as message_history:
             async with MCPHost(config=config, message_history=message_history) as host:
-                await host.process_query(query, verbose=args.verbose)
+                await host.process_query(query, verbose=args.legacy_verbose)
 
 
 def _get_editor_input(config, verbose=False):
@@ -80,7 +102,8 @@ def _get_editor_input(config, verbose=False):
     with tempfile.NamedTemporaryFile(suffix=".md", mode="w+") as tf:
         # Write message history to the file
         with MessageHistory(config.root) as message_history:
-            message_history.print_history(tf, verbose=verbose)
+            printer = lambda msg: print(msg, file=tf)
+            message_history.print_history(info=printer, debug=printer)
 
         # Write the special editor input marker - this exact line is used to find user input
         marker = "# *** PROVIDE_INPUT_AFTER_THIS_LINE ***"
