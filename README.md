@@ -18,7 +18,7 @@ A powerful command-line assistant that integrates with Model Context Protocol (M
 ## Installation
 
 ```bash
-pip install could-you-mcp-host
+pip install could-you-ai-agent
 ```
 
 ## Quick Start
@@ -158,6 +158,6 @@ MIT License - see LICENSE file for details.
 
 ## Links
 
-- [Homepage](https://github.com/SimplyKnownAsG/could-you-mcp-host)
-- [Repository](https://github.com/SimplyKnownAsG/could-you-mcp-host)
+- [Homepage](https://github.com/SimplyKnownAsG/could-you-ai-agent)
+- [Repository](https://github.com/SimplyKnownAsG/could-you-ai-agent)
 - [Model Context Protocol](https://modelcontextprotocol.io/)

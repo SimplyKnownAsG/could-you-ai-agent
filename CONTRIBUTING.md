@@ -16,8 +16,8 @@ Thank you for your interest in contributing to `could-you`! This document provid
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/SimplyKnownAsG/could-you-mcp-host.git
-   cd could-you-mcp-host
+   git clone https://github.com/SimplyKnownAsG/could-you-ai-agent.git
+   cd could-you-ai-agent
    ```
 
 2. **Set up virtual environment** (using uv):
