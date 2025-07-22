@@ -16,8 +16,12 @@ async def amain():
 
     # Logging options (mutually exclusive)
     log_group = parser.add_mutually_exclusive_group()
-    log_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)")
-    log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
+    log_group.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)"
+    )
+    log_group.add_argument(
+        "-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)"
+    )
 
     # Define a mutually exclusive group
     group = parser.add_mutually_exclusive_group()
@@ -41,11 +45,11 @@ async def amain():
 
     # Set up logging based on command line arguments
     if args.verbose:
-        log_level = 'DEBUG'
+        log_level = "DEBUG"
     elif args.quiet:
-        log_level = 'WARNING'
+        log_level = "WARNING"
     else:
-        log_level = 'INFO'
+        log_level = "INFO"
 
     # Initialize logging
     setup_logging(log_level)

@@ -6,13 +6,7 @@ from typing import Optional
 class _TerseFormatter(logging.Formatter):
     """Custom formatter that uses single letter log levels"""
 
-    LEVEL_MAP = {
-        'DEBUG': 'D',
-        'INFO': 'I',
-        'WARNING': 'W',
-        'ERROR': 'E',
-        'CRITICAL': 'C'
-    }
+    LEVEL_MAP = {"DEBUG": "D", "INFO": "I", "WARNING": "W", "ERROR": "E", "CRITICAL": "C"}
 
     def format(self, record):
         # Replace the levelname with single letter
@@ -41,13 +35,13 @@ def setup_logging(level: Optional[str] = None) -> logging.Logger:
     """
     # Default to INFO if no level specified
     if level is None:
-        level = 'INFO'
+        level = "INFO"
 
     # Convert string level to logging constant
     numeric_level = getattr(logging, level.upper(), logging.INFO)
 
     # Create logger
-    logger = logging.getLogger('could_you')
+    logger = logging.getLogger("could_you")
     logger.setLevel(numeric_level)
 
     # Remove any existing handlers to avoid duplicates
@@ -60,8 +54,7 @@ def setup_logging(level: Optional[str] = None) -> logging.Logger:
 
     # Create terse formatter
     formatter = _TerseFormatter(
-        fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
     console_handler.setFormatter(formatter)
 
@@ -73,4 +66,5 @@ def setup_logging(level: Optional[str] = None) -> logging.Logger:
 
     return logger
 
-LOGGER = logging.getLogger('could_you')
+
+LOGGER = logging.getLogger("could_you")

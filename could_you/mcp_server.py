@@ -5,7 +5,6 @@ from mcp.client.stdio import stdio_client
 from .logging_config import LOGGER
 
 
-
 class MCPTool:
     """Wrapper for MCP Tool with enabled/disabled status awareness."""
 

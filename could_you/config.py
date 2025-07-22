@@ -11,7 +11,6 @@ from .mcp_server import MCPServer
 from .logging_config import LOGGER
 
 
-
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
 GLOBAL_CONFIG_PATH = Path(XDG_CONFIG_HOME) / "could-you" / "config.json"
 CONFIG_FILE_NAME = ".could-you-config.json"
@@ -77,7 +76,9 @@ def load():
         sys.exit(1)
 
     if config.llm["provider"] not in ["boto3", "ollama", "openai"]:
-        LOGGER.error(f"supported providers are boto3, ollama, and openai, got {config.llm['provider']}")
+        LOGGER.error(
+            f"supported providers are boto3, ollama, and openai, got {config.llm['provider']}"
+        )
         sys.exit(1)
 
     # Apply environment variables

@@ -112,7 +112,9 @@ class Message(_Dynamic):
                     for line in val.splitlines():
                         info(f"   > {line}")
                 else:
-                    suffix = f" {val.name}" if key == "toolUse" and isinstance(val, _Dynamic) else ""
+                    suffix = (
+                        f" {val.name}" if key == "toolUse" and isinstance(val, _Dynamic) else ""
+                    )
                     info(f"* {key}:{suffix}")
 
                     if isinstance(val, str):

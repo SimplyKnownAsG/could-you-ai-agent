@@ -10,7 +10,6 @@ from .llm import create_llm, BaseLLM
 from .logging_config import LOGGER
 
 
-
 class MCPHost:
     def __init__(self, *, config: Config, message_history: MessageHistory):
         # Initialize session and client objects

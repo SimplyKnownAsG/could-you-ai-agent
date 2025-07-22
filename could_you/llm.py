@@ -16,7 +16,6 @@ from .mcp_server import MCPServer
 from .logging_config import LOGGER
 
 
-
 class BaseLLM(ABC):
     def __init__(
         self,
@@ -49,9 +48,7 @@ class BaseLLM(ABC):
         Args:
             query: The user's input query
         """
-        self.message_history.add(
-            Message(role="user", content=[Content(text=query, type="text")])
-        )
+        self.message_history.add(Message(role="user", content=[Content(text=query, type="text")]))
         should_continue = True
 
         while should_continue:
