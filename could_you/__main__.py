@@ -95,6 +95,7 @@ def _get_editor_input(config):
     """Open a temporary file in the user's preferred editor and return the content."""
 
     with tempfile.NamedTemporaryFile(suffix=".md", mode="w+") as tf:
+        tf.write("# Previous messages\n\n")
         # Write message history to the file
         with MessageHistory(config.root) as message_history:
             printer = lambda msg: print(msg, file=tf)
