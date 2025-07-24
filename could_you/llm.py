@@ -32,10 +32,6 @@ class BaseLLM(ABC):
         """
         Execute a conversation turn with the LLM.
 
-        Args:
-            messages: List of message dictionaries in the format expected by the specific LLM
-            system_prompt: Optional system prompt to include
-
         Returns:
             Message: The LLM's response as a Message object
         """
@@ -151,7 +147,7 @@ class OpenAILLM(BaseLLM):
             response = self.client.chat.completions.create(
                 model=self.model,
                 tools=self._converted_tools,
-                messages=self.message_history.to_dict(),  # type: ignore
+                messages=self._convert_messages(),  # type: ignore
             )
             content = []
 
@@ -159,7 +155,7 @@ class OpenAILLM(BaseLLM):
                 msg = choice.message
 
                 if msg.content:
-                    content.append(Content(text=msg.content))
+                    content.append(Content(text=msg.content, type="text"))
                 elif msg.tool_calls:
                     for tool_call in msg.tool_calls:
                         tool_use_id = tool_call.id
@@ -182,23 +178,56 @@ class OpenAILLM(BaseLLM):
             LOGGER.debug(traceback.format_exc())
             raise err
 
-    def convert_messages_for_openai(
-        self, messages: List[Message], system_prompt: str | None = None
-    ) -> List[Dict[str, str]]:
+    def _convert_messages(self) -> List[Dict[str, str]]:
         """Convert messages to Ollama's expected format"""
-        ollama_messages = []
+        openai_msgs = []
 
         # Add system prompt if provided
-        if system_prompt:
-            ollama_messages.append({"role": "system", "content": system_prompt})
+        if self.config.prompt:
+            openai_msgs.append(dict(role="system", content=self.config.prompt))
 
         # Convert message history
-        for msg in messages:
-            for content in msg["content"]:
-                if "text" in content:
-                    ollama_messages.append({"role": msg["role"], "content": content["text"]})
+        for msg in self.message_history.messages:
+            for content in msg.content:
+                if content.text:
+                    openai_msgs.append({"role": msg.role, "content": content.text})
+                elif content.tool_use:
+                    # this is ... not ideal
+                    tool_call = dict(
+                                id=content.tool_use.tool_use_id,
+                                type="function",
+                                function=dict(
+                                    name=content.tool_use.name, arguments=json.dumps(content.tool_use.input.to_dict())
+                                ),
+                            )
+                    prev = openai_msgs[-1]
+                    if prev and prev.get("tool_calls"):
+                        prev["tool_calls"].append(tool_call)
+                    else:
+                        openai_msgs.append(
+                            dict(
+                                role="assistant",
+                                tool_calls=[dict(
+                                    id=content.tool_use.tool_use_id,
+                                    type="function",
+                                    function=dict(
+                                        name=content.tool_use.name, arguments=json.dumps(content.tool_use.input.to_dict())
+                                    ),
+                                )],
+                            )
+                        )
+                elif content.tool_result:
+                    openai_msgs.append(
+                        dict(
+                            role="tool",
+                            tool_call_id=content.tool_result.tool_use_id,
+                            content=content.tool_result.content[0].text,
+                        )
+                    )
+                else:
+                    raise Exception("I don't know what to do with " + json.dumps(content.to_dict()))
 
-        return ollama_messages
+        return openai_msgs
 
     def _convert_tools(self) -> Iterable[ChatCompletionToolParam]:
         converted_tools: Iterable[ChatCompletionToolParam] = []
