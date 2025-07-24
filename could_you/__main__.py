@@ -22,6 +22,7 @@ async def amain():
     log_group.add_argument(
         "-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)"
     )
+    parser.add_argument("-H", "--no-history", action="store_true", help="Ignore message history")
 
     # Define a mutually exclusive group
     group = parser.add_mutually_exclusive_group()
@@ -78,7 +79,7 @@ async def amain():
     elif args.test_connect:
         # List servers and their tools
         config = load()
-        with MessageHistory(config.root) as message_history:
+        with MessageHistory(config.root, enable=False) as message_history:
             async with MCPHost(config=config, message_history=message_history) as host:
                 pass
     else:
@@ -90,7 +91,7 @@ async def amain():
             parser.print_help()
             return
 
-        with MessageHistory(config.root) as message_history:
+        with MessageHistory(config.root, enable=not args.no_history) as message_history:
             async with MCPHost(config=config, message_history=message_history) as host:
                 await host.process_query(query)
 

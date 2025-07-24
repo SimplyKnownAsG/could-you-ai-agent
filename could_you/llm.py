@@ -194,12 +194,13 @@ class OpenAILLM(BaseLLM):
                 elif content.tool_use:
                     # this is ... not ideal
                     tool_call = dict(
-                                id=content.tool_use.tool_use_id,
-                                type="function",
-                                function=dict(
-                                    name=content.tool_use.name, arguments=json.dumps(content.tool_use.input.to_dict())
-                                ),
-                            )
+                        id=content.tool_use.tool_use_id,
+                        type="function",
+                        function=dict(
+                            name=content.tool_use.name,
+                            arguments=json.dumps(content.tool_use.input.to_dict()),
+                        ),
+                    )
                     prev = openai_msgs[-1]
                     if prev and prev.get("tool_calls"):
                         prev["tool_calls"].append(tool_call)
@@ -207,13 +208,16 @@ class OpenAILLM(BaseLLM):
                         openai_msgs.append(
                             dict(
                                 role="assistant",
-                                tool_calls=[dict(
-                                    id=content.tool_use.tool_use_id,
-                                    type="function",
-                                    function=dict(
-                                        name=content.tool_use.name, arguments=json.dumps(content.tool_use.input.to_dict())
-                                    ),
-                                )],
+                                tool_calls=[
+                                    dict(
+                                        id=content.tool_use.tool_use_id,
+                                        type="function",
+                                        function=dict(
+                                            name=content.tool_use.name,
+                                            arguments=json.dumps(content.tool_use.input.to_dict()),
+                                        ),
+                                    )
+                                ],
                             )
                         )
                 elif content.tool_result:
