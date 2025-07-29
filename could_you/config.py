@@ -211,9 +211,11 @@ def _parse_from_json(json_config: Dict[str, Any], root: Path) -> Config:
     # Parse MCP servers
     mcp_servers = json_config.get("mcpServers", {})
     for name, server_config in mcp_servers.items():
-        if not all(key in server_config for key in ["command", "args"]):
+        missing = [key for key in ["command", "args"] if key not in server_config]
+
+        if any(missing):
             raise ValueError(
-                "The configuration file is missing required keys: 'command' or 'args'."
+                f"The MCP Server '{name}' file is missing required keys: {', '.join(missing)}."
             )
 
         # Extract disabled_tools if present
