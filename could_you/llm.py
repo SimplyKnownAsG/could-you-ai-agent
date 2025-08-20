@@ -59,31 +59,45 @@ class BaseLLM(ABC):
                     continue
 
                 should_continue = True
-                server = self.tools[tool_use.name][0]
                 tool_content: List[Content] = []
 
-                try:
-                    tool_response = await server.call_tool(tool_use.name, tool_use.input.to_dict())
+                if tool_use.name not in self.tools:
+                    LOGGER.warning(f"LLM attempted to call tool that is not registerd: {tool_use.name}")
                     tool_content.append(
                         Content(
                             toolResult=ToolResult(
                                 toolUseId=tool_use.tool_use_id,
-                                content=[dict(text=c.text) for c in tool_response.content],
-                                status="success",
-                            )
-                        )
-                    )
-
-                except Exception as err:
-                    tool_content.append(
-                        Content(
-                            toolResult=ToolResult(
-                                toolUseId=tool_use.tool_use_id,
-                                content=[Content(text=f"Error: {str(err)}")],
+                                content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
                                 status="error",
                             )
                         )
                     )
+
+                else:
+                    server = self.tools[tool_use.name][0]
+
+                    try:
+                        tool_response = await server.call_tool(tool_use.name, tool_use.input.to_dict())
+                        tool_content.append(
+                            Content(
+                                toolResult=ToolResult(
+                                    toolUseId=tool_use.tool_use_id,
+                                    content=[dict(text=c.text) for c in tool_response.content],
+                                    status="success",
+                                )
+                            )
+                        )
+
+                    except Exception as err:
+                        tool_content.append(
+                            Content(
+                                toolResult=ToolResult(
+                                    toolUseId=tool_use.tool_use_id,
+                                    content=[Content(text=f"Error: {str(err)}")],
+                                    status="error",
+                                )
+                            )
+                        )
 
                 tool_message = Message(role="user", content=tool_content)
                 self.message_history.add(tool_message)
