@@ -1,7 +1,7 @@
 from contextlib import AsyncExitStack
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict
 
-from mcp import ClientSession, Tool
+from mcp import ClientSession
 
 from .config import Config
 from .mcp_server import MCPServer, MCPTool
@@ -17,12 +17,13 @@ class MCPHost:
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
         self.config = config
-        self.tools: Dict[str, Tuple[MCPServer, MCPTool]] = {}
         self.message_history = message_history
         self.llm: Optional[BaseLLM] = None
 
     async def __aenter__(self):
         # TODO: should this use asyncio.create_task or TaskGroup?
+        tools: Dict[str, MCPTool] = {}
+
         for s in self.servers:
             await s.connect(exit_stack=self.exit_stack)
 
@@ -31,16 +32,16 @@ class MCPHost:
                 if not t.enabled:
                     continue
 
-                old_server, old_tool = self.tools.get(t.name, (None, None))
+                old_tool = tools.get(t.name, None)
 
-                if old_server and old_tool:
+                if old_tool:
                     LOGGER.warning(
-                        f"Duplicate {t.name} tool found, using {s.name} version instead of {old_server.name}."
+                        f"Duplicate {t.name} tool found, using {s.name} version instead of {old_tool.server.name}."
                     )
 
-                self.tools[t.name] = (s, t)
+                tools[t.name] = t
 
-        self.llm = create_llm(self.config, self.message_history, self.tools)
+        self.llm = create_llm(self.config, self.message_history, tools)
         return self
 
     async def __aexit__(self, *args):
@@ -49,6 +50,9 @@ class MCPHost:
 
     async def process_query(self, query: str):
         """Run an interactive chat loop"""
+        if not self.llm:
+            raise Exception("Must __aenter__ to query!")
+
         try:
             await self.llm.process_query(query)
         except Exception as e:

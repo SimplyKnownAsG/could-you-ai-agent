@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Iterable, Optional
+from typing import Dict, List, Iterable
 import traceback
 import openai
 import os
@@ -12,7 +12,7 @@ from mcp import Tool
 from .message import Message, Content, ToolResult, ToolUse
 from .config import Config
 from .message_history import MessageHistory
-from .mcp_server import MCPServer
+from .mcp_server import MCPServer, MCPTool
 from .logging_config import LOGGER
 
 
@@ -21,7 +21,7 @@ class BaseLLM(ABC):
         self,
         config: Config,
         message_history: MessageHistory,
-        tools: Dict[str, tuple[MCPServer, Tool]],
+        tools: Dict[str, MCPTool],
     ):
         self.config = config
         self.message_history = message_history
@@ -61,23 +61,9 @@ class BaseLLM(ABC):
                 should_continue = True
                 tool_content: List[Content] = []
 
-                if tool_use.name not in self.tools:
-                    LOGGER.warning(f"LLM attempted to call tool that is not registerd: {tool_use.name}")
-                    tool_content.append(
-                        Content(
-                            toolResult=ToolResult(
-                                toolUseId=tool_use.tool_use_id,
-                                content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
-                                status="error",
-                            )
-                        )
-                    )
-
-                else:
-                    server = self.tools[tool_use.name][0]
-
+                if tool := self.tools.get(tool_use.name, None):
                     try:
-                        tool_response = await server.call_tool(tool_use.name, tool_use.input.to_dict())
+                        tool_response = await tool(tool_use.input.to_dict())
                         tool_content.append(
                             Content(
                                 toolResult=ToolResult(
@@ -99,6 +85,20 @@ class BaseLLM(ABC):
                             )
                         )
 
+                else:
+                    LOGGER.warning(
+                        f"LLM attempted to call tool that is not registerd: {tool_use.name}"
+                    )
+                    tool_content.append(
+                        Content(
+                            toolResult=ToolResult(
+                                toolUseId=tool_use.tool_use_id,
+                                content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
+                                status="error",
+                            )
+                        )
+                    )
+
                 tool_message = Message(role="user", content=tool_content)
                 self.message_history.add(tool_message)
 
@@ -109,7 +109,7 @@ class Boto3LLM(BaseLLM):
         self.bedrock = boto3.client("bedrock-runtime")
         converted_tools = []
 
-        for server, tool in self.tools.values():
+        for tool in self.tools.values():
             converted_tools.append(
                 {
                     "toolSpec": {
@@ -249,7 +249,7 @@ class OpenAILLM(BaseLLM):
 
     def _convert_tools(self) -> Iterable[ChatCompletionToolParam]:
         converted_tools: Iterable[ChatCompletionToolParam] = []
-        for [_server, tool] in self.tools.values():
+        for tool in self.tools.values():
             converted_tools.append(
                 {
                     "type": "function",
@@ -279,7 +279,7 @@ class OllamaLLM(OpenAILLM):
 
 
 def create_llm(
-    config: Config, message_history: MessageHistory, tools: Dict[str, tuple[MCPServer, Tool]]
+    config: Config, message_history: MessageHistory, tools: Dict[str, MCPTool]
 ) -> BaseLLM:
     """Factory function to create the appropriate LLM instance based on configuration"""
     provider = config.llm["provider"]

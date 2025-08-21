@@ -2,12 +2,10 @@ import asyncio
 import argparse
 import tempfile
 import subprocess
-import json
 from .session_manager import SessionManager
 from .mcp_host import MCPHost
 from .config import load, init
 from .message_history import MessageHistory
-from .message import _Dynamic
 from .logging_config import setup_logging, LOGGER
 
 

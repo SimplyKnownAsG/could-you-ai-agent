@@ -8,21 +8,13 @@ from .logging_config import LOGGER
 class MCPTool:
     """Wrapper for MCP Tool with enabled/disabled status awareness."""
 
-    def __init__(self, tool: Tool, enabled: bool = True):
+    def __init__(self, server: "MCPServer", tool: Tool, enabled: bool = True):
+        self.server = server
         self.tool = tool
         self.enabled = enabled
 
-    @property
-    def name(self) -> str:
-        return self.tool.name
-
-    @property
-    def description(self) -> str | None:
-        return self.tool.description
-
-    @property
-    def inputSchema(self):
-        return self.tool.inputSchema
+    async def __call__(self, tool_args: Dict[str, Any]):
+        return await self.server.call_tool(self.name, tool_args)
 
     def __getattr__(self, name):
         # Delegate any other attribute access to the underlying tool
@@ -80,7 +72,7 @@ class MCPServer:
             self.tools = []
             for tool in response.tools:
                 enabled = tool.name not in self.disabled_tools
-                mcp_tool = MCPTool(tool, enabled=enabled)
+                mcp_tool = MCPTool(self, tool, enabled=enabled)
                 self.tools.append(mcp_tool)
 
             # Report enabled tools
