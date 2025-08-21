@@ -1,29 +1,26 @@
 from contextlib import AsyncExitStack
 from typing import Optional, List, Dict
 
-from mcp import ClientSession
-
 from .config import Config
 from .mcp_server import MCPServer, MCPTool
 from .message_history import MessageHistory
 from .llm import create_llm, BaseLLM
 from .logging_config import LOGGER
+from .message import Message, Content, ToolResult
 
 
 class Agent:
     def __init__(self, *, config: Config, message_history: MessageHistory):
         # Initialize session and client objects
         self.servers: List[MCPServer] = config.servers
-        self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
         self.config = config
         self.message_history = message_history
         self.llm: Optional[BaseLLM] = None
+        self.tools: Dict[str, MCPTool] = {}
 
     async def __aenter__(self):
         # TODO: should this use asyncio.create_task or TaskGroup?
-        tools: Dict[str, MCPTool] = {}
-
         for s in self.servers:
             await s.connect(exit_stack=self.exit_stack)
 
@@ -32,28 +29,86 @@ class Agent:
                 if not t.enabled:
                     continue
 
-                old_tool = tools.get(t.name, None)
+                old_tool = self.tools.get(t.name, None)
 
                 if old_tool:
                     LOGGER.warning(
                         f"Duplicate {t.name} tool found, using {s.name} version instead of {old_tool.server.name}."
                     )
 
-                tools[t.name] = t
+                self.tools[t.name] = t
 
-        self.llm = create_llm(self.config, self.message_history, tools)
+        self.llm = create_llm(self.config, self.message_history, self.tools)
         return self
 
     async def __aexit__(self, *args):
         """Clean up resources"""
         await self.exit_stack.aclose()
 
-    async def process_query(self, query: str):
-        """Run an interactive chat loop"""
-        if not self.llm:
-            raise Exception("Must __aenter__ to query!")
+    async def orchestrate(self, query: str) -> None:
+        """
+        Process a user query through the LLM and handle any tool calls.
 
-        try:
-            await self.llm.process_query(query)
-        except Exception as e:
-            LOGGER.error(f"Error: {str(e)}")
+        Args:
+            query: The user's input query
+        """
+        if not self.llm:
+            raise Exception("Must __aenter__ to play!")
+
+        self.message_history.add(Message(role="user", content=[Content(text=query, type="text")]))
+        should_continue = True
+
+        while should_continue:
+            should_continue = False
+            output_message = await self.llm.converse()
+            self.message_history.add(output_message)
+
+            for content in output_message.content:
+                tool_use = content.tool_use
+
+                if not tool_use:
+                    continue
+
+                should_continue = True
+                tool_content: List[Content] = []
+
+                if tool := self.tools.get(tool_use.name, None):
+                    try:
+                        tool_response = await tool(tool_use.input.to_dict())
+                        tool_content.append(
+                            Content(
+                                toolResult=ToolResult(
+                                    toolUseId=tool_use.tool_use_id,
+                                    content=[dict(text=c.text) for c in tool_response.content],
+                                    status="success",
+                                ))
+                        )
+
+                    except Exception as err:
+                        tool_content.append(
+                            Content(
+                                toolResult=ToolResult(
+                                    toolUseId=tool_use.tool_use_id,
+                                    content=[Content(text=f"Error: {str(err)}")],
+                                    status="error",
+                                )
+                            )
+                        )
+
+                else:
+                    LOGGER.warning(
+                        f"LLM attempted to call tool that is not registerd: {tool_use.name}"
+                    )
+                    tool_content.append(
+                        Content(
+                            toolResult=ToolResult(
+                                toolUseId=tool_use.tool_use_id,
+                                content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
+                                status="error",
+                            )
+                        )
+                    )
+
+                tool_message = Message(role="user", content=tool_content)
+                self.message_history.add(tool_message)
+

@@ -7,12 +7,11 @@ import json
 
 import boto3
 from openai.types.chat import ChatCompletionToolParam
-from mcp import Tool
 
-from .message import Message, Content, ToolResult, ToolUse
+from .message import Message, Content, ToolUse
 from .config import Config
 from .message_history import MessageHistory
-from .mcp_server import MCPServer, MCPTool
+from .mcp_server import MCPTool
 from .logging_config import LOGGER
 
 
@@ -36,72 +35,6 @@ class BaseLLM(ABC):
             Message: The LLM's response as a Message object
         """
         pass
-
-    async def process_query(self, query: str) -> None:
-        """
-        Process a user query through the LLM and handle any tool calls.
-
-        Args:
-            query: The user's input query
-        """
-        self.message_history.add(Message(role="user", content=[Content(text=query, type="text")]))
-        should_continue = True
-
-        while should_continue:
-            should_continue = False
-            output_message = await self.converse()
-            self.message_history.add(output_message)
-
-            for content in output_message.content:
-                tool_use = content.tool_use
-
-                if not tool_use:
-                    continue
-
-                should_continue = True
-                tool_content: List[Content] = []
-
-                if tool := self.tools.get(tool_use.name, None):
-                    try:
-                        tool_response = await tool(tool_use.input.to_dict())
-                        tool_content.append(
-                            Content(
-                                toolResult=ToolResult(
-                                    toolUseId=tool_use.tool_use_id,
-                                    content=[dict(text=c.text) for c in tool_response.content],
-                                    status="success",
-                                )
-                            )
-                        )
-
-                    except Exception as err:
-                        tool_content.append(
-                            Content(
-                                toolResult=ToolResult(
-                                    toolUseId=tool_use.tool_use_id,
-                                    content=[Content(text=f"Error: {str(err)}")],
-                                    status="error",
-                                )
-                            )
-                        )
-
-                else:
-                    LOGGER.warning(
-                        f"LLM attempted to call tool that is not registerd: {tool_use.name}"
-                    )
-                    tool_content.append(
-                        Content(
-                            toolResult=ToolResult(
-                                toolUseId=tool_use.tool_use_id,
-                                content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
-                                status="error",
-                            )
-                        )
-                    )
-
-                tool_message = Message(role="user", content=tool_content)
-                self.message_history.add(tool_message)
-
 
 class Boto3LLM(BaseLLM):
     def __init__(self, *args, **kwargs):

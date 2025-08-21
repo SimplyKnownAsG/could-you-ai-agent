@@ -91,7 +91,7 @@ async def amain():
 
         with MessageHistory(config.root, enable=not args.no_history) as message_history:
             async with Agent(config=config, message_history=message_history) as host:
-                await host.process_query(query)
+                await host.orchestrate(query)
 
 
 def _get_editor_input(config):
