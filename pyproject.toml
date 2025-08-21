@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "uv", "black"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "could-you-ai-agent"
+name = "could-you"
 version = "0.1.0"
-description = "could-you configuration based AI Agent"
+description = "Could You configuration based AI Agent"
 authors = [
     { name = "g" }
 ]
@@ -34,7 +34,7 @@ cy = "could_you.__main__:main"
 
 [tool.black]
 line-length = 100
-target-version = ["py310", "py311"]
+target-version = ["py311", "py312"]
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -42,7 +42,6 @@ exclude = '''
     | \.hg
     | \.mypy_cache
     | \.pytest_cache
-    | \.tox
     | \.venv
     | _build
     | buck-out
@@ -51,38 +50,17 @@ exclude = '''
 )/
 '''
 
-[dependency-groups]
-dev = [
-    "pytest-black>=0.6.0",
-    "pytest>=8.3.5",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=6.0.0",
-    "tox>=4.0.0",
+[tool.hatch.envs.hatch-test]
+dependencies = [
+    "pytest",
+    "pytest-cov",
+    "pytest-black",
+    "pytest-asyncio",
 ]
 
+[tool.hatch.envs.default.scripts]
+fmt = "black ."
+test = "pytest"
+
 [tool.pytest.ini_options]
-addopts = "--black"
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py311,py312
-
-[testenv]
-deps = 
-    pytest>=8.3.5
-    pytest-black>=0.6.0
-    pytest-asyncio>=0.21.0
-    pytest-cov>=6.0.0
-    jsonmerge>=1.9.0
-commands = pytest {posargs}
-
-[testenv:cov]
-commands = pytest --cov=could_you --cov-report=term-missing {posargs}
-
-[testenv:black]
-commands = pytest --black {posargs}
-
-[testenv:all]
-commands = pytest --black --cov=could_you --cov-report=term-missing {posargs}
-"""
+addopts = ["--cov=could_you", "--cov-report=term-missing"]

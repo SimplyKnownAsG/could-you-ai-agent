@@ -4,32 +4,29 @@ from contextlib import AsyncExitStack
 
 from could_you.mcp_server import MCPServer, MCPTool
 
-# Mark all async tests in this module
-pytestmark = pytest.mark.asyncio
-
-
 def test_mcp_tool_wrapper():
     """Test MCPTool wrapper functionality."""
     # Create a mock MCP Tool
+    server = MCPServer(name="test-server", command="test-command", args=["arg1", "arg2"])
     mock_tool = MagicMock()
     mock_tool.name = "test_tool"
     mock_tool.description = "A test tool"
     mock_tool.inputSchema = {"type": "object"}
 
     # Test enabled tool
-    enabled_tool = MCPTool(mock_tool, enabled=True)
+    enabled_tool = MCPTool(server, mock_tool, enabled=True)
     assert enabled_tool.name == "test_tool"
     assert enabled_tool.description == "A test tool"
     assert enabled_tool.inputSchema == {"type": "object"}
     assert enabled_tool.enabled is True
 
     # Test disabled tool
-    disabled_tool = MCPTool(mock_tool, enabled=False)
+    disabled_tool = MCPTool(server, mock_tool, enabled=False)
     assert disabled_tool.name == "test_tool"
     assert disabled_tool.enabled is False
 
     # Test default enabled
-    default_tool = MCPTool(mock_tool)
+    default_tool = MCPTool(server, mock_tool)
     assert default_tool.enabled is True
 
 
@@ -83,12 +80,12 @@ async def test_connect_disabled_server():
 
     exit_stack = AsyncExitStack()
 
-    with patch("builtins.print") as mock_print:
+    with patch("could_you.mcp_server.LOGGER") as mock_logger:
         result = await server.connect(exit_stack=exit_stack)
 
     assert result is True
     assert server.tools == []
-    mock_print.assert_called_once_with("Server disabled-server is not enabled.")
+    mock_logger.info.assert_called_once_with("Server disabled-server is not enabled.")
 
 
 @pytest.mark.asyncio

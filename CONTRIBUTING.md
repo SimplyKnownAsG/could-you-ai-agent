@@ -20,63 +20,54 @@ Thank you for your interest in contributing to `could-you`! This document provid
    cd could-you-ai-agent
    ```
 
-2. **Set up virtual environment** (using uv):
+2. **Create and activate a virtual environment**:
+   Using Hatch, create and activate the environment for local development:
    ```bash
-   uv venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   hatch env create local
+   hatch shell local
    ```
 
 3. **Install dependencies**:
-   ```bash
-   uv sync --dev
-   ```
+   Dependencies are automatically synced via Hatch when you enter the environment.
 
-4. **Install in development mode**:
-   ```bash
-   pip install -e .
-   ```
-
-5. **Verify installation**:
+4. **Verify installation**:
    ```bash
    could-you --help
    ```
 
 ### Running Tests
 
+Utilize Hatch to run tests and check coding style:
+
+1. **Run all tests**:
+   ```bash
+   uvx hatch run test
+   ```
+
+2. **Check code formatting**:
+   ```bash
+   uvx hatch run style
+   ```
+
+## Running Tests with Hatch and UVX
+
+Setup a virtual environment and activate it using `uvx` for Hatch:
+
 ```bash
-# Run all tests
-pytest
-
-# Run specific test file with verbose output
-pytest tests/test_config.py -v
-
-# Run tests with coverage
-pytest --cov=could_you --cov-report=term-missing
-
-# Run tests with black formatting check (default behavior)
-pytest --black
-
-# Run everything (formatting + coverage)
-pytest --black --cov=could_you --cov-report=term-missing
+uvx hatch env create test
+uvx hatch shell test
 ```
 
-#### Using Tox for Multi-Environment Testing
+Run all the tests with:
 
 ```bash
-# Test with current Python version
-tox -e py311  # or py312
+uvx hatch run test
+```
 
-# Test with coverage
-tox -e cov
+Check code formatting with:
 
-# Test with formatting check
-tox -e black
-
-# Test everything
-tox -e all
-
-# Test all configured environments
-tox
+```bash
+uvx hatch run style
 ```
 
 ## Code Style and Standards
