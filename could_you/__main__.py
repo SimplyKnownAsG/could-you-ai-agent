@@ -1,12 +1,13 @@
-import asyncio
 import argparse
-import tempfile
+import asyncio
 import subprocess
-from .session_manager import SessionManager
+import tempfile
+
 from .agent import Agent
-from .config import load, init
+from .config import init, load
+from .logging_config import LOGGER, setup_logging
 from .message_history import MessageHistory
-from .logging_config import setup_logging, LOGGER
+from .session_manager import SessionManager
 
 
 async def amain():
@@ -101,7 +102,9 @@ def _get_editor_input(config):
         tf.write("# Previous messages\n\n")
         # Write message history to the file
         with MessageHistory(config.root) as message_history:
-            printer = lambda msg: print(msg, file=tf)
+            def printer(msg):
+                print(msg, file=tf)
+
             message_history.print_history(info=printer, debug=printer)
 
         # Write the special editor input marker - this exact line is used to find user input

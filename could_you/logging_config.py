@@ -1,6 +1,5 @@
 import logging
 import sys
-from typing import Optional
 
 
 class _TerseFormatter(logging.Formatter):
@@ -22,7 +21,7 @@ class _TerseFormatter(logging.Formatter):
         return formatted
 
 
-def setup_logging(level: Optional[str] = None) -> logging.Logger:
+def setup_logging(level: str | None = None) -> logging.Logger:
     """
     Set up logging configuration for the could-you application.
 

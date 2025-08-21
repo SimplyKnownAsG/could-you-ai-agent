@@ -1,6 +1,6 @@
-from typing import List, Dict, Optional, Literal, Any, Callable
 import json
-import sys
+from collections.abc import Callable
+from typing import Any, Literal
 
 
 class _Dynamic:
@@ -46,7 +46,7 @@ class _Dynamic:
 
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Recursively converts the _Dynamic object and its nested _Dynamic instances
         back into a raw dictionary.
@@ -81,18 +81,18 @@ class ToolResultContent(_Dynamic):
 
 class ToolResult(_Dynamic):
     tool_use_id: str
-    content: List[ToolResultContent]
+    content: list[ToolResultContent]
     status: Literal["success", "error"]
 
 
 class Content(_Dynamic):
     type: Literal["text"]
-    text: Optional[str]
+    text: str | None
     # image: Optional[Image]
     # document: Optional[Document]
     # video: Optional[Video]
-    tool_use: Optional[ToolUse]
-    tool_result: Optional[ToolResult]
+    tool_use: ToolUse | None
+    tool_result: ToolResult | None
     # guard_content: Optional[GuardContent]
     # cache_point: Optional[CachePoint]
     # reasoning_content: Optional[ReasoningContent]
@@ -100,7 +100,7 @@ class Content(_Dynamic):
 
 class Message(_Dynamic):
     role: Literal["user", "assistant"]
-    content: List[Content]
+    content: list[Content]
 
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
         info(f"## {self.role}")
@@ -130,4 +130,4 @@ class Message(_Dynamic):
                         debug("  ```")
                     else:
                         # For other types, convert to string
-                        debug(f"    {str(val)}")
+                        debug(f"    {val!s}")

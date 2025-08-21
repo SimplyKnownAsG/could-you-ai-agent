@@ -1,5 +1,5 @@
-import os
 import json
+import os
 from pathlib import Path
 
 # Constants for XDG paths
@@ -25,7 +25,7 @@ class SessionManager:
         """List all existing sessions."""
         sessions = []
         for session_file in self.cache_path.glob("*.json"):
-            with open(session_file, "r") as f:
+            with open(session_file) as f:
                 session_data = json.load(f)
                 sessions.append(
                     {
@@ -39,6 +39,6 @@ class SessionManager:
     def get_current_session(self):
         """Get the current session, if any."""
         if self.current_session and self.current_session.exists():
-            with open(self.current_session, "r") as f:
+            with open(self.current_session) as f:
                 return json.load(f)
         return None

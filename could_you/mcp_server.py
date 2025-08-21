@@ -1,7 +1,9 @@
-from typing import Dict, List, Optional, Any, Set
-from mcp import ClientSession, StdioServerParameters, Tool
 from contextlib import AsyncExitStack
+from typing import Any
+
+from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
+
 from .logging_config import LOGGER
 
 
@@ -13,7 +15,7 @@ class MCPTool:
         self.tool = tool
         self.enabled = enabled
 
-    async def __call__(self, tool_args: Dict[str, Any]):
+    async def __call__(self, tool_args: dict[str, Any]):
         return await self.server.call_tool(self.name, tool_args)
 
     def __getattr__(self, name):
@@ -22,19 +24,19 @@ class MCPTool:
 
 
 class MCPServer:
-    tools: List[MCPTool]
+    tools: list[MCPTool]
     enabled: bool
-    disabled_tools: Set[str]
+    disabled_tools: set[str]
 
     def __init__(
         self,
         *,
         name: str,
         command: str,
-        args: List[str],
-        env: Optional[Dict[str, str]] = None,
+        args: list[str],
+        env: dict[str, str] | None = None,
         enabled: bool = True,
-        disabled_tools: Optional[List[str]] = None,
+        disabled_tools: list[str] | None = None,
     ):
         """
         Initialize an MCPServer instance.
@@ -86,5 +88,5 @@ class MCPServer:
 
         return True
 
-    async def call_tool(self, tool_name: str, tool_args: Dict[str, Any]):
+    async def call_tool(self, tool_name: str, tool_args: dict[str, Any]):
         return await self.session.call_tool(tool_name, tool_args)

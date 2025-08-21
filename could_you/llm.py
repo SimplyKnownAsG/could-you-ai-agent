@@ -1,18 +1,18 @@
-from abc import ABC, abstractmethod
-from typing import Dict, List, Iterable
-import traceback
-import openai
-import os
 import json
+import os
+import traceback
+from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
 import boto3
+import openai
 from openai.types.chat import ChatCompletionToolParam
 
-from .message import Message, Content, ToolUse
 from .config import Config
-from .message_history import MessageHistory
-from .mcp_server import MCPTool
 from .logging_config import LOGGER
+from .mcp_server import MCPTool
+from .message import Content, Message, ToolUse
+from .message_history import MessageHistory
 
 
 class BaseLLM(ABC):
@@ -20,7 +20,7 @@ class BaseLLM(ABC):
         self,
         config: Config,
         message_history: MessageHistory,
-        tools: Dict[str, MCPTool],
+        tools: dict[str, MCPTool],
     ):
         self.config = config
         self.message_history = message_history
@@ -34,7 +34,6 @@ class BaseLLM(ABC):
         Returns:
             Message: The LLM's response as a Message object
         """
-        pass
 
 class Boto3LLM(BaseLLM):
     def __init__(self, *args, **kwargs):
@@ -125,7 +124,7 @@ class OpenAILLM(BaseLLM):
             LOGGER.debug(traceback.format_exc())
             raise err
 
-    def _convert_messages(self) -> List[Dict[str, str]]:
+    def _convert_messages(self) -> list[dict[str, str]]:
         """Convert messages to Ollama's expected format"""
         openai_msgs = []
 
@@ -212,7 +211,7 @@ class OllamaLLM(OpenAILLM):
 
 
 def create_llm(
-    config: Config, message_history: MessageHistory, tools: Dict[str, MCPTool]
+    config: Config, message_history: MessageHistory, tools: dict[str, MCPTool]
 ) -> BaseLLM:
     """Factory function to create the appropriate LLM instance based on configuration"""
     provider = config.llm["provider"]

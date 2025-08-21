@@ -1,14 +1,15 @@
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import List, Dict, Any, Callable
+from typing import Any
 
-from .message import Message
 from .logging_config import LOGGER
+from .message import Message
 
 
 class MessageHistory:
     path: Path
-    messages: List[Message]
+    messages: list[Message]
     enable: bool
 
     def __init__(self, root: Path, enable: bool = True):
@@ -19,7 +20,7 @@ class MessageHistory:
     def __enter__(self):
         if self.enable:
             if self.path.exists():
-                with open(self.path, "r") as f:
+                with open(self.path) as f:
                     self.messages = [Message(m) for m in json.load(f)]
                 LOGGER.debug("Message history loaded")
             else:
@@ -38,7 +39,7 @@ class MessageHistory:
         self.messages.append(message)
         message.print(info=LOGGER.info, debug=LOGGER.debug)
 
-    def to_dict(self) -> List[Dict[str, Any]]:
+    def to_dict(self) -> list[dict[str, Any]]:
         return [m.to_dict() for m in self.messages]
 
     def print_history(self, *, info=Callable[[str], None], debug=Callable[[str], None]):

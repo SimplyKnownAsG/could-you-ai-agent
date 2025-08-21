@@ -1,23 +1,24 @@
 from contextlib import AsyncExitStack
-from typing import Optional, List, Dict
+from typing import TYPE_CHECKING
 
 from .config import Config
-from .mcp_server import MCPServer, MCPTool
-from .message_history import MessageHistory
-from .llm import create_llm, BaseLLM
+from .llm import BaseLLM, create_llm
 from .logging_config import LOGGER
-from .message import Message, Content, ToolResult
+from .message import Content, Message, ToolResult
+from .message_history import MessageHistory
 
+if TYPE_CHECKING:
+    from .mcp_server import MCPServer, MCPTool
 
 class Agent:
     def __init__(self, *, config: Config, message_history: MessageHistory):
         # Initialize session and client objects
-        self.servers: List[MCPServer] = config.servers
+        self.servers: list[MCPServer] = config.servers
         self.exit_stack = AsyncExitStack()
         self.config = config
         self.message_history = message_history
-        self.llm: Optional[BaseLLM] = None
-        self.tools: Dict[str, MCPTool] = {}
+        self.llm: BaseLLM | None = None
+        self.tools: dict[str, MCPTool] = {}
 
     async def __aenter__(self):
         # TODO: should this use asyncio.create_task or TaskGroup?
@@ -70,7 +71,7 @@ class Agent:
                     continue
 
                 should_continue = True
-                tool_content: List[Content] = []
+                tool_content: list[Content] = []
 
                 if tool := self.tools.get(tool_use.name, None):
                     try:
@@ -89,7 +90,7 @@ class Agent:
                             Content(
                                 toolResult=ToolResult(
                                     toolUseId=tool_use.tool_use_id,
-                                    content=[Content(text=f"Error: {str(err)}")],
+                                    content=[Content(text=f"Error: {err!s}")],
                                     status="error",
                                 )
                             )

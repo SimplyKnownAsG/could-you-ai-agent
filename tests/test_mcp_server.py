@@ -1,8 +1,10 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from contextlib import AsyncExitStack
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from could_you.mcp_server import MCPServer, MCPTool
+
 
 def test_mcp_tool_wrapper():
     """Test MCPTool wrapper functionality."""

@@ -50,17 +50,15 @@ exclude = '''
 )/
 '''
 
+[tool.ruff.lint]
+ignore = ["TID252"]
+
 [tool.hatch.envs.hatch-test]
 dependencies = [
     "pytest",
     "pytest-cov",
-    "pytest-black",
     "pytest-asyncio",
 ]
-
-[tool.hatch.envs.default.scripts]
-fmt = "black ."
-test = "pytest"
 
 [tool.pytest.ini_options]
 addopts = ["--cov=could_you", "--cov-report=term-missing"]

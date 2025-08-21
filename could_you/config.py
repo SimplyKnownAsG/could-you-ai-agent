@@ -1,15 +1,14 @@
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
-from typing import List, Dict, Any, Set
+from typing import Any
 
 from jsonmerge import merge
 
-from .mcp_server import MCPServer
 from .logging_config import LOGGER
-
+from .mcp_server import MCPServer
 
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
 GLOBAL_CONFIG_PATH = Path(XDG_CONFIG_HOME) / "could-you" / "config.json"
@@ -28,21 +27,21 @@ DO NOT ASSUME that you should make file edits, only make file changes if asked. 
 
 class Config:
     prompt: str | None
-    llm: Dict[str, Any]
-    servers: List[MCPServer]
+    llm: dict[str, Any]
+    servers: list[MCPServer]
     root: Path
     editor: str | None
-    env: Dict[str, str]
+    env: dict[str, str]
 
     def __init__(
         self,
         *,
         prompt: str | None,
-        llm: Dict[str, Any],
-        servers: List[MCPServer],
+        llm: dict[str, Any],
+        servers: list[MCPServer],
         root: Path,
         editor: str | None = None,
-        env: Dict[str, str],
+        env: dict[str, str],
     ):
         self.prompt = prompt
         self.llm = llm
@@ -167,7 +166,7 @@ def _find_up(current_path: Path) -> Path:
     return _find_up(parent_path)
 
 
-def _load_raw_json(config_file: Path) -> Dict[str, Any]:
+def _load_raw_json(config_file: Path) -> dict[str, Any]:
     """
     Load raw JSON configuration from file.
 
@@ -181,7 +180,7 @@ def _load_raw_json(config_file: Path) -> Dict[str, Any]:
         return {}
 
     try:
-        with open(config_file, "r") as file:
+        with open(config_file) as file:
             return json.load(file)
     except json.JSONDecodeError as e:
         LOGGER.error(f"Failed to parse the JSON configuration file at {config_file}: {e}")
@@ -191,7 +190,7 @@ def _load_raw_json(config_file: Path) -> Dict[str, Any]:
         sys.exit(1)
 
 
-def _parse_from_json(json_config: Dict[str, Any], root: Path) -> Config:
+def _parse_from_json(json_config: dict[str, Any], root: Path) -> Config:
     """
     Parse a Config object from merged JSON configuration.
 
@@ -205,8 +204,8 @@ def _parse_from_json(json_config: Dict[str, Any], root: Path) -> Config:
     llm = json_config.get("llm", {})
     servers = []
     env = json_config.get("env", {})
-    prompt = json_config.get("systemPrompt", None)
-    editor = json_config.get("editor", None)
+    prompt = json_config.get("systemPrompt")
+    editor = json_config.get("editor")
 
     # Parse MCP servers
     mcp_servers = json_config.get("mcpServers", {})
@@ -231,7 +230,7 @@ def _parse_from_json(json_config: Dict[str, Any], root: Path) -> Config:
     return Config(prompt=prompt, llm=llm, servers=servers, root=root, editor=editor, env=env)
 
 
-def list_directories(root_path: str) -> List[str]:
+def list_directories(root_path: str) -> list[str]:
     """
     Recursively lists all unique directories, using `git ls-files` for folders containing `.git`.
     Includes parent directories, ignoring hidden directories and symlinks.
@@ -265,7 +264,7 @@ def list_directories(root_path: str) -> List[str]:
     return sorted(result)
 
 
-def run_git_ls_files(repo_path: str) -> Set[str]:
+def run_git_ls_files(repo_path: str) -> set[str]:
     """
     Runs `git ls-files` in the given repository path and returns the unique directories,
     including parent directories of all files.

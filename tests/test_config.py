@@ -1,9 +1,10 @@
 import json
 import tempfile
 from pathlib import Path
-import pytest
 
+import pytest
 from jsonmerge import merge
+
 from could_you.config import _load_raw_json, _parse_from_json
 
 
