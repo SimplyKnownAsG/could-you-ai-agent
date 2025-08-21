@@ -10,7 +10,7 @@ from .llm import create_llm, BaseLLM
 from .logging_config import LOGGER
 
 
-class MCPHost:
+class Agent:
     def __init__(self, *, config: Config, message_history: MessageHistory):
         # Initialize session and client objects
         self.servers: List[MCPServer] = config.servers

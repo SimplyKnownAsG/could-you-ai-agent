@@ -4,7 +4,7 @@ A powerful command-line assistant that integrates with Model Context Protocol (M
 
 ## Overview
 
-`could-you` is an MCP host that connects to various MCP servers to provide contextual assistance for developers. It maintains conversation history, supports multiple LLM providers, and can be configured per-project or globally.
+`could-you` is an Agent that connects to various MCP servers to provide contextual assistance for developers. It maintains conversation history, supports multiple LLM providers, and can be configured per-project or globally.
 
 ## Features
 
@@ -139,7 +139,7 @@ Example configuration with tool disabling:
 
 ## MCP Server Integration
 
-`could-you` acts as an MCP host, connecting to various MCP servers to extend functionality. Popular MCP servers include:
+`could-you` acts as an agent, connecting to various MCP servers to extend functionality. Popular MCP servers include:
 
 - **Filesystem**: File operations and code analysis
 - **Git**: Version control operations

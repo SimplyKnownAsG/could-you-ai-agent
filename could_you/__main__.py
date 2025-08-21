@@ -3,7 +3,7 @@ import argparse
 import tempfile
 import subprocess
 from .session_manager import SessionManager
-from .mcp_host import MCPHost
+from .agent import Agent
 from .config import load, init
 from .message_history import MessageHistory
 from .logging_config import setup_logging, LOGGER
@@ -78,7 +78,7 @@ async def amain():
         # List servers and their tools
         config = load()
         with MessageHistory(config.root, enable=False) as message_history:
-            async with MCPHost(config=config, message_history=message_history) as host:
+            async with Agent(config=config, message_history=message_history) as host:
                 pass
     else:
         config = load()
@@ -90,7 +90,7 @@ async def amain():
             return
 
         with MessageHistory(config.root, enable=not args.no_history) as message_history:
-            async with MCPHost(config=config, message_history=message_history) as host:
+            async with Agent(config=config, message_history=message_history) as host:
                 await host.process_query(query)
 
 

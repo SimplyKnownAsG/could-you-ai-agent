@@ -106,13 +106,13 @@ could_you/
 ├── __init__.py          # Package initialization
 ├── __main__.py          # CLI entry point
 ├── config.py            # Configuration management
-├── llm.py              # LLM provider abstractions
-├── mcp_host.py         # Main MCP host implementation
-├── mcp_server.py       # MCP server connection handling
-├── message.py          # Message data structures
-├── message_history.py  # Conversation history management
-├── session.py          # Session data structures
-└── session_manager.py  # Session lifecycle management
+├── llm.py               # LLM provider abstractions
+├── agent.py             # Main Agent implementation
+├── mcp_server.py        # MCP server connection handling
+├── message.py           # Message data structures
+├── message_history.py   # Conversation history management
+├── session.py           # Session data structures
+└── session_manager.py   # Session lifecycle management
 ```
 
 ### Key Design Principles
