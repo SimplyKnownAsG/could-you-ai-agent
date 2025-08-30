@@ -12,7 +12,7 @@ class MessageHistory:
     messages: list[Message]
     enable: bool
 
-    def __init__(self, root: Path, enable: bool = True):
+    def __init__(self, root: Path, *, enable: bool = True):
         self.path = root / ".could-you-messages.json"
         self.messages = []
         self.enable = enable

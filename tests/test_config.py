@@ -33,9 +33,7 @@ def test_parse_from_json_with_enabled_false():
     """Test parsing Config with server disabled."""
     json_config = {
         "llm": {"provider": "boto3", "model": "test"},
-        "mcpServers": {
-            "disabled-server": {"command": "test-command", "args": ["arg1"], "enabled": False}
-        },
+        "mcpServers": {"disabled-server": {"command": "test-command", "args": ["arg1"], "enabled": False}},
     }
 
     config = _parse_from_json(json_config, Path("/test/root"))

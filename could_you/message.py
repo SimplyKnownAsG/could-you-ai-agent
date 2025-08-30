@@ -4,7 +4,6 @@ from typing import Any, Literal
 
 
 class _Dynamic:
-
     def __init__(self, input_dict: Any = None, **kwargs: Any) -> None:
         # Merge input_dict and kwargs, with kwargs taking precedence
         input_dict = input_dict or {}
@@ -18,28 +17,27 @@ class _Dynamic:
 
         # Use setattr to set attributes from the dictionary
         for key, value in combined_data.items():
+            new_value = value
+
             if isinstance(value, dict):
                 # If the value is a dictionary, convert it into another _Dynamic instance
-                value = _Dynamic(value)
+                new_value = _Dynamic(value)
 
             elif hasattr(value, "__dict__"):
                 # If the value is a dictionary, convert it into another _Dynamic instance
-                value = _Dynamic(vars(value))
+                new_value = _Dynamic(vars(value))
 
             elif isinstance(value, list):
                 # If the value is a list, check for non-scalar values and convert them
-                value = [
-                    _Dynamic(item) if isinstance(item, dict) or hasattr(item, "__dict__") else item
-                    for item in value
+                new_value = [
+                    _Dynamic(item) if isinstance(item, dict) or hasattr(item, "__dict__") else item for item in value
                 ]
 
-            setattr(self, key, value)
+            setattr(self, key, new_value)
 
     def __getattr__(self, attr: str) -> Any:
         # Convert snake_case to camelCase
-        camel_case_attr = "".join(
-            word.capitalize() if i > 0 else word for i, word in enumerate(attr.split("_"))
-        )
+        camel_case_attr = "".join(word.capitalize() if i > 0 else word for i, word in enumerate(attr.split("_")))
         # Check if the camelCase attribute exists
         if camel_case_attr in self.__dict__:
             return self.__dict__[camel_case_attr]
@@ -59,9 +57,7 @@ class _Dynamic:
                 result[key] = value.to_dict()
             # If the value is a list, process each item
             elif isinstance(value, list):
-                result[key] = [
-                    item.to_dict() if isinstance(item, _Dynamic) else item for item in value
-                ]
+                result[key] = [item.to_dict() if isinstance(item, _Dynamic) else item for item in value]
             else:
                 result[key] = value
 
@@ -112,9 +108,7 @@ class Message(_Dynamic):
                     for line in val.splitlines():
                         info(f"   > {line}")
                 else:
-                    suffix = (
-                        f" {val.name}" if key == "toolUse" and isinstance(val, _Dynamic) else ""
-                    )
+                    suffix = f" {val.name}" if key == "toolUse" and isinstance(val, _Dynamic) else ""
                     info(f"* {key}:{suffix}")
 
                     if isinstance(val, str):

@@ -51,7 +51,7 @@ exclude = '''
 '''
 
 [tool.ruff.lint]
-ignore = ["TID252"]
+ignore = ["TID252", "C408", "TRY003", "EM101", "BLE001", "EM102", "PERF401"]
 
 [tool.hatch.envs.hatch-test]
 dependencies = [

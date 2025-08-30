@@ -1,11 +1,12 @@
 import logging
 import sys
+from typing import ClassVar
 
 
 class _TerseFormatter(logging.Formatter):
     """Custom formatter that uses single letter log levels"""
 
-    LEVEL_MAP = {"DEBUG": "D", "INFO": "I", "WARNING": "W", "ERROR": "E", "CRITICAL": "C"}
+    LEVEL_MAP: ClassVar[dict] = {"DEBUG": "D", "INFO": "I", "WARNING": "W", "ERROR": "E", "CRITICAL": "C"}
 
     def format(self, record):
         # Replace the levelname with single letter
@@ -52,9 +53,7 @@ def setup_logging(level: str | None = None) -> logging.Logger:
     console_handler.setLevel(numeric_level)
 
     # Create terse formatter
-    formatter = _TerseFormatter(
-        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
+    formatter = _TerseFormatter(fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     console_handler.setFormatter(formatter)
 
     # Add handler to logger

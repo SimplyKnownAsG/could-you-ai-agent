@@ -15,12 +15,8 @@ async def amain():
 
     # Logging options (mutually exclusive)
     log_group = parser.add_mutually_exclusive_group()
-    log_group.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)"
-    )
-    log_group.add_argument(
-        "-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)"
-    )
+    log_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)")
+    log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
     parser.add_argument("-H", "--no-history", action="store_true", help="Ignore message history")
 
     # Define a mutually exclusive group
@@ -28,18 +24,10 @@ async def amain():
 
     group.add_argument("query", nargs="?", help="A question or request to process")
     group.add_argument("-l", "--list-sessions", action="store_true", help="List existing sessions")
-    group.add_argument(
-        "-i", "--init-session", action="store_true", help="Initialize a session in this directory"
-    )
-    group.add_argument(
-        "-d", "--delete-session", metavar="session_path", help="Delete a specific session"
-    )
-    group.add_argument(
-        "-p", "--print-history", action="store_true", help="Print the message history"
-    )
-    group.add_argument(
-        "-t", "--test-connect", action="store_true", help="Test connection, and stop"
-    )
+    group.add_argument("-i", "--init-session", action="store_true", help="Initialize a session in this directory")
+    group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
+    group.add_argument("-p", "--print-history", action="store_true", help="Print the message history")
+    group.add_argument("-t", "--test-connect", action="store_true", help="Test connection, and stop")
 
     args = parser.parse_args()
 
@@ -102,6 +90,7 @@ def _get_editor_input(config):
         tf.write("# Previous messages\n\n")
         # Write message history to the file
         with MessageHistory(config.root) as message_history:
+
             def printer(msg):
                 print(msg, file=tf)
 

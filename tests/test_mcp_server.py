@@ -106,9 +106,7 @@ async def test_connect_enabled_server_with_tool_filtering():
     all_tools = [mock_tool1, mock_tool2, mock_tool3]
 
     # Create server with one disabled tool
-    server = MCPServer(
-        name="test-server", command="test-command", args=["arg1"], disabled_tools=["disabled_tool"]
-    )
+    server = MCPServer(name="test-server", command="test-command", args=["arg1"], disabled_tools=["disabled_tool"])
 
     exit_stack = AsyncExitStack()
 
@@ -122,11 +120,8 @@ async def test_connect_enabled_server_with_tool_filtering():
         patch("could_you.mcp_server.stdio_client") as mock_stdio_client,
         patch("could_you.mcp_server.ClientSession") as mock_client_session,
     ):
-
         # Setup mocks
-        mock_stdio_client.return_value.__aenter__ = AsyncMock(
-            return_value=(MagicMock(), MagicMock())
-        )
+        mock_stdio_client.return_value.__aenter__ = AsyncMock(return_value=(MagicMock(), MagicMock()))
         mock_client_session.return_value.__aenter__ = AsyncMock(return_value=mock_session)
 
         # Mock the exit_stack context managers
@@ -183,11 +178,8 @@ async def test_connect_enabled_server_no_disabled_tools():
         patch("could_you.mcp_server.stdio_client") as mock_stdio_client,
         patch("could_you.mcp_server.ClientSession") as mock_client_session,
     ):
-
         # Setup mocks
-        mock_stdio_client.return_value.__aenter__ = AsyncMock(
-            return_value=(MagicMock(), MagicMock())
-        )
+        mock_stdio_client.return_value.__aenter__ = AsyncMock(return_value=(MagicMock(), MagicMock()))
         mock_client_session.return_value.__aenter__ = AsyncMock(return_value=mock_session)
 
         # Mock the exit_stack context managers

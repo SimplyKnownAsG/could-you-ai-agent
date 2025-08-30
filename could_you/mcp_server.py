@@ -10,7 +10,7 @@ from .logging_config import LOGGER
 class MCPTool:
     """Wrapper for MCP Tool with enabled/disabled status awareness."""
 
-    def __init__(self, server: "MCPServer", tool: Tool, enabled: bool = True):
+    def __init__(self, server: "MCPServer", tool: Tool, *, enabled: bool = True):
         self.server = server
         self.tool = tool
         self.enabled = enabled
@@ -58,9 +58,7 @@ class MCPServer:
 
     async def connect(self, *, exit_stack: AsyncExitStack) -> bool:
         if self.enabled:
-            server_params = StdioServerParameters(
-                command=self.command, args=self.args, env=self.env
-            )
+            server_params = StdioServerParameters(command=self.command, args=self.args, env=self.env)
             the_client = await exit_stack.enter_async_context(stdio_client(server_params))
             stdio, write = the_client
             self.session = await exit_stack.enter_async_context(ClientSession(stdio, write))

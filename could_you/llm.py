@@ -1,6 +1,5 @@
 import json
 import os
-import traceback
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
@@ -9,6 +8,7 @@ import openai
 from openai.types.chat import ChatCompletionToolParam
 
 from .config import Config
+from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
 from .mcp_server import MCPTool
 from .message import Content, Message, ToolUse
@@ -34,6 +34,7 @@ class BaseLLM(ABC):
         Returns:
             Message: The LLM's response as a Message object
         """
+
 
 class Boto3LLM(BaseLLM):
     def __init__(self, *args, **kwargs):
@@ -89,40 +90,43 @@ class OpenAILLM(BaseLLM):
         )
 
     async def converse(self) -> Message:
+        response = await self._call_client()
+        return self._transform_response(response)
+
+    async def _call_client(self) -> Message:
         try:
-            response = self.client.chat.completions.create(
+            return self.client.chat.completions.create(
                 model=self.model,
                 tools=self._converted_tools,
                 messages=self._convert_messages(),  # type: ignore
             )
-            content = []
-
-            for choice in response.choices:
-                msg = choice.message
-
-                if msg.content:
-                    content.append(Content(text=msg.content, type="text"))
-                elif msg.tool_calls:
-                    for tool_call in msg.tool_calls:
-                        tool_use_id = tool_call.id
-                        name = tool_call.function.name
-                        input = json.loads(tool_call.function.arguments)
-                        content.append(
-                            Content(
-                                tool_use=ToolUse(tool_use_id=tool_use_id, name=name, input=input)
-                            )
-                        )
-                else:
-                    raise NotImplementedError(f"Cannot handle response, sry... {response}")
-
-            msg_result = Message(role="assistant", content=content)
-            return msg_result
-
         except Exception as err:
-            LOGGER.error(f"Error: {err}")
-            LOGGER.debug(f"Error type: {type(err)}")
-            LOGGER.debug(traceback.format_exc())
-            raise err
+            msg = f"Error while calling LLM: {err}"
+            LOGGER.error(msg)
+            raise CYError(message=msg, retriable=False, fault_owner=FaultOwner.LLM) from err
+
+    def _transform_response(self, response) -> Message:
+        content = []
+
+        for choice in response.choices:
+            msg = choice.message
+
+            if msg.content:
+                content.append(Content(text=msg.content, type="text"))
+            elif msg.tool_calls:
+                for tool_call in msg.tool_calls:
+                    tool_use_id = tool_call.id
+                    name = tool_call.function.name
+                    tool_input = json.loads(tool_call.function.arguments)
+                    content.append(Content(tool_use=ToolUse(tool_use_id=tool_use_id, name=name, input=tool_input)))
+            else:
+                raise CYError(
+                    message=f"Cannot handle response, sry... {response}",
+                    retriable=False,
+                    fault_owner=FaultOwner.INTERNAL,
+                )
+
+        return Message(role="assistant", content=content)
 
     def _convert_messages(self) -> list[dict[str, str]]:
         """Convert messages to Ollama's expected format"""
@@ -175,7 +179,11 @@ class OpenAILLM(BaseLLM):
                         )
                     )
                 else:
-                    raise Exception("I don't know what to do with " + json.dumps(content.to_dict()))
+                    raise CYError(
+                        message="I don't know what to do with " + json.dumps(content.to_dict()),
+                        retriable=False,
+                        fault_owner=FaultOwner.INTERNAL,
+                    )
 
         return openai_msgs
 
@@ -199,7 +207,6 @@ class OllamaLLM(OpenAILLM):
     """
     OllamaLLM is compliant with OpenAILLM [1].
 
-
     [1] https://ollama.com/blog/tool-support
     """
 
@@ -210,17 +217,20 @@ class OllamaLLM(OpenAILLM):
         )
 
 
-def create_llm(
-    config: Config, message_history: MessageHistory, tools: dict[str, MCPTool]
-) -> BaseLLM:
+def create_llm(config: Config, message_history: MessageHistory, tools: dict[str, MCPTool]) -> BaseLLM:
     """Factory function to create the appropriate LLM instance based on configuration"""
     provider = config.llm["provider"]
+    providers = {
+        "boto3": Boto3LLM,
+        "ollama": OllamaLLM,
+        "openai": OpenAILLM,
+    }
 
-    if provider == "boto3":
-        return Boto3LLM(config, message_history, tools)
-    elif provider == "ollama":
-        return OllamaLLM(config, message_history, tools)
-    elif provider == "openai":
-        return OpenAILLM(config, message_history, tools)
-    else:
-        raise ValueError(f"Unsupported LLM provider: {provider}")
+    if provider in providers:
+        return providers[provider](config, message_history, tools)
+
+    raise CYError(
+        message=f"Unsupported LLM provider: {provider}",
+        retriable=False,
+        fault_owner=FaultOwner.USER,
+    )
