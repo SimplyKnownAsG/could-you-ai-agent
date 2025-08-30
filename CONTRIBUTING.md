@@ -12,7 +12,7 @@ Thank you for your interest in contributing to `could-you`! This document provid
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Git
 
-### Local Development Environment
+### Development Environment
 
 1. **Clone the repository**:
    ```bash
@@ -21,10 +21,10 @@ Thank you for your interest in contributing to `could-you`! This document provid
    ```
 
 2. **Create and activate a virtual environment**:
-   Using Hatch, create and activate the environment for local development:
+   Using Hatch, create and activate the environment for development:
    ```bash
-   hatch env create local
-   hatch shell local
+   hatch env create
+   hatch shell
    ```
 
 3. **Install dependencies**:
@@ -41,47 +41,19 @@ Utilize Hatch to run tests and check coding style:
 
 1. **Run all tests**:
    ```bash
-   uvx hatch run test
+   hatch test
    ```
 
 2. **Check code formatting**:
    ```bash
-   uvx hatch run style
+   hatch fmt
    ```
-
-## Running Tests with Hatch and UVX
-
-Setup a virtual environment and activate it using `uvx` for Hatch:
-
-```bash
-uvx hatch env create test
-uvx hatch shell test
-```
-
-Run all the tests with:
-
-```bash
-uvx hatch run test
-```
-
-Check code formatting with:
-
-```bash
-uvx hatch run style
-```
 
 ## Code Style and Standards
 
 ### Formatting
 
-We use [Black](https://black.readthedocs.io/) for code formatting with these settings:
-- Line length: 100 characters
-- Target Python versions: 3.10, 3.11+
-
-Format your code before committing:
-```bash
-black could_you/
-```
+We use the default formatting in hatch through `hatch fmt`.
 
 ### Code Quality
 
