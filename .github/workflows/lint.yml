@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  black:
+  formatting:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -19,7 +19,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install black
+        run: pip install hatch
 
-      - name: Run black
-        run: black --check .
+      - name: Run hatch fmt
+        run: hatch fmt --check
