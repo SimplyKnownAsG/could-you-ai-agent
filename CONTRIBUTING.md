@@ -98,10 +98,15 @@ could_you/
 2. **Make your changes** following the coding standards above
 
 3. **Add tests** for new functionality:
-   ```bash
-   # Add tests in tests/ directory
-   pytest tests/test_your_feature.py
-   ```
+   - Place concise, well-named tests in the `tests/` directory.
+   - Use `pytest` and `unittest.mock` for mocking file system or external dependencies; prefer in-memory or mocked I/O for unit tests. Avoid actual file operations in unit tests.
+   - Example:
+     ```python
+     def test_should_do_x_when_y(monkeypatch):
+         # Arrange (set up input/mocks)
+         # Act (trigger function)
+         # Assert (check output/side effect)
+     ```
 
 4. **Format and lint**:
    ```bash

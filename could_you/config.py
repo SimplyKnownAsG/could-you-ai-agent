@@ -85,7 +85,7 @@ def load():
     return config
 
 
-def init() -> Path:
+def init() -> Config:
     g_config_json = _load_raw_json(GLOBAL_CONFIG_PATH)
 
     with open(CONFIG_FILE_NAME, "w") as l_config:
@@ -119,12 +119,10 @@ def init() -> Path:
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-filesystem", os.path.abspath(".")],
         }
-
         jsonable["mcpServers"] = mcp_servers
-
         json.dump(jsonable, l_config, indent=2)
 
-    return Path(CONFIG_FILE_NAME)
+    return load()
 
 
 def _find_up(current_path: Path) -> Path:

@@ -4,10 +4,9 @@ import subprocess
 import tempfile
 
 from .agent import Agent
-from .config import init, load
 from .logging_config import LOGGER, setup_logging
 from .message_history import MessageHistory
-from .session_manager import SessionManager
+from .session import SessionManager
 
 
 async def amain():
@@ -42,45 +41,39 @@ async def amain():
     # Initialize logging
     setup_logging(log_level)
 
-    session_manager = SessionManager()
+    with SessionManager() as session_manager:
+        if args.list_sessions:
+            # List all sessions
+            session_manager.list()
+        elif args.init_session:
+            # Create or switch to a session
+            session_manager.init_session()
+        elif args.delete_session:
+            # Create or switch to a session
+            session_manager.delete_session(args.delete_session)
+        elif args.print_history:
+            # Print message history
+            config = session_manager.load_session()
+            with MessageHistory(config.root) as message_history:
+                message_history.print_history(info=LOGGER.info, debug=LOGGER.debug)
+        elif args.test_connect:
+            # List servers and their tools
+            config = session_manager.load_session()
+            with MessageHistory(config.root, enable=False) as message_history:
+                async with Agent(config=config, message_history=message_history) as host:
+                    pass
+        else:
+            config = session_manager.load_session()
+            query = args.query if args.query else _get_editor_input(config)
 
-    if args.list_sessions:
-        # List all sessions
-        sessions = session_manager.list_sessions()
-        for session in sessions:
-            LOGGER.info(
-                f"Session: {session['name']}, Tokens Used: {session['tokens_used']}, Directory: {session['directory']}"
-            )
-    elif args.init_session:
-        # Create or switch to a session
-        l_config_path = init()
-        LOGGER.info(f"initialized config file: {l_config_path}")
-    elif args.delete_session:
-        # Create or switch to a session
-        session_manager.delete_session(args.delete_session)
-    elif args.print_history:
-        # Print message history
-        config = load()
-        with MessageHistory(config.root) as message_history:
-            message_history.print_history(info=LOGGER.info, debug=LOGGER.debug)
-    elif args.test_connect:
-        # List servers and their tools
-        config = load()
-        with MessageHistory(config.root, enable=False) as message_history:
-            async with Agent(config=config, message_history=message_history) as host:
-                pass
-    else:
-        config = load()
-        query = args.query if args.query else _get_editor_input(config)
+            if not query:
+                LOGGER.warn("no imput provided")
+                parser.print_help()
+                return
 
-        if not query:
-            LOGGER.warn("no imput provided")
-            parser.print_help()
-            return
-
-        with MessageHistory(config.root, enable=not args.no_history) as message_history:
-            async with Agent(config=config, message_history=message_history) as host:
-                await host.orchestrate(query)
+            with MessageHistory(config.root, enable=not args.no_history) as message_history:
+                async with Agent(config=config, message_history=message_history) as host:
+                    await host.orchestrate(query)
 
 
 def _get_editor_input(config):
