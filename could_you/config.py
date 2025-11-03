@@ -11,7 +11,8 @@ from .mcp_server import MCPServer
 from .prompt import enrich_raw_prompt
 
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
-GLOBAL_CONFIG_PATH = Path(XDG_CONFIG_HOME) / "could-you" / "config.json"
+CONFIG_DIR = Path(XDG_CONFIG_HOME) / "could-you"
+GLOBAL_CONFIG_PATH = CONFIG_DIR / "config.json"
 CONFIG_FILE_NAME = ".could-you-config.json"
 DEFAULT_PROMPT = """
 Your name is Cy.
@@ -22,8 +23,8 @@ DO ASSUME file content is correct.
 
 DO NOT ASSUME any file edits you have previously made will be persisted, or were correct.
 
-DO NOT ASSUME that you should make file edits, only make file changes if asked. For example, if asked to "show" or
-"tell" only provide an answer.
+DO NOT ASSUME that you should make file edits, only make file changes if asked. For example, if asked to \"show\" or
+\"tell\" only provide an answer.
 
 COULD_YOU_LOAD_FILE(*.md)
 """
@@ -36,6 +37,8 @@ class Config:
     root: Path
     editor: str | None
     env: dict[str, str]
+    # default query for a script.
+    query: str | None
 
     def __init__(
         self,
@@ -46,6 +49,7 @@ class Config:
         root: Path,
         editor: str | None = None,
         env: dict[str, str],
+        query: str | None = None,
     ):
         self.prompt = prompt
         self.llm = llm
@@ -53,16 +57,29 @@ class Config:
         self.root = root
         self.editor = editor
         self.env = env or {}
+        self.query = query
 
 
-def load():
+def load(script_name: str = None):
     # Load raw JSON configurations
     g_config_json = _load_raw_json(GLOBAL_CONFIG_PATH)
     local_config_path = _find_up(Path(".").resolve())
     l_config_json = _load_raw_json(local_config_path)
-
     # Merge configurations with local taking priority
     merged_config_json = merge(g_config_json, l_config_json)
+
+    if script_name:
+        # Only load the script config from the user config folder
+        script_config_path = CONFIG_DIR / f'{script_name}.script.json'
+
+        if not script_config_path.exists():
+            LOGGER.error(f"Script config {script_config_path} does not exist.")
+            sys.exit(1)
+
+        s_config_json = _load_raw_json(script_config_path)
+        # remove tools merged
+        del merged_config_json["mcpServers"]
+        merged_config_json = merge(merged_config_json, s_config_json)
 
     # Parse the merged configuration
     config = _parse_from_json(merged_config_json, local_config_path.parent)
@@ -71,8 +88,7 @@ def load():
     if not config.prompt:
         config.prompt = DEFAULT_PROMPT
 
-    if config.prompt:
-        config.prompt = enrich_raw_prompt(config.prompt)
+    config.prompt = enrich_raw_prompt(config.prompt)
 
     if not config.editor:
         config.editor = os.environ.get("EDITOR", "vim")
@@ -204,6 +220,7 @@ def _parse_from_json(json_config: dict[str, Any], root: Path) -> Config:
     env = json_config.get("env", {})
     prompt = json_config.get("systemPrompt")
     editor = json_config.get("editor")
+    query = json_config.get("query", None)
 
     # Parse MCP servers
     mcp_servers = json_config.get("mcpServers", {})
@@ -223,4 +240,4 @@ def _parse_from_json(json_config: dict[str, Any], root: Path) -> Config:
         server = MCPServer(name=name, disabled_tools=disabled_tools, **server_kwargs)
         servers.append(server)
 
-    return Config(prompt=prompt, llm=llm, servers=servers, root=root, editor=editor, env=env)
+    return Config(prompt=prompt, llm=llm, servers=servers, root=root, editor=editor, env=env, query=query)

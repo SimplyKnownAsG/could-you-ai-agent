@@ -7,7 +7,7 @@ from .agent import Agent
 from .logging_config import LOGGER, setup_logging
 from .message_history import MessageHistory
 from .session import SessionManager
-
+from .config import load
 
 async def amain():
     parser = argparse.ArgumentParser(description="Could-You MCP CLI")
@@ -19,14 +19,15 @@ async def amain():
     parser.add_argument("-H", "--no-history", action="store_true", help="Ignore message history")
 
     # Define a mutually exclusive group
-    group = parser.add_mutually_exclusive_group()
+    cmd_group = parser.add_mutually_exclusive_group()
 
-    group.add_argument("query", nargs="?", help="A question or request to process")
-    group.add_argument("-l", "--list-sessions", action="store_true", help="List existing sessions")
-    group.add_argument("-i", "--init-session", action="store_true", help="Initialize a session in this directory")
-    group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
-    group.add_argument("-p", "--print-history", action="store_true", help="Print the message history")
-    group.add_argument("-t", "--test-connect", action="store_true", help="Test connection, and stop")
+    cmd_group.add_argument("query", nargs="?", help="A question or request to process")
+    cmd_group.add_argument("-l", "--list-sessions", action="store_true", help="List existing sessions")
+    cmd_group.add_argument("-i", "--init-session", action="store_true", help="Initialize a session in this directory")
+    cmd_group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
+    cmd_group.add_argument("-p", "--print-history", action="store_true", help="Print the message history")
+    cmd_group.add_argument("-t", "--test-connect", action="store_true", help="Test connection, and stop")
+    cmd_group.add_argument('-s', '--script', metavar='SCRIPT', help='Run an ephemeral stateless script from ~/.config/could-you/<script>.script.json')
 
     args = parser.parse_args()
 
@@ -40,6 +41,22 @@ async def amain():
 
     # Initialize logging
     setup_logging(log_level)
+
+    if args.script:
+        config = load(script_name=args.script)
+        query = args.query if args.query else config.query if config.query else _get_editor_input(config)
+
+        if not query:
+            LOGGER.warning("No input provided")
+            parser.print_help()
+            return
+
+        # History is not loaded/saved: set enable=False, but root can just be cwd
+        with MessageHistory(config.root, enable=False) as message_history:
+            async with Agent(config=config, message_history=message_history) as agent:
+                await agent.orchestrate(query)
+
+        return
 
     with SessionManager() as session_manager:
         if args.list_sessions:
@@ -60,7 +77,7 @@ async def amain():
             # List servers and their tools
             config = session_manager.load_session()
             with MessageHistory(config.root, enable=False) as message_history:
-                async with Agent(config=config, message_history=message_history) as host:
+                async with Agent(config=config, message_history=message_history) as agent:
                     pass
         else:
             config = session_manager.load_session()
@@ -72,8 +89,8 @@ async def amain():
                 return
 
             with MessageHistory(config.root, enable=not args.no_history) as message_history:
-                async with Agent(config=config, message_history=message_history) as host:
-                    await host.orchestrate(query)
+                async with Agent(config=config, message_history=message_history) as agent:
+                    await agent.orchestrate(query)
 
 
 def _get_editor_input(config):
