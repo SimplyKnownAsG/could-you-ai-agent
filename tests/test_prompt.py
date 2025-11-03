@@ -66,6 +66,18 @@ def test_multi_line(tmp_path):
         assert "AFTER" in result
 
 
+def test_parentheses(tmp_path):
+    # Setup files in a temporary directory
+    allowed_base = tmp_path
+    (allowed_base / "f()().md").write_text("F()() CONTENT")
+    with DirChanger(allowed_base):
+        p = "COULD_YOU_LOAD_FILE(f()().md)"
+        result = prompt.enrich_raw_prompt(p)
+        assert str(allowed_base / "f()().md") in result
+        assert "COULD_YOU_LOAD_FILE" not in result
+        assert "F()() CONTENT" in result
+
+
 def test_enrich_raw_prompt_wildcard(tmp_path):
     # Setup files in a temporary directory
     allowed_base = tmp_path
