@@ -8,6 +8,7 @@ from jsonmerge import merge
 
 from .logging_config import LOGGER
 from .mcp_server import MCPServer
+from .prompt import enrich_raw_prompt
 
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
 GLOBAL_CONFIG_PATH = Path(XDG_CONFIG_HOME) / "could-you" / "config.json"
@@ -65,6 +66,10 @@ def load():
     # Apply defaults
     if not config.prompt:
         config.prompt = DEFAULT_PROMPT
+
+    if config.prompt:
+        config.prompt = enrich_raw_prompt(config.prompt)
+
     if not config.editor:
         config.editor = os.environ.get("EDITOR", "vim")
 

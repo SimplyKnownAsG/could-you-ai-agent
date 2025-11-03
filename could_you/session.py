@@ -2,8 +2,8 @@ import json
 import os
 from pathlib import Path
 
-from .logging_config import LOGGER
 from .config import init, load
+from .logging_config import LOGGER
 
 # Constants for XDG paths
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -23,19 +23,19 @@ class SessionManager:
     sessions_file: Path
     sessions: dict[str, dict]
 
-    def __init__(self, *, cache_path: Path =CACHE_PATH):
-        self.sessions_file = cache_path / 'sessions.json'
+    def __init__(self, *, cache_path: Path = CACHE_PATH):
+        self.sessions_file = cache_path / "sessions.json"
         self.sessions = {}
 
     def __enter__(self):
         if os.path.exists(self.sessions_file):
-            with open(self.sessions_file, 'r') as f:
+            with open(self.sessions_file) as f:
                 self.sessions = json.load(f)
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        with open(self.sessions_file, 'w') as f:
+        with open(self.sessions_file, "w") as f:
             json.dump(self.sessions, f, indent=2)
 
     def init_session(self):

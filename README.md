@@ -95,6 +95,37 @@ Example configuration:
 }
 ```
 
+#### COULD_YOU_LOAD_FILE: File & Glob Expansion in Prompts
+
+You can instruct the assistant to dynamically include the contents of files in your prompts using the special COULD_YOU_LOAD_FILE directive. This directive supports glob patterns, so you can auto-load several files at once.
+
+**Syntax:**
+
+```
+COULD_YOU_LOAD_FILE(<relative-glob-pattern>)
+```
+- The pattern is always interpreted relative to your current working directory.
+- Glob syntax (`*`, `?`, `[abc]`, etc.) is supported to match one or more files.
+- Matched files must reside within your project directory for security.
+- If no files match, nothing is injected (but an info log entry is created).
+
+**Examples:**
+
+- Inject one file:  
+  `COULD_YOU_LOAD_FILE(README.md)`
+- Inject all markdown files in docs/:  
+  `COULD_YOU_LOAD_FILE(docs/*.md)`
+- Inject all Python files in the src directory and subdirectories:  
+  `COULD_YOU_LOAD_FILE(src/**/*.py)`
+
+Matched file contents appear in the prompt wrapped in block tags for clarity:
+
+```text
+<could-you-prompt-expanded-file "path/to/file.ext">
+...file contents...
+</could-you-prompt-expanded-file "path/to/file.ext">
+```
+
 #### Server Configuration Options
 
 Each MCP server in the `mcpServers` section supports the following options:
