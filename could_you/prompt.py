@@ -8,7 +8,7 @@ from pathlib import Path
 from .logging_config import LOGGER
 
 # Pattern to match COULD_YOU_LOAD_FILE(relative/path.md or glob)
-COULD_YOU_LOAD_FILE_PATTERN = re.compile(r"^COULD_YOU_LOAD_FILE\(([^\)]+)\)$")
+COULD_YOU_LOAD_FILE_PATTERN = re.compile(r"^COULD_YOU_LOAD_FILE\((.+)\)$", re.MULTILINE)
 
 
 def enrich_raw_prompt(prompt: str) -> str:

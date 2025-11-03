@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import textwrap
 
 from could_you import prompt
 
@@ -45,6 +46,24 @@ def test_not_match(tmp_path):
             # Single
             result = prompt.enrich_raw_prompt(p)
             assert result == p
+
+
+def test_multi_line(tmp_path):
+    # Setup files in a temporary directory
+    allowed_base = tmp_path
+    (allowed_base / "foo.md").write_text("FOO CONTENT")
+    with DirChanger(allowed_base):
+        p = textwrap.dedent("""
+        BEFORE
+        COULD_YOU_LOAD_FILE(foo.md)
+        AFTER
+        """)
+        result = prompt.enrich_raw_prompt(p)
+        assert "BEFORE" in result
+        assert str(allowed_base / "foo.md") in result
+        assert "COULD_YOU_LOAD_FILE" not in result
+        assert "FOO CONTENT" in result
+        assert "AFTER" in result
 
 
 def test_enrich_raw_prompt_wildcard(tmp_path):

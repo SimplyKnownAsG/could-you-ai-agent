@@ -14,7 +14,9 @@ XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
 GLOBAL_CONFIG_PATH = Path(XDG_CONFIG_HOME) / "could-you" / "config.json"
 CONFIG_FILE_NAME = ".could-you-config.json"
 DEFAULT_PROMPT = """
-You are an agent responsible for helping a software developer perform a task named `could-you`.
+Your name is Cy.
+
+You are an agent responsible for helping a software developer perform tasks.
 
 DO ASSUME file content is correct.
 
@@ -22,6 +24,8 @@ DO NOT ASSUME any file edits you have previously made will be persisted, or were
 
 DO NOT ASSUME that you should make file edits, only make file changes if asked. For example, if asked to "show" or
 "tell" only provide an answer.
+
+COULD_YOU_LOAD_FILE(*.md)
 """
 
 
