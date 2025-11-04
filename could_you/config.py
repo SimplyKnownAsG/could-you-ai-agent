@@ -7,10 +7,10 @@ from typing import Any
 import yaml
 from jsonmerge import merge
 
+from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
 from .mcp_server import MCPServer
 from .prompt import enrich_raw_prompt
-from .cy_error import CYError, FaultOwner
 
 CONFIG_FILE_NAME = ".could-you-config.json"
 DEFAULT_PROMPT = """
@@ -60,7 +60,6 @@ class Config:
 
 
 class InvalidConfigError(CYError):
-
     def __init__(self, message):
         super().__init__(message=message, retriable=False, fault_owner=FaultOwner.USER)
 
@@ -216,15 +215,17 @@ def _get_workspace_config_path(current_path: Path) -> Path:
     return _get_workspace_config_path(parent_path)
 
 
-def _get_preferred_path(config_file: Path):
-    for ext in ('.json', '.yaml', '.yml'):
+def _get_preferred_path(config_file: Path) -> Path | None:
+    for ext in (".json", ".yaml", ".yml"):
         config_with_ext = config_file.with_suffix(ext)
 
         if config_with_ext.is_file():
             return config_with_ext
 
+    return None
 
-def _load_raw_path(config_path: Path|None) -> dict[str, Any]:
+
+def _load_raw_path(config_path: Path | None) -> dict[str, Any]:
     """
     Load raw JSON configuration from file.
 
@@ -239,10 +240,10 @@ def _load_raw_path(config_path: Path|None) -> dict[str, Any]:
 
     try:
         with open(config_path) as file:
-            if config_path.suffix == '.json':
+            if config_path.suffix == ".json":
                 return json.load(file)
-            else:
-                return yaml.safe_load(file)
+
+            return yaml.safe_load(file)
     except Exception as e:
         msg = f"Failed to load configuration file at {config_path}: {e}"
         LOGGER.error(msg)

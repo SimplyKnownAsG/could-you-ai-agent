@@ -21,4 +21,3 @@ class DirChanger:
     def close(self):
         if self.original:
             os.chdir(self.original)
-
