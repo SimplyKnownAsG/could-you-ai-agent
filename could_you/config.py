@@ -10,6 +10,7 @@ from jsonmerge import merge
 from .logging_config import LOGGER
 from .mcp_server import MCPServer
 from .prompt import enrich_raw_prompt
+from .could_you_exception import CouldYouException
 
 CONFIG_FILE_NAME = ".could-you-config.json"
 DEFAULT_PROMPT = """
@@ -56,6 +57,11 @@ class Config:
         self.editor = editor
         self.env = env or {}
         self.query = query
+
+
+class InvalidConfigError(CouldYouException):
+    pass
+
 
 
 def init() -> Config:
@@ -151,12 +157,14 @@ def load(script_name: str | None = None):
 
     # Validate required fields
     if not config.llm:
-        LOGGER.error('Must specify "llm" in config')
-        sys.exit(1)
+        msg = 'Must specify "llm" in config'
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
 
     if config.llm["provider"] not in ["boto3", "ollama", "openai"]:
-        LOGGER.error(f"supported providers are boto3, ollama, and openai, got {config.llm['provider']}")
-        sys.exit(1)
+        msg = f"supported providers are boto3, ollama, and openai, got {config.llm['provider']}"
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
 
     # Apply environment variables
     for key, value in config.env.items():
@@ -199,8 +207,9 @@ def _get_workspace_config_path(current_path: Path) -> Path:
     # Stop recursion if we've reached the root directory
     if current_path == parent_path:
         LOGGER.error("did not find .could-you-config.json in this or above directories.")
-        LOGGER.error("could-you must be run from within a workspace.")
-        sys.exit(1)
+        msg = "could-you must be run from within a workspace."
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
 
     # Recurse into the parent directory
     return _get_workspace_config_path(parent_path)
@@ -232,10 +241,11 @@ def _load_raw_path(config_path: Path|None) -> dict[str, Any]:
             if config_path.suffix == '.json':
                 return json.load(file)
             else:
-                return yaml.load(file)
+                return yaml.safe_load(file)
     except Exception as e:
-        LOGGER.error(f"Failed to load configuration file at {config_file}: {e}")
-        sys.exit(1)
+        msg = f"Failed to load configuration file at {config_path}: {e}"
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg) from e
 
 
 def _parse_from_dict(json_config: dict[str, Any], root: Path) -> Config:

@@ -1,0 +1,4 @@
+
+class CouldYouException(Exception):
+    pass
+
