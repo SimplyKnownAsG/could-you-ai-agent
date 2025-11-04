@@ -56,27 +56,34 @@ def test_workspace_overide_global(tmp_cy_config_dir: Path, tmp_dir: Path):
     assert config.llm["model"] == "gpt-99"
 
 
-def test_missing_data(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
+def test_empty_fails(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
     w_config_path = tmp_dir / ".could-you-config.json"
     w_config_path.write_text("{}")
-    with pytest.raises(InvalidConfigError):
+    with pytest.raises(InvalidConfigError, match="Must specify"):
+        load()
+
+
+def test_bad_provider(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
+    w_config_path = tmp_dir / ".could-you-config.json"
+    w_config_path.write_text('{"llm": {"provider": "human", "model": "m40"}}')
+    with pytest.raises(InvalidConfigError, match="Invalid provider"):
         load()
 
 
 def test_not_in_workspace(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
-    with pytest.raises(InvalidConfigError):
+    with pytest.raises(InvalidConfigError, match="within a workspace"):
         load()
 
 
 def test_load_config_invalid_json(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
     w_config_path = tmp_dir / ".could-you-config.json"
     w_config_path.write_text("not json")
-    with pytest.raises(InvalidConfigError):
+    with pytest.raises(InvalidConfigError, match="Failed to load"):
         load()
 
 
 def test_load_config_invalid_yaml(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
     w_config_path = tmp_dir / ".could-you-config.yaml"
     w_config_path.write_text("llm:\n  - 'invalid: [this is not valid: yaml")
-    with pytest.raises(InvalidConfigError):
+    with pytest.raises(InvalidConfigError, match="Failed to load"):
         load()

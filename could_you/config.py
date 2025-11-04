@@ -162,7 +162,7 @@ def load(script_name: str | None = None):
         raise InvalidConfigError(msg)
 
     if config.llm["provider"] not in ["boto3", "ollama", "openai"]:
-        msg = f"supported providers are boto3, ollama, and openai, got {config.llm['provider']}"
+        msg = f"Invalid provider. Supported providers are boto3, ollama, and openai, got {config.llm['provider']}"
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
