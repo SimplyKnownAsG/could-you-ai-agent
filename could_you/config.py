@@ -60,7 +60,7 @@ class Config:
         self.query = query
 
 
-def load(script_name: str = None):
+def load(script_name: str|None = None):
     # Load raw JSON configurations
     g_config_json = _load_raw_json(GLOBAL_CONFIG_PATH)
     local_config_path = _find_up(Path(".").resolve())
@@ -70,15 +70,25 @@ def load(script_name: str = None):
 
     if script_name:
         # Only load the script config from the user config folder
-        script_config_path = CONFIG_DIR / f'script.{script_name}.json'
+        local_script_path = local_config_path.parent / f'.could-you-script.{script_name}.json'
+        global_script_path = CONFIG_DIR / f'script.{script_name}.json'
 
-        if not script_config_path.exists():
-            LOGGER.error(f"Script config {script_config_path} does not exist.")
+        for script_config_path in [local_script_path, global_script_path]:
+            if script_config_path.exists():
+                LOGGER.info(f"Found script: {script_config_path}")
+                break
+            else:
+                LOGGER.info(f"Script does not exist: {script_config_path}")
+        else:
+            LOGGER.error(f"Script {script_name} does not exist.")
             sys.exit(1)
 
         s_config_json = _load_raw_json(script_config_path)
         # remove tools merged
-        del merged_config_json["mcpServers"]
+
+        if "mcpServers" in merged_config_json:
+            del merged_config_json["mcpServers"]
+
         merged_config_json = merge(merged_config_json, s_config_json)
 
     # Parse the merged configuration

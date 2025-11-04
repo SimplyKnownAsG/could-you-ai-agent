@@ -65,9 +65,9 @@ could-you --delete-session /path/to/session
 
 ### Ephemeral Script Mode (--script / -s)
 
-**Run single-use, stateless scripts with their its own config!**
+**Run single-use, stateless scripts with its own config**
 
-- Place a script config at `$XDG_CONFIG_HOME/could-you/script.<script-name>.json`.
+- Place a script config at `$XDG_CONFIG_HOME/could-you/script.<script-name>.json` or in the project-local workspace as `.could-you-script.<script>.json`.
 - Run with:
   ```bash
   could-you --script <script-name> ["your query"]
@@ -75,12 +75,15 @@ could-you --delete-session /path/to/session
 - There is **no history loaded or saved**; only the input and the script config, and inherited configs, are used for a single turn.
 - Perfect for batch jobs, automation, git hooks, custom codegen/check flows, etc.
 - Example script (`$XDG_CONFIG_HOME/could-you/script.git-commit.json`):
+
+  Run with: `cy --script git-commit`.
+
   ```json
   {
     "systemPrompt": "Format the current staged changes as a Conventional Commit message",
     "query": "Use git diff origin/HEAD to determine the staged changes, and write a git commit message.",
     "mcpServers": {
-      "git": {
+      "mcp-git": {
         "command": "uvx",
         "args": ["mcp-server-git"],
         "enabled": true,
@@ -93,10 +96,29 @@ could-you --delete-session /path/to/session
     }
   }
   ```
-- Minimal example, loading system prompt from `$XDG_CONFIG_HOME/could-you/config.json` or nearest `.could-you-config.json`. 
+- Minimal example, loading system prompt from `$XDG_CONFIG_HOME/could-you/config.json` or nearest `.could-you-config.json`. No default query.
+
+  Run with: `cy --script git-commit "Format the current staged changes as a Conventional Commit message"`
+
   ```json
   {
-    "query": "Format the current staged changes as a Conventional Commit message",
+    "mcpServers": {
+      "git": {
+        "command": "uvx",
+        "args": ["mcp-server-git"],
+        "enabled": true,
+        "disabledTools": ["git_reset", "git_create_branch"]
+      }
+    }
+  }
+  ```
+- Minimal example, loading system prompt from `$XDG_CONFIG_HOME/could-you/config.json` or nearest `.could-you-config.json`, with a default query.
+
+  Run with: `cy --script git-commit`.
+
+  ```json
+  {
+    "query": "Use git diff origin/HEAD to determine the staged changes, and write a git commit message.",
     "mcpServers": {
       "git": {
         "command": "uvx",
