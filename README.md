@@ -63,89 +63,6 @@ could-you --test-connect
 could-you --delete-session /path/to/session
 ```
 
-### Ephemeral Script Mode (--script / -s)
-
-**Run single-use, stateless scripts with its own config**
-
-- Place a script config at `$XDG_CONFIG_HOME/could-you/script.<script-name>.json` or in the project-local workspace as `.could-you-script.<script>.json`.
-- Run with:
-  ```bash
-  could-you --script <script-name> ["your query"]
-  ```
-- There is **no history loaded or saved**; only the input and the script config, and inherited configs, are used for a single turn.
-- Perfect for batch jobs, automation, git hooks, custom codegen/check flows, etc.
-- Example script (`$XDG_CONFIG_HOME/could-you/script.git-commit.json`):
-
-  Run with: `cy --script git-commit`.
-
-  ```json
-  {
-    "systemPrompt": "Format the current staged changes as a Conventional Commit message",
-    "query": "Use git diff origin/HEAD to determine the staged changes, and write a git commit message.",
-    "mcpServers": {
-      "mcp-git": {
-        "command": "uvx",
-        "args": ["mcp-server-git"],
-        "enabled": true,
-        "disabledTools": ["git_reset", "git_create_branch"]
-      }
-    },
-    "llm": {
-      "provider": "openai",
-      "model": "gpt-4"
-    }
-  }
-  ```
-- Minimal example, loading system prompt from `$XDG_CONFIG_HOME/could-you/config.json` or nearest `.could-you-config.json`. No default query.
-
-  Run with: `cy --script git-commit "Format the current staged changes as a Conventional Commit message"`
-
-  ```json
-  {
-    "mcpServers": {
-      "git": {
-        "command": "uvx",
-        "args": ["mcp-server-git"],
-        "enabled": true,
-        "disabledTools": ["git_reset", "git_create_branch"]
-      }
-    }
-  }
-  ```
-- Minimal example, loading system prompt from `$XDG_CONFIG_HOME/could-you/config.json` or nearest `.could-you-config.json`, with a default query.
-
-  Run with: `cy --script git-commit`.
-
-  ```json
-  {
-    "query": "Use git diff origin/HEAD to determine the staged changes, and write a git commit message.",
-    "mcpServers": {
-      "git": {
-        "command": "uvx",
-        "args": ["mcp-server-git"],
-        "enabled": true,
-        "disabledTools": ["git_reset", "git_create_branch"]
-      }
-    }
-  }
-  ```
-
-#### How it works
-- Load configuration:
-  1. Load global `$XDG_CONFIG_HOME/could-you/config.json`, remove `mcpServers`
-  2. Overwrite global with local `.could-you-config.json`, remove `mcpServers`.
-  3. Overwrite local config with `$XDG_CONFIG_HOME/could-you/script.<script>.json`
-- No message history files are loaded or written.
-
-#### Example use cases
-- **Git commit message generation**
-- **Update documentation for the staged changes**
-- **CI/CD custom checks with AI**
-- **Linting/code transformation flows**
-- **Batch QA/code review flows**
-
----
-
 ### Session Management
 
 Sessions are automatically created per directory and maintain:
@@ -158,6 +75,8 @@ Sessions are automatically created per directory and maintain:
 Configuration files can be placed at:
 - **Project level**: `.could-you-config.json` (in project root)
 - **Global level**: `$XDG_CONFIG_HOME/could-you/config.json`
+
+> **NOTE**: All configuration files (project, global and script) support `.json`, `.yaml`, and `.yml` extensions in that preferred order.
 
 Example configuration:
 ```json
@@ -262,6 +181,87 @@ Example configuration with tool disabling:
 - **Web**: HTTP requests and API interactions
 
 Each connected server provides tools that the AI assistant can use to help with your tasks.
+
+### Ephemeral Script Mode (--script / -s)
+
+**Run single-use, stateless scripts with its own config**
+
+- Place a script config at `$XDG_CONFIG_HOME/could-you/script.<script-name>.json` or in the project-local workspace as `.could-you-script.<script>.json`.
+- Run with:
+  ```bash
+  could-you --script <script-name> ["your query"]
+  ```
+- There is **no history loaded or saved**; only the input and the script config, and inherited configs, are used for a single turn.
+- Perfect for batch jobs, automation, git hooks, custom codegen/check flows, etc.
+- Example script (`$XDG_CONFIG_HOME/could-you/script.git-commit.json`):
+
+  Run with: `cy --script git-commit`.
+
+  ```json
+  {
+    "systemPrompt": "Format the current staged changes as a Conventional Commit message",
+    "query": "Use git diff origin/HEAD to determine the staged changes, and write a git commit message.",
+    "mcpServers": {
+      "mcp-git": {
+        "command": "uvx",
+        "args": ["mcp-server-git"],
+        "enabled": true,
+        "disabledTools": ["git_reset", "git_create_branch"]
+      }
+    },
+    "llm": {
+      "provider": "openai",
+      "model": "gpt-4"
+    }
+  }
+  ```
+- Minimal example, loading system prompt from `$XDG_CONFIG_HOME/could-you/config.json` or nearest `.could-you-config.json`. No default query.
+
+  Run with: `cy --script git-commit "Format the current staged changes as a Conventional Commit message"`
+
+  ```json
+  {
+    "mcpServers": {
+      "git": {
+        "command": "uvx",
+        "args": ["mcp-server-git"],
+        "enabled": true,
+        "disabledTools": ["git_reset", "git_create_branch"]
+      }
+    }
+  }
+  ```
+- Minimal example, loading system prompt from `$XDG_CONFIG_HOME/could-you/config.json` or nearest `.could-you-config.json`, with a default query.
+
+  Run with: `cy --script git-commit`.
+
+  ```json
+  {
+    "query": "Use git diff origin/HEAD to determine the staged changes, and write a git commit message.",
+    "mcpServers": {
+      "git": {
+        "command": "uvx",
+        "args": ["mcp-server-git"],
+        "enabled": true,
+        "disabledTools": ["git_reset", "git_create_branch"]
+      }
+    }
+  }
+  ```
+
+#### How it works
+- Load configuration:
+  1. Load global `$XDG_CONFIG_HOME/could-you/config.json`, remove `mcpServers`
+  2. Overwrite global with local `.could-you-config.json`, remove `mcpServers`.
+  3. Overwrite local config with `$XDG_CONFIG_HOME/could-you/script.<script>.json`
+- No message history files are loaded or written.
+
+#### Example use cases
+- **Git commit message generation**
+- **Update documentation for the staged changes**
+- **CI/CD custom checks with AI**
+- **Linting/code transformation flows**
+- **Batch QA/code review flows**
 
 ---
 
