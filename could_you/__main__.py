@@ -4,10 +4,11 @@ import subprocess
 import tempfile
 
 from .agent import Agent
+from .config import load
 from .logging_config import LOGGER, setup_logging
 from .message_history import MessageHistory
 from .session import SessionManager
-from .config import load
+
 
 async def amain():
     parser = argparse.ArgumentParser(description="Could-You MCP CLI")
@@ -27,7 +28,12 @@ async def amain():
     cmd_group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
     cmd_group.add_argument("-p", "--print-history", action="store_true", help="Print the message history")
     cmd_group.add_argument("-t", "--test-connect", action="store_true", help="Test connection, and stop")
-    cmd_group.add_argument('-s', '--script', metavar='SCRIPT', help='Run an ephemeral stateless script from $XDG_CONFIG_HOME/could-you/script.<script>.json')
+    cmd_group.add_argument(
+        "-s",
+        "--script",
+        metavar="SCRIPT",
+        help="Run an ephemeral stateless script from $XDG_CONFIG_HOME/could-you/script.<script>.json",
+    )
 
     args = parser.parse_args()
 
