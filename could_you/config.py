@@ -1,19 +1,16 @@
 import json
-import yaml
 import os
 import sys
 from pathlib import Path
 from typing import Any
 
+import yaml
 from jsonmerge import merge
 
 from .logging_config import LOGGER
 from .mcp_server import MCPServer
 from .prompt import enrich_raw_prompt
 
-XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
-CONFIG_DIR = Path(XDG_CONFIG_HOME) / "could-you"
-GLOBAL_CONFIG_PATH = CONFIG_DIR / "config.json"
 CONFIG_FILE_NAME = ".could-you-config.json"
 DEFAULT_PROMPT = """
 Your name is Cy.
@@ -61,78 +58,10 @@ class Config:
         self.query = query
 
 
-def load(script_name: str | None = None):
-    # this uses prefixes
-    #   g - global
-    #   l - local
-    #   s - script
-    #   m - merged
-    # Load raw JSON configurations
-    g_config_path = _get_preferred_path(GLOBAL_CONFIG_PATH)
-    g_config_dict = _load_raw_path(g_config_path)
-    l_config_path = _find_up(Path(".").resolve())
-    l_config_dict = _load_raw_path(l_config_path)
-    # Merge configurations with local taking priority
-    m_config_dict = merge(g_config_dict, l_config_dict)
-
-    if script_name:
-        # Only load the script config from the user config folder
-        l_script_path = l_config_path.parent / f".could-you-script.{script_name}.json"
-        g_script_path = CONFIG_DIR / f"script.{script_name}.json"
-
-        for s_config_base_path in [l_script_path, g_script_path]:
-            s_config_path = _get_preferred_path(s_config_base_path)
-
-            if s_config_path:
-                LOGGER.info(f"Found script: {s_config_path}")
-                break
-
-            LOGGER.info(f"Script does not exist: {s_config_base_path}")
-        else:
-            LOGGER.error(f"Script {script_name} does not exist.")
-            sys.exit(1)
-
-        s_config_dict = _load_raw_path(s_config_path)
-        # remove tools merged
-
-        if "mcpServers" in m_config_dict:
-            del m_config_dict["mcpServers"]
-
-        m_config_dict = merge(m_config_dict, s_config_dict)
-
-    # Parse the merged configuration
-    config = _parse_from_dict(m_config_dict, l_config_path.parent)
-
-    # Apply defaults
-    if not config.prompt:
-        config.prompt = DEFAULT_PROMPT
-
-    config.prompt = enrich_raw_prompt(config.prompt)
-
-    if not config.editor:
-        config.editor = os.environ.get("EDITOR", "vim")
-
-    # Validate required fields
-    if not config.llm:
-        LOGGER.error('Must specify "llm" in config')
-        sys.exit(1)
-
-    if config.llm["provider"] not in ["boto3", "ollama", "openai"]:
-        LOGGER.error(f"supported providers are boto3, ollama, and openai, got {config.llm['provider']}")
-        sys.exit(1)
-
-    # Apply environment variables
-    for key, value in config.env.items():
-        if value is not None:
-            os.environ[key] = value
-
-    return config
-
-
 def init() -> Config:
-    g_config_dict = _load_raw_path(GLOBAL_CONFIG_PATH)
+    g_config_dict = _load_raw_path(_get_global_config_path())
 
-    with open(CONFIG_FILE_NAME, "w") as l_config:
+    with open(CONFIG_FILE_NAME, "w") as w_config:
         # Create a copy to avoid modifying the original
         jsonable = g_config_dict.copy()
 
@@ -164,12 +93,89 @@ def init() -> Config:
             "args": ["-y", "@modelcontextprotocol/server-filesystem", os.path.abspath(".")],
         }
         jsonable["mcpServers"] = mcp_servers
-        json.dump(jsonable, l_config, indent=2)
+        json.dump(jsonable, w_config, indent=2)
 
     return load()
 
 
-def _find_up(current_path: Path) -> Path:
+def load(script_name: str | None = None):
+    # this uses prefixes
+    #   g - global
+    #   w - workspace
+    #   s - script
+    #   m - merged
+    # Load raw JSON configurations
+    g_config_path = _get_global_config_path()
+    g_config_dict = _load_raw_path(g_config_path)
+    w_config_path = _get_workspace_config_path(Path(".").resolve())
+    w_config_dict = _load_raw_path(w_config_path)
+    # Merge configurations with local taking priority
+    m_config_dict = merge(g_config_dict, w_config_dict)
+
+    if script_name:
+        # Only load the script config from the user config folder
+        w_script_path = w_config_path.parent / f".could-you-script.{script_name}.json"
+        g_script_path = _get_global_config_dir_path() / f"script.{script_name}.json"
+
+        for s_config_base_path in [w_script_path, g_script_path]:
+            s_config_path = _get_preferred_path(s_config_base_path)
+
+            if s_config_path:
+                LOGGER.info(f"Found script: {s_config_path}")
+                break
+
+            LOGGER.info(f"Script does not exist: {s_config_base_path}")
+        else:
+            LOGGER.error(f"Script {script_name} does not exist.")
+            sys.exit(1)
+
+        s_config_dict = _load_raw_path(s_config_path)
+        # remove tools merged
+
+        if "mcpServers" in m_config_dict:
+            del m_config_dict["mcpServers"]
+
+        m_config_dict = merge(m_config_dict, s_config_dict)
+
+    # Parse the merged configuration
+    config = _parse_from_dict(m_config_dict, w_config_path.parent)
+
+    # Apply defaults
+    if not config.prompt:
+        config.prompt = DEFAULT_PROMPT
+
+    config.prompt = enrich_raw_prompt(config.prompt)
+
+    if not config.editor:
+        config.editor = os.environ.get("EDITOR", "vim")
+
+    # Validate required fields
+    if not config.llm:
+        LOGGER.error('Must specify "llm" in config')
+        sys.exit(1)
+
+    if config.llm["provider"] not in ["boto3", "ollama", "openai"]:
+        LOGGER.error(f"supported providers are boto3, ollama, and openai, got {config.llm['provider']}")
+        sys.exit(1)
+
+    # Apply environment variables
+    for key, value in config.env.items():
+        if value is not None:
+            os.environ[key] = value
+
+    return config
+
+
+def _get_global_config_path():
+    return _get_preferred_path(_get_global_config_dir_path() / "config.json")
+
+
+def _get_global_config_dir_path():
+    xdg_config_home = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
+    return Path(xdg_config_home) / "could-you"
+
+
+def _get_workspace_config_path(current_path: Path) -> Path:
     """
     Recursively searches upward for the closest file named CONFIG_FILE_NAME.
 
@@ -197,7 +203,7 @@ def _find_up(current_path: Path) -> Path:
         sys.exit(1)
 
     # Recurse into the parent directory
-    return _find_up(parent_path)
+    return _get_workspace_config_path(parent_path)
 
 
 def _get_preferred_path(config_file: Path):
