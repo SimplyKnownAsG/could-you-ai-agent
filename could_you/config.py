@@ -77,8 +77,8 @@ def load(script_name: str|None = None):
             if script_config_path.exists():
                 LOGGER.info(f"Found script: {script_config_path}")
                 break
-            else:
-                LOGGER.info(f"Script does not exist: {script_config_path}")
+
+            LOGGER.info(f"Script does not exist: {script_config_path}")
         else:
             LOGGER.error(f"Script {script_name} does not exist.")
             sys.exit(1)
