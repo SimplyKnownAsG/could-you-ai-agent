@@ -27,7 +27,7 @@ async def amain():
     cmd_group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
     cmd_group.add_argument("-p", "--print-history", action="store_true", help="Print the message history")
     cmd_group.add_argument("-t", "--test-connect", action="store_true", help="Test connection, and stop")
-    cmd_group.add_argument('-s', '--script', metavar='SCRIPT', help='Run an ephemeral stateless script from $XDG_CONFIG_HOME/could-you/<script>.script.json')
+    cmd_group.add_argument('-s', '--script', metavar='SCRIPT', help='Run an ephemeral stateless script from $XDG_CONFIG_HOME/could-you/script.<script>.json')
 
     args = parser.parse_args()
 

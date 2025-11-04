@@ -67,14 +67,14 @@ could-you --delete-session /path/to/session
 
 **Run single-use, stateless scripts with their its own config!**
 
-- Place a script config at `$XDG_CONFIG_HOME/could-you/<script-name>.script.json`.
+- Place a script config at `$XDG_CONFIG_HOME/could-you/script.<script-name>.json`.
 - Run with:
   ```bash
   could-you --script <script-name> ["your query"]
   ```
 - There is **no history loaded or saved**; only the input and the script config, and inherited configs, are used for a single turn.
 - Perfect for batch jobs, automation, git hooks, custom codegen/check flows, etc.
-- Example script (`$XDG_CONFIG_HOME/could-you/git-commit.script.json`):
+- Example script (`$XDG_CONFIG_HOME/could-you/script.git-commit.json`):
   ```json
   {
     "systemPrompt": "Format the current staged changes as a Conventional Commit message",
@@ -112,7 +112,7 @@ could-you --delete-session /path/to/session
 - Load configuration:
   1. Load global `$XDG_CONFIG_HOME/could-you/config.json`, remove `mcpServers`
   2. Overwrite global with local `.could-you-config.json`, remove `mcpServers`.
-  3. Overwrite local config with `$XDG_CONFIG_HOME/could-you/<script>.script.json`
+  3. Overwrite local config with `$XDG_CONFIG_HOME/could-you/script.<script>.json`
 - No message history files are loaded or written.
 
 #### Example use cases
@@ -240,31 +240,6 @@ Example configuration with tool disabling:
 - **Web**: HTTP requests and API interactions
 
 Each connected server provides tools that the AI assistant can use to help with your tasks.
-
----
-
-## Change Log: Ephemeral Script Mode via --script Flag
-
-### Background
-
-Previously, `could-you` only supported running as an interactive CLI with project-aware or global config files. There was no stateless "script" mode where a one-off config/script could be loaded from the user config directory for batch-style invocation. This change introduces such an ephemeral command mode.
-
-### Changes
-
-* Add `--script` (`-s`) CLI argument to `could_you/__main__.py` to support running a stateless script
-* Update argument parser to use `cmd_group` for improved mutual exclusion
-* Update config loading logic in `config.py` to support merging a `<script>.script.json` from the user config directory (under `$XDG_CONFIG_HOME/could-you/`)
-* Add support for an optional `query` field in the script config
-* Refactor query/editor-input logic for script flows
-* Pass merged config and ephemeral message history to the agent when running in script mode
-* Update code to use `agent` (not `host`) for var naming consistency
-
-### Testing
-
-* Ran CLI script mode with various `.script.json` files in `$XDG_CONFIG_HOME/could-you/`, with and without the `query` set
-* Validated that history was not persisted when using the `--script` flag
-* Confirmed mutual exclusivity of CLI args, and that legacy project config still works
-* Inspected logs for error handling if script config doesn't exist
 
 ---
 

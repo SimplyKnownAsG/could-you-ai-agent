@@ -70,7 +70,7 @@ def load(script_name: str = None):
 
     if script_name:
         # Only load the script config from the user config folder
-        script_config_path = CONFIG_DIR / f'{script_name}.script.json'
+        script_config_path = CONFIG_DIR / f'script.{script_name}.json'
 
         if not script_config_path.exists():
             LOGGER.error(f"Script config {script_config_path} does not exist.")
