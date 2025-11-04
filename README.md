@@ -67,14 +67,14 @@ could-you --delete-session /path/to/session
 
 **Run single-use, stateless scripts with their its own config!**
 
-- Place a script config at `~/.config/could-you/<script-name>.script.json`.
+- Place a script config at `$XDG_CONFIG_HOME/could-you/<script-name>.script.json`.
 - Run with:
   ```bash
   could-you --script <script-name> ["your query"]
   ```
 - There is **no history loaded or saved**; only the input and the script config, and inherited configs, are used for a single turn.
 - Perfect for batch jobs, automation, git hooks, custom codegen/check flows, etc.
-- Example script (`~/.config/could-you/git-commit.script.json`):
+- Example script (`$XDG_CONFIG_HOME/could-you/git-commit.script.json`):
   ```json
   {
     "systemPrompt": "Format the current staged changes as a Conventional Commit message",
@@ -93,7 +93,7 @@ could-you --delete-session /path/to/session
     }
   }
   ```
-- Minimal example, loading system prompt from `~/.config/could-you/config.json` or nearest `.could-you-config.json`. 
+- Minimal example, loading system prompt from `$XDG_CONFIG_HOME/could-you/config.json` or nearest `.could-you-config.json`. 
   ```json
   {
     "query": "Format the current staged changes as a Conventional Commit message",
@@ -110,9 +110,9 @@ could-you --delete-session /path/to/session
 
 #### How it works
 - Load configuration:
-  1. Load global `~/.config/could-you/config.json`, remove `mcpServers`
+  1. Load global `$XDG_CONFIG_HOME/could-you/config.json`, remove `mcpServers`
   2. Overwrite global with local `.could-you-config.json`, remove `mcpServers`.
-  3. Overwrite local config with `~/.config/could-you/<script>.script.json`
+  3. Overwrite local config with `$XDG_CONFIG_HOME/could-you/<script>.script.json`
 - No message history files are loaded or written.
 
 #### Example use cases
@@ -135,7 +135,7 @@ Sessions are automatically created per directory and maintain:
 
 Configuration files can be placed at:
 - **Project level**: `.could-you-config.json` (in project root)
-- **Global level**: `~/.config/could-you/config.json`
+- **Global level**: `$XDG_CONFIG_HOME/could-you/config.json`
 
 Example configuration:
 ```json
@@ -253,7 +253,7 @@ Previously, `could-you` only supported running as an interactive CLI with projec
 
 * Add `--script` (`-s`) CLI argument to `could_you/__main__.py` to support running a stateless script
 * Update argument parser to use `cmd_group` for improved mutual exclusion
-* Update config loading logic in `config.py` to support merging a `<script>.script.json` from the user config directory (under `~/.config/could-you/`)
+* Update config loading logic in `config.py` to support merging a `<script>.script.json` from the user config directory (under `$XDG_CONFIG_HOME/could-you/`)
 * Add support for an optional `query` field in the script config
 * Refactor query/editor-input logic for script flows
 * Pass merged config and ephemeral message history to the agent when running in script mode
@@ -261,7 +261,7 @@ Previously, `could-you` only supported running as an interactive CLI with projec
 
 ### Testing
 
-* Ran CLI script mode with various `.script.json` files in `~/.config/could-you/`, with and without the `query` set
+* Ran CLI script mode with various `.script.json` files in `$XDG_CONFIG_HOME/could-you/`, with and without the `query` set
 * Validated that history was not persisted when using the `--script` flag
 * Confirmed mutual exclusivity of CLI args, and that legacy project config still works
 * Inspected logs for error handling if script config doesn't exist
