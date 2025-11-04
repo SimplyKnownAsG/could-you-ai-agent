@@ -1,4 +1,5 @@
 import json
+import yaml
 import os
 import sys
 from pathlib import Path
@@ -61,38 +62,46 @@ class Config:
 
 
 def load(script_name: str | None = None):
+    # this uses prefixes
+    #   g - global
+    #   l - local
+    #   s - script
+    #   m - merged
     # Load raw JSON configurations
-    g_config_json = _load_raw_json(GLOBAL_CONFIG_PATH)
-    local_config_path = _find_up(Path(".").resolve())
-    l_config_json = _load_raw_json(local_config_path)
+    g_config_path = _get_preferred_path(GLOBAL_CONFIG_PATH)
+    g_config_dict = _load_raw_path(g_config_path)
+    l_config_path = _find_up(Path(".").resolve())
+    l_config_dict = _load_raw_path(l_config_path)
     # Merge configurations with local taking priority
-    merged_config_json = merge(g_config_json, l_config_json)
+    m_config_dict = merge(g_config_dict, l_config_dict)
 
     if script_name:
         # Only load the script config from the user config folder
-        local_script_path = local_config_path.parent / f".could-you-script.{script_name}.json"
-        global_script_path = CONFIG_DIR / f"script.{script_name}.json"
+        l_script_path = l_config_path.parent / f".could-you-script.{script_name}.json"
+        g_script_path = CONFIG_DIR / f"script.{script_name}.json"
 
-        for script_config_path in [local_script_path, global_script_path]:
-            if script_config_path.exists():
-                LOGGER.info(f"Found script: {script_config_path}")
+        for s_config_base_path in [l_script_path, g_script_path]:
+            s_config_path = _get_preferred_path(s_config_base_path)
+
+            if s_config_path:
+                LOGGER.info(f"Found script: {s_config_path}")
                 break
 
-            LOGGER.info(f"Script does not exist: {script_config_path}")
+            LOGGER.info(f"Script does not exist: {s_config_base_path}")
         else:
             LOGGER.error(f"Script {script_name} does not exist.")
             sys.exit(1)
 
-        s_config_json = _load_raw_json(script_config_path)
+        s_config_dict = _load_raw_path(s_config_path)
         # remove tools merged
 
-        if "mcpServers" in merged_config_json:
-            del merged_config_json["mcpServers"]
+        if "mcpServers" in m_config_dict:
+            del m_config_dict["mcpServers"]
 
-        merged_config_json = merge(merged_config_json, s_config_json)
+        m_config_dict = merge(m_config_dict, s_config_dict)
 
     # Parse the merged configuration
-    config = _parse_from_json(merged_config_json, local_config_path.parent)
+    config = _parse_from_dict(m_config_dict, l_config_path.parent)
 
     # Apply defaults
     if not config.prompt:
@@ -121,11 +130,11 @@ def load(script_name: str | None = None):
 
 
 def init() -> Config:
-    g_config_json = _load_raw_json(GLOBAL_CONFIG_PATH)
+    g_config_dict = _load_raw_path(GLOBAL_CONFIG_PATH)
 
     with open(CONFIG_FILE_NAME, "w") as l_config:
         # Create a copy to avoid modifying the original
-        jsonable = g_config_json.copy()
+        jsonable = g_config_dict.copy()
 
         # Remove root if it exists (shouldn't be in local config)
         if "root" in jsonable:
@@ -173,9 +182,10 @@ def _find_up(current_path: Path) -> Path:
                      or None if the file is not found.
     """
     # Check the current directory first
-    potential_file = current_path / CONFIG_FILE_NAME
-    if potential_file.is_file():
-        return potential_file
+    config_path = _get_preferred_path(current_path / CONFIG_FILE_NAME)
+
+    if config_path:
+        return config_path
 
     # Move up to the parent directory
     parent_path = current_path.parent
@@ -190,7 +200,15 @@ def _find_up(current_path: Path) -> Path:
     return _find_up(parent_path)
 
 
-def _load_raw_json(config_file: Path) -> dict[str, Any]:
+def _get_preferred_path(config_file: Path):
+    for ext in ('.json', '.yaml', '.yml'):
+        config_with_ext = config_file.with_suffix(ext)
+
+        if config_with_ext.is_file():
+            return config_with_ext
+
+
+def _load_raw_path(config_path: Path|None) -> dict[str, Any]:
     """
     Load raw JSON configuration from file.
 
@@ -200,21 +218,21 @@ def _load_raw_json(config_file: Path) -> dict[str, Any]:
     Returns:
         Dict[str, Any]: Raw JSON configuration or empty dict if file doesn't exist.
     """
-    if not config_file.is_file():
+    if config_path is None or not config_path.is_file():
         return {}
 
     try:
-        with open(config_file) as file:
-            return json.load(file)
-    except json.JSONDecodeError as e:
-        LOGGER.error(f"Failed to parse the JSON configuration file at {config_file}: {e}")
-        sys.exit(1)
+        with open(config_path) as file:
+            if config_path.suffix == '.json':
+                return json.load(file)
+            else:
+                return yaml.load(file)
     except Exception as e:
-        LOGGER.error(f"internal error: Could not load configuration file at {config_file}: {e}")
+        LOGGER.error(f"Failed to load configuration file at {config_file}: {e}")
         sys.exit(1)
 
 
-def _parse_from_json(json_config: dict[str, Any], root: Path) -> Config:
+def _parse_from_dict(json_config: dict[str, Any], root: Path) -> Config:
     """
     Parse a Config object from merged JSON configuration.
 

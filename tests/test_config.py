@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from jsonmerge import merge
 
-from could_you.config import _load_raw_json, _parse_from_json
+from could_you.config import _load_raw_path, _parse_from_dict
 
 
 def test_parse_from_json_with_disabled_tools():
@@ -21,7 +21,7 @@ def test_parse_from_json_with_disabled_tools():
         },
     }
 
-    config = _parse_from_json(json_config, Path("/test/root"))
+    config = _parse_from_dict(json_config, Path("/test/root"))
 
     assert len(config.servers) == 1
     server = config.servers[0]
@@ -36,7 +36,7 @@ def test_parse_from_json_with_enabled_false():
         "mcpServers": {"disabled-server": {"command": "test-command", "args": ["arg1"], "enabled": False}},
     }
 
-    config = _parse_from_json(json_config, Path("/test/root"))
+    config = _parse_from_dict(json_config, Path("/test/root"))
 
     assert len(config.servers) == 1
     server = config.servers[0]
@@ -59,7 +59,7 @@ def test_parse_from_json_with_both_disabled_server_and_tools():
         },
     }
 
-    config = _parse_from_json(json_config, Path("/test/root"))
+    config = _parse_from_dict(json_config, Path("/test/root"))
 
     assert len(config.servers) == 1
     server = config.servers[0]
@@ -112,7 +112,7 @@ def test_load_raw_json_existing_file():
         json.dump(test_config, f)
         f.flush()
 
-        result = _load_raw_json(Path(f.name))
+        result = _load_raw_path(Path(f.name))
         assert result == test_config
 
         # Clean up
@@ -121,7 +121,7 @@ def test_load_raw_json_existing_file():
 
 def test_load_raw_json_nonexistent_file():
     """Test loading raw JSON from a non-existent file returns empty dict."""
-    result = _load_raw_json(Path("/nonexistent/file.json"))
+    result = _load_raw_path(Path("/nonexistent/file.json"))
     assert result == {}
 
 
@@ -135,7 +135,7 @@ def test_parse_from_json():
         "editor": "vim",
     }
 
-    config = _parse_from_json(json_config, Path("/test/root"))
+    config = _parse_from_dict(json_config, Path("/test/root"))
 
     assert config.prompt == "Test prompt"
     assert config.llm == {"provider": "boto3", "model": "test"}
@@ -199,14 +199,14 @@ def test_parse_from_json_missing_required_fields():
     }
 
     with pytest.raises(ValueError, match="missing required keys"):
-        _parse_from_json(json_config, Path("/test/root"))
+        _parse_from_dict(json_config, Path("/test/root"))
 
 
 def test_parse_from_json_empty_config():
     """Test parsing an empty configuration."""
     json_config = {}
 
-    config = _parse_from_json(json_config, Path("/test/root"))
+    config = _parse_from_dict(json_config, Path("/test/root"))
 
     assert config.prompt is None
     assert config.llm == {}
