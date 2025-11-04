@@ -1,4 +1,0 @@
-
-class CouldYouException(Exception):
-    pass
-

@@ -10,7 +10,7 @@ from jsonmerge import merge
 from .logging_config import LOGGER
 from .mcp_server import MCPServer
 from .prompt import enrich_raw_prompt
-from .could_you_exception import CouldYouException
+from .cy_error import CYError, FaultOwner
 
 CONFIG_FILE_NAME = ".could-you-config.json"
 DEFAULT_PROMPT = """
@@ -59,9 +59,10 @@ class Config:
         self.query = query
 
 
-class InvalidConfigError(CouldYouException):
-    pass
+class InvalidConfigError(CYError):
 
+    def __init__(self, message):
+        super().__init__(message=message, retriable=False, fault_owner=FaultOwner.USER)
 
 
 def init() -> Config:
