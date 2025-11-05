@@ -111,16 +111,19 @@ def load(script_name: str | None = None):
     #   s - script
     #   m - merged
     # Load raw JSON configurations
+    cwd = Path(".").resolve()
     g_config_path = _get_global_config_path()
     g_config_dict = _load_raw_path(g_config_path)
-    w_config_path = _get_workspace_config_path(Path(".").resolve())
+    w_config_path = _get_workspace_config_path(cwd, required=script_name is None)
     w_config_dict = _load_raw_path(w_config_path)
     # Merge configurations with local taking priority
     m_config_dict = merge(g_config_dict, w_config_dict)
 
+    w_dir = w_config_path.parent if w_config_path else cwd
+
     if script_name:
-        # Only load the script config from the user config folder
-        w_script_path = w_config_path.parent / f".could-you-script.{script_name}.json"
+        # Load script from the current folder, or from the XDG config
+        w_script_path = w_dir / f".could-you-script.{script_name}.json"
         g_script_path = _get_global_config_dir_path() / f"script.{script_name}.json"
 
         for s_config_base_path in [w_script_path, g_script_path]:
@@ -144,7 +147,7 @@ def load(script_name: str | None = None):
         m_config_dict = merge(m_config_dict, s_config_dict)
 
     # Parse the merged configuration
-    config = _parse_from_dict(m_config_dict, w_config_path.parent)
+    config = _parse_from_dict(m_config_dict, w_dir)
 
     # Apply defaults
     if not config.prompt:
@@ -183,7 +186,7 @@ def _get_global_config_dir_path():
     return Path(xdg_config_home) / "could-you"
 
 
-def _get_workspace_config_path(current_path: Path) -> Path:
+def _get_workspace_config_path(current_path: Path, *, required: bool) -> Path | None:
     """
     Recursively searches upward for the closest file named CONFIG_FILE_NAME.
 
@@ -206,13 +209,17 @@ def _get_workspace_config_path(current_path: Path) -> Path:
 
     # Stop recursion if we've reached the root directory
     if current_path == parent_path:
-        LOGGER.error("did not find .could-you-config.json in this or above directories.")
-        msg = "could-you must be run from within a workspace."
-        LOGGER.error(msg)
-        raise InvalidConfigError(msg)
+        LOGGER.warning("did not find .could-you-config.json in this or above directories.")
+
+        if required:
+            msg = "could-you must be run from within a workspace."
+            LOGGER.error(msg)
+            raise InvalidConfigError(msg)
+
+        return None
 
     # Recurse into the parent directory
-    return _get_workspace_config_path(parent_path)
+    return _get_workspace_config_path(parent_path, required=required)
 
 
 def _get_preferred_path(config_file: Path) -> Path | None:
