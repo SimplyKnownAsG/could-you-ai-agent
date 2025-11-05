@@ -56,7 +56,7 @@ class Boto3LLM(BaseLLM):
         self.converted_tools = {"tools": converted_tools}
 
     async def converse(self) -> Message:
-        system = [{"text": self.config.prompt}] if self.config.prompt else []
+        system = [{"text": self.config.systemPrompt}] if self.config.systemPrompt else []
         messages = self.message_history.to_dict()
 
         # why, oh why, are they not the same? claude via boto3 fails if "type" is specified
@@ -133,8 +133,8 @@ class OpenAILLM(BaseLLM):
         openai_msgs = []
 
         # Add system prompt if provided
-        if self.config.prompt:
-            openai_msgs.append(dict(role="system", content=self.config.prompt))
+        if self.config.systemPrompt:
+            openai_msgs.append(dict(role="system", content=self.config.systemPrompt))
 
         # Convert message history
         for msg in self.message_history.messages:
