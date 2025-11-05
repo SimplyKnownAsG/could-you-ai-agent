@@ -5,12 +5,42 @@ import tempfile
 
 from .agent import Agent
 from .config import load
-from .logging_config import LOGGER, setup_logging
+from .cy_error import CYError
+from .logging_config import LOGGER, set_up_logging
 from .message_history import MessageHistory
 from .session import SessionManager
 
 
-async def amain():
+def main():
+    parser = create_parser()
+    args = parser.parse_args()
+
+    # Set up logging based on command line arguments
+    if args.verbose:
+        log_level = "DEBUG"
+    elif args.quiet:
+        log_level = "WARNING"
+    else:
+        log_level = "INFO"
+
+    # Initialize logging
+    set_up_logging(log_level)
+
+    try:
+        asyncio.run(amain(parser, args))
+    except CYError as e:
+        if not args.verbose:
+            LOGGER.error("Use verbose mode to get stack trace")
+
+        LOGGER.error(f"Failed with error (fault_owner:{e.fault_owner}): {e}", exc_info=args.verbose)
+    except Exception as e:
+        if not args.verbose:
+            LOGGER.error("Use verbose mode to get stack trace")
+
+        LOGGER.error(f"Failed with internal error: {e}", exc_info=args.verbose)
+
+
+def create_parser():
     parser = argparse.ArgumentParser(description="Could-You MCP CLI")
 
     # Logging options (mutually exclusive)
@@ -35,19 +65,10 @@ async def amain():
         help="Run an ephemeral stateless script from $XDG_CONFIG_HOME/could-you/script.<script>.json",
     )
 
-    args = parser.parse_args()
+    return parser
 
-    # Set up logging based on command line arguments
-    if args.verbose:
-        log_level = "DEBUG"
-    elif args.quiet:
-        log_level = "WARNING"
-    else:
-        log_level = "INFO"
 
-    # Initialize logging
-    setup_logging(log_level)
-
+async def amain(parser, args):
     if args.script:
         config = load(script_name=args.script)
         query = args.query if args.query else config.query if config.query else _get_editor_input(config)
@@ -90,7 +111,7 @@ async def amain():
             query = args.query if args.query else _get_editor_input(config)
 
             if not query:
-                LOGGER.warn("no imput provided")
+                LOGGER.warning("no input provided")
                 parser.print_help()
                 return
 
@@ -142,10 +163,6 @@ def _get_editor_input(config):
         input_lines.pop()
 
     return "".join(input_lines)
-
-
-def main():
-    asyncio.run(amain())
 
 
 if __name__ == "__main__":

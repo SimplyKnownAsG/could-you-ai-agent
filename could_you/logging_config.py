@@ -22,7 +22,7 @@ class _TerseFormatter(logging.Formatter):
         return formatted
 
 
-def setup_logging(level: str | None = None) -> logging.Logger:
+def set_up_logging(level: str | None = None) -> logging.Logger:
     """
     Set up logging configuration for the could-you application.
 
