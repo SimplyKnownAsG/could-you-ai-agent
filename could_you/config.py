@@ -30,7 +30,7 @@ COULD_YOU_LOAD_FILE(*.md)
 
 
 class Config:
-    systemPrompt: str | None
+    system_prompt: str | None
     llm: dict[str, Any]
     servers: list[MCPServer]
     root: Path
@@ -42,7 +42,7 @@ class Config:
     def __init__(
         self,
         *,
-        systemPrompt: str | None,
+        system_prompt: str | None,
         llm: dict[str, Any],
         servers: list[MCPServer],
         root: Path,
@@ -50,7 +50,7 @@ class Config:
         env: dict[str, str],
         query: str | None = None,
     ):
-        self.systemPrompt = systemPrompt
+        self.system_prompt = system_prompt
         self.llm = llm
         self.servers = servers
         self.root = root
@@ -150,10 +150,10 @@ def load(script_name: str | None = None):
     config = _parse_from_dict(m_config_dict, w_dir)
 
     # Apply defaults
-    if not config.systemPrompt:
-        config.systemPrompt = DEFAULT_PROMPT
+    if not config.system_prompt:
+        config.system_prompt = DEFAULT_PROMPT
 
-    config.systemPrompt = enrich_raw_prompt(config.systemPrompt)
+    config.system_prompt = enrich_raw_prompt(config.system_prompt)
 
     if not config.editor:
         config.editor = os.environ.get("EDITOR", "vim")
@@ -271,7 +271,7 @@ def _parse_from_dict(json_config: dict[str, Any], root: Path) -> Config:
     llm = json_config.get("llm", {})
     servers = []
     env = json_config.get("env", {})
-    systemPrompt = json_config.get("systemPrompt")
+    system_prompt = json_config.get("systemPrompt")
     editor = json_config.get("editor")
     query = json_config.get("query")
 
@@ -293,4 +293,4 @@ def _parse_from_dict(json_config: dict[str, Any], root: Path) -> Config:
         server = MCPServer(name=name, disabled_tools=disabled_tools, **server_kwargs)
         servers.append(server)
 
-    return Config(systemPrompt=systemPrompt, llm=llm, servers=servers, root=root, editor=editor, env=env, query=query)
+    return Config(system_prompt=system_prompt, llm=llm, servers=servers, root=root, editor=editor, env=env, query=query)
