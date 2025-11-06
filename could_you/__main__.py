@@ -69,22 +69,6 @@ def create_parser():
 
 
 async def amain(parser, args):
-    if args.script:
-        config = load(script_name=args.script)
-        query = args.query if args.query else config.query if config.query else _get_editor_input(config)
-
-        if not query:
-            LOGGER.warning("No input provided")
-            parser.print_help()
-            return
-
-        # History is not loaded/saved: set enable=False, but root can just be cwd
-        with MessageHistory(config.root, enable=False) as message_history:
-            async with Agent(config=config, message_history=message_history) as agent:
-                await agent.orchestrate(query)
-
-        return
-
     with SessionManager() as session_manager:
         if args.list_sessions:
             # List all sessions
@@ -107,15 +91,22 @@ async def amain(parser, args):
                 async with Agent(config=config, message_history=message_history) as agent:
                     pass
         else:
-            config = session_manager.load_session()
-            query = args.query if args.query else _get_editor_input(config)
+            enable_history = not args.no_history
+
+            if args.script:
+                enable_history = False
+                config = load(script_name=args.script)
+            else:
+                config = session_manager.load_session()
+
+            query = args.query if args.query else config.query if config.query else _get_editor_input(config)
 
             if not query:
                 LOGGER.warning("no input provided")
                 parser.print_help()
                 return
 
-            with MessageHistory(config.root, enable=not args.no_history) as message_history:
+            with MessageHistory(config.root, enable=enable_history) as message_history:
                 async with Agent(config=config, message_history=message_history) as agent:
                     await agent.orchestrate(query)
 
