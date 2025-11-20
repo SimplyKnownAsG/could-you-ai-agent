@@ -1,9 +1,13 @@
 import argparse
 import asyncio
+import json
 import subprocess
 import tempfile
 
+import yaml
+
 from .agent import Agent
+from .dynamic import Dynamic
 from .config import load
 from .cy_error import CYError
 from .logging_config import LOGGER, set_up_logging
@@ -42,13 +46,19 @@ def main():
 
 def create_parser():
     parser = argparse.ArgumentParser(description="Could-You MCP CLI")
-
     # Logging options (mutually exclusive)
     log_group = parser.add_mutually_exclusive_group()
     log_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)")
     log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
     parser.add_argument("-H", "--no-history", action="store_true", help="Ignore message history")
-
+    parser.add_argument(
+        "-C", "--dump-config",
+        nargs="?",
+        const="json",
+        choices=["json", "yaml"],
+        default=None,
+        help="Print the effective configuration as JSON (default) or YAML, then exit"
+    )
     # Define a mutually exclusive group
     cmd_group = parser.add_mutually_exclusive_group()
 
@@ -69,6 +79,18 @@ def create_parser():
 
 
 async def amain(parser, args):
+    # Early config dump
+    if args.dump_config:
+        config = load(args.script)
+        config_dict = Dynamic(config).to_dict()
+
+        if args.dump_config == "yaml":
+            print(yaml.safe_dump(config_dict, sort_keys=False, default_flow_style=False))
+        else:
+            print(json.dumps(config_dict, indent=2))
+
+        return
+
     with SessionManager() as session_manager:
         if args.list_sessions:
             # List all sessions

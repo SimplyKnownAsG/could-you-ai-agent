@@ -59,9 +59,23 @@ could-you --print-history
 # Test MCP server connections
 could-you --test-connect
 
+# Dump the effective configuration as JSON (the default)
+could-you --dump-config
+
+# Dump config as YAML
+could-you --dump-config yaml
+
+# Dump config for a specific script
+could-you --dump-config --script <script-name>
+
 # Delete a specific session
 could-you --delete-session /path/to/session
 ```
+
+### CLI Configuration Dump
+
+- `-C`, `--dump-config [yaml]`: Load and print the effective resolved configuration and exit. Defaults to JSON output; provide `yaml` to output as YAML. No agent/session/etc is run.
+- Works with `--script` to show script configs after merging inheritance.
 
 ### Session Management
 

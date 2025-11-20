@@ -2,86 +2,27 @@ import json
 from collections.abc import Callable
 from typing import Any, Literal
 
-
-class _Dynamic:
-    def __init__(self, input_dict: Any = None, **kwargs: Any) -> None:
-        # Merge input_dict and kwargs, with kwargs taking precedence
-        input_dict = input_dict or {}
-
-        # If input_data is not a dictionary but has a __dict__, unpack it
-        if hasattr(input_dict, "__dict__"):
-            # assuming no __slots__
-            input_dict = vars(input_dict)
-
-        combined_data = {**input_dict, **kwargs}
-
-        # Use setattr to set attributes from the dictionary
-        for key, value in combined_data.items():
-            new_value = value
-
-            if isinstance(value, dict):
-                # If the value is a dictionary, convert it into another _Dynamic instance
-                new_value = _Dynamic(value)
-
-            elif hasattr(value, "__dict__"):
-                # If the value is a dictionary, convert it into another _Dynamic instance
-                new_value = _Dynamic(vars(value))
-
-            elif isinstance(value, list):
-                # If the value is a list, check for non-scalar values and convert them
-                new_value = [
-                    _Dynamic(item) if isinstance(item, dict) or hasattr(item, "__dict__") else item for item in value
-                ]
-
-            setattr(self, key, new_value)
-
-    def __getattr__(self, attr: str) -> Any:
-        # Convert snake_case to camelCase
-        camel_case_attr = "".join(word.capitalize() if i > 0 else word for i, word in enumerate(attr.split("_")))
-        # Check if the camelCase attribute exists
-        if camel_case_attr in self.__dict__:
-            return self.__dict__[camel_case_attr]
-
-        return None
-
-    def to_dict(self) -> dict[str, Any]:
-        """
-        Recursively converts the _Dynamic object and its nested _Dynamic instances
-        back into a raw dictionary.
-        """
-        result = {}
-
-        for key, value in self.__dict__.items():
-            # If the value is another _Dynamic instance, call to_dict on it
-            if isinstance(value, _Dynamic):
-                result[key] = value.to_dict()
-            # If the value is a list, process each item
-            elif isinstance(value, list):
-                result[key] = [item.to_dict() if isinstance(item, _Dynamic) else item for item in value]
-            else:
-                result[key] = value
-
-        return result
+from .dynamic import Dynamic
 
 
-class ToolUse(_Dynamic):
+class ToolUse(Dynamic):
     tool_use_id: str
     name: str
     input: Any
 
 
-class ToolResultContent(_Dynamic):
+class ToolResultContent(Dynamic):
     text: str
     json: Any
 
 
-class ToolResult(_Dynamic):
+class ToolResult(Dynamic):
     tool_use_id: str
     content: list[ToolResultContent]
     status: Literal["success", "error"]
 
 
-class Content(_Dynamic):
+class Content(Dynamic):
     type: Literal["text"]
     text: str | None
     # image: Optional[Image]
@@ -94,7 +35,7 @@ class Content(_Dynamic):
     # reasoning_content: Optional[ReasoningContent]
 
 
-class Message(_Dynamic):
+class Message(Dynamic):
     role: Literal["user", "assistant"]
     content: list[Content]
 
@@ -108,15 +49,15 @@ class Message(_Dynamic):
                     for line in val.splitlines():
                         info(f"   > {line}")
                 else:
-                    suffix = f" {val.name}" if key == "toolUse" and isinstance(val, _Dynamic) else ""
+                    suffix = f" {val.name}" if key == "toolUse" and isinstance(val, Dynamic) else ""
                     info(f"* {key}:{suffix}")
 
                     if isinstance(val, str):
                         for line in val.splitlines():
                             debug(f"> {line}")
-                    elif isinstance(val, _Dynamic):
+                    elif isinstance(val, Dynamic):
                         # Pretty print JSON with consistent indentation
-                        v = val.to_dict() if isinstance(val, _Dynamic) else val
+                        v = val.to_dict() if isinstance(val, Dynamic) else val
                         json_lines = json.dumps(v, indent=2).splitlines()
                         debug("  ```json")
                         for line in json_lines:
