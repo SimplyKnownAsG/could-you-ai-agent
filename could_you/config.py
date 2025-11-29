@@ -111,7 +111,7 @@ def load(script_name: str | None = None):
     #   s - script
     #   m - merged
     # Load raw JSON configurations
-    cwd = Path(".").resolve()
+    cwd = Path.cwd()
     g_config_path = _get_global_config_path()
     g_config_dict = _load_raw_path(g_config_path)
     w_config_path = _get_workspace_config_path(cwd, required=script_name is None)
