@@ -7,9 +7,9 @@ import tempfile
 import yaml
 
 from .agent import Agent
-from .dynamic import Dynamic
 from .config import load
 from .cy_error import CYError
+from .dynamic import Dynamic
 from .logging_config import LOGGER, set_up_logging
 from .message_history import MessageHistory
 from .session import SessionManager
@@ -52,12 +52,13 @@ def create_parser():
     log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
     parser.add_argument("-H", "--no-history", action="store_true", help="Ignore message history")
     parser.add_argument(
-        "-C", "--dump-config",
+        "-C",
+        "--dump-config",
         nargs="?",
         const="json",
         choices=["json", "yaml"],
         default=None,
-        help="Print the effective configuration as JSON (default) or YAML, then exit"
+        help="Print the effective configuration as JSON (default) or YAML, then exit",
     )
     # Define a mutually exclusive group
     cmd_group = parser.add_mutually_exclusive_group()
@@ -85,9 +86,9 @@ async def amain(parser, args):
         config_dict = Dynamic(config).to_dict()
 
         if args.dump_config == "yaml":
-            print(yaml.safe_dump(config_dict, sort_keys=False, default_flow_style=False))
+            print(yaml.safe_dump(config_dict, sort_keys=False, default_flow_style=False))  # noqa: T201
         else:
-            print(json.dumps(config_dict, indent=2))
+            print(json.dumps(config_dict, indent=2))  # noqa: T201
 
         return
 

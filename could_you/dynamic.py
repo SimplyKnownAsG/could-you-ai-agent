@@ -1,6 +1,6 @@
 import json
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -52,22 +52,22 @@ class Dynamic:
     def load(path: Path):
         if path.suffix == ".json":
             loader = json.load
-        elif path.suffix in ( '.yaml', '.yml' ):
+        elif path.suffix in {".yaml", ".yml"}:
             loader = yaml.safe_load
         else:
-            LOGGER.warning("Unrecognized file extension {path.suffix} in {path}, trying YAML")
+            LOGGER.warning(f"Unrecognized file extension {path.suffix} in {path}, trying YAML")
             loader = yaml.safe_load
 
         with open(path) as file:
             return Dynamic(loader(file))
 
-    def dumps(self):
+    def dumps(self, path: Path):
         if path.suffix == ".json":
             loader = json.load
-        elif path.suffix in ( '.yaml', '.yml' ):
+        elif path.suffix in {".yaml", ".yml"}:
             loader = yaml.safe_load
         else:
-            LOGGER.warning("Unrecognized file extension {path.suffix} in {path}, trying YAML")
+            LOGGER.warning(f"Unrecognized file extension {path.suffix} in {path}, trying YAML")
             loader = yaml.safe_load
 
         with open(path) as file:
@@ -85,7 +85,7 @@ class Dynamic:
             if isinstance(value, Dynamic):
                 result[key] = value.to_dict()
             # If the value is a list, process each item
-            elif isinstance(value, (list, set)):
+            elif isinstance(value, list | set):
                 result[key] = [item.to_dict() if isinstance(item, Dynamic) else item for item in value]
             elif isinstance(value, Path):
                 result[key] = str(value)
