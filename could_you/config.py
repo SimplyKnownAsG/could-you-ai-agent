@@ -1,11 +1,13 @@
+import importlib.resources
 import json
 import os
-import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
 from jsonmerge import merge
+
+import could_you.resources
 
 from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
@@ -131,16 +133,14 @@ def load(script_name: str | None = None):
 
             if s_config_path:
                 LOGGER.info(f"Found script: {s_config_path}")
+                s_config_dict = _load_raw_path(s_config_path)
                 break
 
             LOGGER.info(f"Script does not exist: {s_config_base_path}")
         else:
-            LOGGER.error(f"Script {script_name} does not exist.")
-            sys.exit(1)
+            s_config_dict = _load_global_script(script_name)
 
-        s_config_dict = _load_raw_path(s_config_path)
         # remove tools merged
-
         if "mcpServers" in m_config_dict:
             del m_config_dict["mcpServers"]
 
@@ -232,6 +232,24 @@ def _get_preferred_path(config_file: Path) -> Path | None:
     return None
 
 
+def _load_global_script(script_name: str):
+    """
+    Try all possible script config locations (workspace, user, package resource).
+    Returns (kind, path_or_name_or_resourcehandle) or (None, None) if not found.
+    kind: 'file' or 'resource'
+    """
+
+    for ext in (".json", ".yaml", ".yml"):
+        resource_name = f"script.{script_name}{ext}"
+        if importlib.resources.is_resource(could_you.resources, resource_name):
+            with importlib.resources.open_text(could_you.resources, resource_name) as f:
+                return yaml.safe_load(f)
+
+    msg = f"Script {script_name} does not exist (checked: workspace, user, global resources)."
+    LOGGER.error(msg)
+    raise InvalidConfigError(msg)
+
+
 def _load_raw_path(config_path: Path | None) -> dict[str, Any]:
     """
     Load raw JSON configuration from file.
@@ -242,7 +260,10 @@ def _load_raw_path(config_path: Path | None) -> dict[str, Any]:
     Returns:
         Dict[str, Any]: Raw JSON configuration or empty dict if file doesn't exist.
     """
-    if config_path is None or not config_path.is_file():
+    if not isinstance(config_path, Path):
+        return {}
+
+    if not config_path.is_file():
         return {}
 
     try:

@@ -1,0 +1,17 @@
+query: |
+  Run as a script to format the current staged changes as a Conventional Commit message.
+
+  1. Use the provided tools (e.g. `git_diff_staged`) to determine what changes have been made.
+  2. Use `git_log` tool with max_count=5 to understand how current messages are formatted.
+  3. Use `git_commit` tool to commit the proposed message.
+
+  DO NOT ask for feedback, DO NOT respond in a conversational manner. The user will be able to edit the commited message.
+mcpServers:
+  git-mcp:
+    command: uvx
+    args:
+      - mcp-server-git
+    disabledTools:
+      - git_reset
+      - git_create_branch
+      - git_add

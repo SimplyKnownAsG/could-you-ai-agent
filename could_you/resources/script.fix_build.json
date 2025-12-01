@@ -1,0 +1,8 @@
+{
+  "systemPrompt": "Diagnose and suggest fixes for recent build failures in the project.",
+  "query": "Given the latest build logs, identify causes of failure and propose actionable fixes.",
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4"
+  }
+}
