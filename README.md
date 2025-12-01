@@ -4,7 +4,7 @@ A powerful command-line assistant that integrates with Model Context Protocol (M
 
 ## Overview
 
-`could-you` is an Agent that connects to various MCP servers to provide contextual assistance for developers. It maintains conversation history, supports multiple LLM providers, and can be configured per-project or globally.
+`could-you` is an Agent that connects to various MCP servers to provide contextual assistance for developers. It maintains conversation history, supports multiple LLM providers, and can be configured for each user and per-project.
 
 ## Features
 
@@ -12,7 +12,7 @@ A powerful command-line assistant that integrates with Model Context Protocol (M
 - **Session Management**: Maintain conversation history per project/directory
 - **Multiple LLM Support**: Works with various language models (OpenAI, AWS Bedrock, etc.)
 - **Interactive Editor**: Open your preferred editor for complex queries
-- **Flexible Configuration**: Per-project and global configuration support
+- **Flexible Configuration**: User and per-project configuration support
 - **Command Aliases**: Use `could-you` or the shorter `cy` command
 - **Ephemeral Script Mode**: Run one-off, stateless scripts with `--script` (see below)
 
@@ -88,9 +88,9 @@ Sessions are automatically created per directory and maintain:
 
 Configuration files can be placed at:
 - **Project level**: `.could-you-config.json` (in project root)
-- **Global level**: `$XDG_CONFIG_HOME/could-you/config.json`
+- **User level**: `$XDG_CONFIG_HOME/could-you/config.json`
 
-> **NOTE**: All configuration files (project, global and script) support `.json`, `.yaml`, and `.yml` extensions in that preferred order.
+> **NOTE**: All configuration files (project, user and script) support `.json`, `.yaml`, and `.yml` extensions in that preferred order.
 
 Example configuration:
 ```json
@@ -265,9 +265,9 @@ Each connected server provides tools that the AI assistant can use to help with 
 
 #### How it works
 - Load configuration:
-  1. Load global `$XDG_CONFIG_HOME/could-you/config.json`, remove `mcpServers`
-  2. Overwrite global with local `.could-you-config.json`, remove `mcpServers`.
-  3. Overwrite local config with `$XDG_CONFIG_HOME/could-you/script.<script>.json`
+  1. Load user `$XDG_CONFIG_HOME/could-you/config.json`, remove `mcpServers`
+2. Overwrite user with local `.could-you-config.json`, remove `mcpServers`.
+3. Overwrite local config with `$XDG_CONFIG_HOME/could-you/script.<script>.json`
 - No message history files are loaded or written.
 
 #### Example use cases

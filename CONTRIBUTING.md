@@ -82,7 +82,7 @@ could_you/
 
 1. **Separation of Concerns**: Each module has a clear, single responsibility
 2. **Async First**: All I/O operations should be async
-3. **Configuration Flexibility**: Support both global and project-specific configs
+3. **Configuration Flexibility**: Support both user and project-specific configs
 4. **Error Resilience**: Graceful handling of network and MCP server failures
 5. **User Experience**: Clear error messages and helpful feedback
 

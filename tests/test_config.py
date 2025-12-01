@@ -28,7 +28,7 @@ def test_load_workspace_yaml_config(tmp_cy_config_dir: Path, tmp_dir: Path):  # 
     assert config.llm["model"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
 
 
-def test_load_global_json_config(tmp_cy_config_dir: Path, tmp_dir: Path):
+def test_load__user__json_config(tmp_cy_config_dir: Path, tmp_dir: Path):
     g_config_path = tmp_cy_config_dir / "config.json"
     g_config_path.write_text(MINIMAL_JSON)
     w_config_path = tmp_dir / ".could-you-config.json"
@@ -37,7 +37,7 @@ def test_load_global_json_config(tmp_cy_config_dir: Path, tmp_dir: Path):
     assert config.llm["model"] == "gpt-4"
 
 
-def test_load_global_yaml_config(tmp_cy_config_dir: Path, tmp_dir: Path):
+def test_load__user__yaml_config(tmp_cy_config_dir: Path, tmp_dir: Path):
     g_config_path = tmp_cy_config_dir / "config.yaml"
     g_config_path.write_text(MINIMAL_YAML)
     w_config_path = tmp_dir / ".could-you-config.yaml"
@@ -46,7 +46,7 @@ def test_load_global_yaml_config(tmp_cy_config_dir: Path, tmp_dir: Path):
     assert config.llm["model"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
 
 
-def test_workspace_overide_global(tmp_cy_config_dir: Path, tmp_dir: Path):
+def test_workspace_overide__user_(tmp_cy_config_dir: Path, tmp_dir: Path):
     g_config_path = tmp_cy_config_dir / "config.json"
     g_config_path.write_text(MINIMAL_JSON)
     w_config_path = tmp_dir / ".could-you-config.json"

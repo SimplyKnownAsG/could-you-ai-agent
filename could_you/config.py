@@ -65,11 +65,11 @@ class InvalidConfigError(CYError):
 
 
 def init() -> Config:
-    g_config_dict = _load_raw_path(_get_global_config_path())
+    u_config_dict = _load_raw_path(_get_user_config_path())
 
     with open(CONFIG_FILE_NAME, "w") as w_config:
         # Create a copy to avoid modifying the original
-        jsonable = g_config_dict.copy()
+        jsonable = u_config_dict.copy()
 
         # Remove root if it exists (shouldn't be in local config)
         if "root" in jsonable:
@@ -106,25 +106,25 @@ def init() -> Config:
 
 def load(script_name: str | None = None):
     # this uses prefixes
-    #   g - global
+    #   u - user
     #   w - workspace
     #   s - script
     #   m - merged
     # Load raw JSON configurations
     cwd = Path.cwd()
-    g_config_path = _get_global_config_path()
-    g_config_dict = _load_raw_path(g_config_path)
+    u_config_path = _get_user_config_path()
+    u_config_dict = _load_raw_path(u_config_path)
     w_config_path = _get_workspace_config_path(cwd, required=script_name is None)
     w_config_dict = _load_raw_path(w_config_path)
     # Merge configurations with local taking priority
-    m_config_dict = merge(g_config_dict, w_config_dict)
+    m_config_dict = merge(u_config_dict, w_config_dict)
 
     w_dir = w_config_path.parent if w_config_path else cwd
 
     if script_name:
         # Load script from the current folder, or from the XDG config
         w_script_path = w_dir / f".could-you-script.{script_name}.json"
-        g_script_path = _get_global_config_dir_path() / f"script.{script_name}.json"
+        g_script_path = _get_user_config_dir_path() / f"script.{script_name}.json"
 
         for s_config_base_path in [w_script_path, g_script_path]:
             s_config_path = _get_preferred_path(s_config_base_path)
@@ -177,11 +177,11 @@ def load(script_name: str | None = None):
     return config
 
 
-def _get_global_config_path():
-    return _get_preferred_path(_get_global_config_dir_path() / "config.json")
+def _get_user_config_path():
+    return _get_preferred_path(_get_user_config_dir_path() / "config.json")
 
 
-def _get_global_config_dir_path():
+def _get_user_config_dir_path():
     xdg_config_home = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
     return Path(xdg_config_home) / "could-you"
 
