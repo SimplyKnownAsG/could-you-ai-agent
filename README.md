@@ -264,11 +264,15 @@ Each connected server provides tools that the AI assistant can use to help with 
   ```
 
 #### How it works
-- Load configuration:
+
+1. Load configuration:
   1. Load user `$XDG_CONFIG_HOME/could-you/config.json`, remove `mcpServers`
-2. Overwrite user with local `.could-you-config.json`, remove `mcpServers`.
-3. Overwrite local config with `$XDG_CONFIG_HOME/could-you/script.<script>.json`
-- No message history files are loaded or written.
+  2. Overwrite user with local `.could-you-config.json`, remove `mcpServers`
+2. Find and load script, and overwrite configuration. Search path is:
+  1. Current workspace: `<workspace>/.could-you-script.<name>.(json|yaml)`
+  2. User script: `$XDG_CONFIG_HOME/could-you/script.<script>.json`
+  3. Global script: `$XDG_CONFIG_HOME/could-you/script.<script>.json`
+3. No message history files are loaded or written.
 
 #### Example use cases
 - **Git commit message generation**
