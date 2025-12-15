@@ -3,8 +3,12 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from cattrs import Converter
+
 from .logging_config import LOGGER
 from .message import Message
+
+converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class MessageHistory:
@@ -21,7 +25,7 @@ class MessageHistory:
         if self.enable:
             if self.path.exists():
                 with open(self.path) as f:
-                    self.messages = [Message(m) for m in json.load(f)]
+                    self.messages = [converter.structure(m, Message) for m in json.load(f)]
                 LOGGER.debug("Message history loaded")
             else:
                 LOGGER.debug("Message history could not be found")
@@ -40,7 +44,7 @@ class MessageHistory:
         message.print(info=LOGGER.info, debug=LOGGER.debug)
 
     def to_dict(self) -> list[dict[str, Any]]:
-        return [m.to_dict() for m in self.messages]
+        return [converter.unstructure(m) for m in self.messages]
 
     def print_history(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
         """Print message history in a detailed format.

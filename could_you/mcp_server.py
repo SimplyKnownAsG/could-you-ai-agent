@@ -4,6 +4,7 @@ from typing import Any
 from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
 
+from .config import MCPServerProps
 from .logging_config import LOGGER
 
 
@@ -24,41 +25,17 @@ class MCPTool:
 
 
 class MCPServer:
+    name: str
+    props: MCPServerProps
     tools: list[MCPTool]
-    enabled: bool
-    disabled_tools: set[str]
 
-    def __init__(
-        self,
-        *,
-        name: str,
-        command: str,
-        args: list[str],
-        env: dict[str, str] | None = None,
-        enabled: bool = True,
-        disabled_tools: list[str] | None = None,
-    ):
-        """
-        Initialize an MCPServer instance.
-
-        Args:
-            name (str): Name of the server.
-            command (str): Command to execute the server.
-            args (List[str]): List of arguments for the command.
-            env (Optional[Dict[str, str]]): Environment variables for the process.
-            enabled (bool): Option to enable/disable the server.
-            disabled_tools (Optional[List[str]]): List of tool names to disable.
-        """
+    def __init__(self, *, name: str, props: MCPServerProps):
         self.name = name
-        self.command = command
-        self.args = args
-        self.env = env or {}
-        self.enabled = enabled
-        self.disabled_tools = set(disabled_tools or [])
+        self.props = props
 
     async def connect(self, *, exit_stack: AsyncExitStack) -> bool:
-        if self.enabled:
-            server_params = StdioServerParameters(command=self.command, args=self.args, env=self.env)
+        if self.props.enabled:
+            server_params = StdioServerParameters(command=self.props.command, args=self.props.args, env=self.props.env)
             the_client = await exit_stack.enter_async_context(stdio_client(server_params))
             stdio, write = the_client
             self.session = await exit_stack.enter_async_context(ClientSession(stdio, write))
@@ -71,7 +48,7 @@ class MCPServer:
             # Create MCPTool wrappers with enabled/disabled status
             self.tools = []
             for tool in response.tools:
-                enabled = tool.name not in self.disabled_tools
+                enabled = tool.name not in self.props.disabled_tools
                 mcp_tool = MCPTool(self, tool, enabled=enabled)
                 self.tools.append(mcp_tool)
 

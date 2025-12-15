@@ -5,11 +5,11 @@ import subprocess
 import tempfile
 
 import yaml
+from cattrs import Converter
 
 from .agent import Agent
 from .config import load
 from .cy_error import CYError
-from .dynamic import Dynamic
 from .logging_config import LOGGER, set_up_logging
 from .message_history import MessageHistory
 from .session import SessionManager
@@ -83,7 +83,8 @@ async def amain(parser, args):
     # Early config dump
     if args.dump_config:
         config = load(args.script)
-        config_dict = Dynamic(config).to_dict()
+        converter = Converter(use_alias=True)
+        config_dict = converter.unstructure(config)
 
         if args.dump_config == "yaml":
             print(yaml.safe_dump(config_dict, sort_keys=False, default_flow_style=False))  # noqa: T201

@@ -1,10 +1,10 @@
 import json
-import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 import boto3
 import openai
+from cattrs import Converter
 from openai.types.chat import ChatCompletionToolParam
 
 from .config import Config
@@ -13,6 +13,12 @@ from .logging_config import LOGGER
 from .mcp_server import MCPTool
 from .message import Content, Message, ToolUse
 from .message_history import MessageHistory
+
+converter = Converter(use_alias=True, omit_if_default=True)
+# converter.register_structure_hook_factory(
+#     attrs.has,
+#     lambda cl: cattrs.gen.make_dict_structure_fn(cl, converter, _cattrs_use_alias=True)
+# )
 
 
 class BaseLLM(ABC):
@@ -66,28 +72,22 @@ class Boto3LLM(BaseLLM):
                     del c["type"]
 
         response = self.bedrock.converse(
-            modelId=self.config.llm["model"],
-            messages=messages,
             system=system,
-            inferenceConfig={"topP": 0.1, "temperature": self.config.llm.get("temperature", 0.3)},
+            messages=messages,
             toolConfig=self.converted_tools,
+            **dict(self.config.llm.args),
         )
-
-        return Message(response["output"]["message"])
+        return converter.structure(response["output"]["message"], Message)
 
 
 class OpenAILLM(BaseLLM):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.model = self.config.llm["model"]
         self._converted_tools = self._convert_tools()
         self.client = self._init_client()
 
     def _init_client(self):
-        return openai.OpenAI(
-            base_url=self.config.llm.get("base_url", "https://api.openai.com/v1"),
-            api_key=self.config.llm.get("api_key", os.environ.get("OPENAI_API_KEY", None)),
-        )
+        return openai.OpenAI(**self.config.llm.init)
 
     async def converse(self) -> Message:
         response = await self._call_client()
@@ -96,9 +96,9 @@ class OpenAILLM(BaseLLM):
     async def _call_client(self) -> Message:
         try:
             return self.client.chat.completions.create(
-                model=self.model,
                 tools=self._converted_tools,
                 messages=self._convert_messages(),  # type: ignore
+                **(self.config.llm.args or {}),
             )
         except Exception as err:
             msg = f"Error while calling LLM: {err}"
@@ -211,15 +211,12 @@ class OllamaLLM(OpenAILLM):
     """
 
     def _init_client(self):
-        return openai.OpenAI(
-            api_key=self.config.llm.get("api_key", "ollama"),
-            base_url=self.config.llm.get("base_url", "http://localhost:11434/v1"),
-        )
+        return openai.OpenAI(**self.config.init)
 
 
 def create_llm(config: Config, message_history: MessageHistory, tools: dict[str, MCPTool]) -> BaseLLM:
     """Factory function to create the appropriate LLM instance based on configuration"""
-    provider = config.llm["provider"]
+    provider = config.llm.provider
     providers = {
         "boto3": Boto3LLM,
         "ollama": OllamaLLM,
@@ -227,6 +224,7 @@ def create_llm(config: Config, message_history: MessageHistory, tools: dict[str,
     }
 
     if provider in providers:
+        LOGGER.debug(f"Initializing {providers[provider].__name__} from configuration {config.llm}")
         return providers[provider](config, message_history, tools)
 
     raise CYError(

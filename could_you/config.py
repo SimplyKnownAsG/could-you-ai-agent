@@ -5,13 +5,14 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from attrs import define, field
+from cattrs import ClassValidationError, Converter
 from jsonmerge import merge
 
 import could_you.resources
 
 from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
-from .mcp_server import MCPServer
 from .prompt import enrich_raw_prompt
 
 CONFIG_FILE_NAME = ".could-you-config.json"
@@ -31,34 +32,32 @@ COULD_YOU_LOAD_FILE(*.md)
 """
 
 
-class Config:
-    system_prompt: str | None
-    llm: dict[str, Any]
-    servers: list[MCPServer]
-    root: Path
-    editor: str | None
-    env: dict[str, str]
-    # default query for a script.
-    query: str | None
+@define
+class LLMProps:
+    provider: str
+    init: dict[str, Any] = field(factory=dict)
+    args: dict[str, Any] = field(factory=dict)
 
-    def __init__(
-        self,
-        *,
-        system_prompt: str | None,
-        llm: dict[str, Any],
-        servers: list[MCPServer],
-        root: Path,
-        editor: str | None = None,
-        env: dict[str, str],
-        query: str | None = None,
-    ):
-        self.system_prompt = system_prompt
-        self.llm = llm
-        self.servers = servers
-        self.root = root
-        self.editor = editor
-        self.env = env or {}
-        self.query = query
+
+@define
+class MCPServerProps:
+    command: str
+    args: list[str] = field(factory=list)
+    disabled_tools: set[str] = field(factory=set, alias="disabledTools")
+    env: dict[str, str] = field(factory=dict)
+    enabled: bool = field(factory=lambda: True)
+
+
+@define
+class Config:
+    llm: LLMProps
+    system_prompt: str | None = field(factory=lambda: DEFAULT_PROMPT)
+    mcp_servers: dict[str, MCPServerProps] = field(factory=dict, alias="mcpServers")
+    env: dict[str, str] = field(factory=dict)
+    # default query for a script.
+    query: str | None = field(factory=lambda: None)
+    editor: str = field(factory=lambda: os.environ.get("EDITOR", "vim"))
+    root: Path = field(factory=Path.cwd)
 
 
 class InvalidConfigError(CYError):
@@ -147,7 +146,8 @@ def load(script_name: str | None = None):
         m_config_dict = merge(m_config_dict, s_config_dict)
 
     # Parse the merged configuration
-    config = _parse_from_dict(m_config_dict, w_dir)
+    config = _parse_from_dict(m_config_dict)
+    config.root = w_dir
 
     # Apply defaults
     if not config.system_prompt:
@@ -155,22 +155,19 @@ def load(script_name: str | None = None):
 
     config.system_prompt = enrich_raw_prompt(config.system_prompt)
 
-    if not config.editor:
-        config.editor = os.environ.get("EDITOR", "vim")
-
     # Validate required fields
-    if not config.llm:
+    if not config.llm or not config.llm.provider:
         msg = 'Must specify "llm" in config'
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
-    if config.llm["provider"] not in ["boto3", "ollama", "openai"]:
-        msg = f"Invalid provider. Supported providers are boto3, ollama, and openai, got {config.llm['provider']}"
+    if config.llm.provider not in ["boto3", "ollama", "openai"]:
+        msg = f"Invalid provider. Supported providers are boto3, ollama, and openai, got {config.llm.provider}"
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
     # Apply environment variables
-    for key, value in config.env.items():
+    for key, value in (config.env or {}).items():
         if value is not None:
             os.environ[key] = value
 
@@ -278,40 +275,20 @@ def _load_raw_path(config_path: Path | None) -> dict[str, Any]:
         raise InvalidConfigError(msg) from e
 
 
-def _parse_from_dict(json_config: dict[str, Any], root: Path) -> Config:
+def _parse_from_dict(json_config: dict[str, Any]) -> Config:
     """
     Parse a Config object from merged JSON configuration.
 
     Args:
         json_config (Dict[str, Any]): Merged JSON configuration.
-        root (Path): Root directory for the configuration.
 
     Returns:
         Config: Parsed configuration object.
     """
-    llm = json_config.get("llm", {})
-    servers = []
-    env = json_config.get("env", {})
-    system_prompt = json_config.get("systemPrompt")
-    editor = json_config.get("editor")
-    query = json_config.get("query")
+    try:
+        converter = Converter(use_alias=True)
+        config = converter.structure(json_config, Config)
+    except ClassValidationError as cve:
+        raise InvalidConfigError("Must specify all required fields values") from cve
 
-    # Parse MCP servers
-    mcp_servers = json_config.get("mcpServers", {})
-    for name, server_config in mcp_servers.items():
-        missing = [key for key in ["command", "args"] if key not in server_config]
-
-        if any(missing):
-            raise ValueError(f"The MCP Server '{name}' file is missing required keys: {', '.join(missing)}.")
-
-        # Extract disabled_tools if present
-        disabled_tools = server_config.get("disabledTools", [])
-
-        # Create server config without disabled_tools for MCPServer constructor
-        server_kwargs = server_config.copy()
-        server_kwargs.pop("disabledTools", None)
-
-        server = MCPServer(name=name, disabled_tools=disabled_tools, **server_kwargs)
-        servers.append(server)
-
-    return Config(system_prompt=system_prompt, llm=llm, servers=servers, root=root, editor=editor, env=env, query=query)
+    return config

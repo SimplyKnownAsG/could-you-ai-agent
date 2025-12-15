@@ -2,14 +2,16 @@ from contextlib import AsyncExitStack
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from cattrs import structure
 
+from could_you.config import MCPServerProps
 from could_you.mcp_server import MCPServer, MCPTool
 
 
 def test_mcp_tool_wrapper():
     """Test MCPTool wrapper functionality."""
     # Create a mock MCP Tool
-    server = MCPServer(name="test-server", command="test-command", args=["arg1", "arg2"])
+    server = MCPServer(name="test-server", props=MCPServerProps(command="test-command", args=["arg1", "arg2"]))
     mock_tool = MagicMock()
     mock_tool.name = "test_tool"
     mock_tool.description = "A test tool"
@@ -34,51 +36,63 @@ def test_mcp_tool_wrapper():
 
 def test_mcp_server_init():
     """Test MCPServer initialization with default values."""
-    server = MCPServer(name="test-server", command="test-command", args=["arg1", "arg2"])
+    server = MCPServer(name="test-server", props=MCPServerProps(command="test-command", args=["arg1", "arg2"]))
 
     assert server.name == "test-server"
-    assert server.command == "test-command"
-    assert server.args == ["arg1", "arg2"]
-    assert server.env == {}
-    assert server.enabled is True
-    assert server.disabled_tools == set()
+    assert server.props.command == "test-command"
+    assert server.props.args == ["arg1", "arg2"]
+    assert server.props.env == {}
+    assert server.props.enabled is True
+    assert server.props.disabled_tools == set()
 
 
 def test_mcp_server_init_with_disabled_tools():
     """Test MCPServer initialization with disabled tools."""
     server = MCPServer(
         name="test-server",
-        command="test-command",
-        args=["arg1"],
-        disabled_tools=["tool1", "tool2", "tool3"],
+        props=structure(
+            dict(
+                command="test-command",
+                args=["arg1"],
+                disabled_tools=["tool1", "tool2", "tool3"],
+            ),
+            MCPServerProps,
+        ),
     )
 
-    assert server.disabled_tools == {"tool1", "tool2", "tool3"}
+    assert server.props.disabled_tools == {"tool1", "tool2", "tool3"}
 
 
 def test_mcp_server_init_with_all_options():
     """Test MCPServer initialization with all options."""
     server = MCPServer(
         name="test-server",
-        command="test-command",
-        args=["arg1"],
-        env={"TEST_VAR": "test_value"},
-        enabled=False,
-        disabled_tools=["unwanted_tool"],
+        props=structure(
+            dict(
+                command="test-command",
+                args=["arg1"],
+                env={"TEST_VAR": "test_value"},
+                enabled=False,
+                disabled_tools=["unwanted_tool"],
+            ),
+            MCPServerProps,
+        ),
     )
 
     assert server.name == "test-server"
-    assert server.command == "test-command"
-    assert server.args == ["arg1"]
-    assert server.env == {"TEST_VAR": "test_value"}
-    assert server.enabled is False
-    assert server.disabled_tools == {"unwanted_tool"}
+    assert server.props.command == "test-command"
+    assert server.props.args == ["arg1"]
+    assert server.props.env == {"TEST_VAR": "test_value"}
+    assert server.props.enabled is False
+    assert server.props.disabled_tools == {"unwanted_tool"}
 
 
 @pytest.mark.asyncio
 async def test_connect_disabled_server():
     """Test that disabled servers don't connect and have empty tools."""
-    server = MCPServer(name="disabled-server", command="test-command", args=["arg1"], enabled=False)
+    server = MCPServer(
+        name="disabled-server", props=MCPServerProps(command="test-command", args=["arg1"], enabled=False)
+    )
 
     exit_stack = AsyncExitStack()
 
@@ -106,7 +120,10 @@ async def test_connect_enabled_server_with_tool_filtering():
     all_tools = [mock_tool1, mock_tool2, mock_tool3]
 
     # Create server with one disabled tool
-    server = MCPServer(name="test-server", command="test-command", args=["arg1"], disabled_tools=["disabled_tool"])
+    server = MCPServer(
+        name="test-server",
+        props=structure(dict(command="test-command", args=["arg1"], disabled_tools=["disabled_tool"]), MCPServerProps),
+    )
 
     exit_stack = AsyncExitStack()
 
@@ -164,7 +181,7 @@ async def test_connect_enabled_server_no_disabled_tools():
     all_tools = [mock_tool1, mock_tool2]
 
     # Create server with no disabled tools
-    server = MCPServer(name="test-server", command="test-command", args=["arg1"])
+    server = MCPServer(name="test-server", props=MCPServerProps(command="test-command", args=["arg1"]))
 
     exit_stack = AsyncExitStack()
 
@@ -208,7 +225,7 @@ async def test_connect_enabled_server_no_disabled_tools():
 @pytest.mark.asyncio
 async def test_call_tool():
     """Test that call_tool delegates to the session."""
-    server = MCPServer(name="test-server", command="test-command", args=["arg1"])
+    server = MCPServer(name="test-server", props=MCPServerProps(command="test-command", args=["arg1"]))
 
     # Mock session
     mock_session = AsyncMock()

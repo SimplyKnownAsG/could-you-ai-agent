@@ -1,21 +1,24 @@
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING
+
+from cattrs import Converter
 
 from .config import Config
 from .cy_error import CYError, FaultOwner
 from .llm import BaseLLM, create_llm
 from .logging_config import LOGGER
-from .message import Content, Message, ToolResult
+from .mcp_server import MCPServer, MCPTool
+from .message import Content, Message, ToolResult, ToolResultContent
 from .message_history import MessageHistory
 
-if TYPE_CHECKING:
-    from .mcp_server import MCPServer, MCPTool
+converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class Agent:
     def __init__(self, *, config: Config, message_history: MessageHistory):
         # Initialize session and client objects
-        self.servers: list[MCPServer] = config.servers
+        self.servers: list[MCPServer] = [
+            MCPServer(name=name, props=props) for name, props in config.mcp_servers.items()
+        ]
         self.exit_stack = AsyncExitStack()
         self.config = config
         self.message_history = message_history
@@ -65,6 +68,7 @@ class Agent:
             should_continue = False
             output_message = await self.llm.converse()
             self.message_history.add(output_message)
+            tool_content: list[Content] = []
 
             for content in output_message.content:
                 tool_use = content.tool_use
@@ -73,16 +77,15 @@ class Agent:
                     continue
 
                 should_continue = True
-                tool_content: list[Content] = []
 
                 if tool := self.tools.get(tool_use.name, None):
                     try:
-                        tool_response = await tool(tool_use.input.to_dict())
+                        tool_response = await tool(converter.unstructure(tool_use.input))
                         tool_content.append(
                             Content(
-                                toolResult=ToolResult(
+                                toolResult=ToolResultContent(
                                     toolUseId=tool_use.tool_use_id,
-                                    content=[dict(text=c.text) for c in tool_response.content],
+                                    content=[ToolResult(text=c.text) for c in tool_response.content],
                                     status="success",
                                 )
                             )
@@ -91,9 +94,9 @@ class Agent:
                     except Exception as err:
                         tool_content.append(
                             Content(
-                                toolResult=ToolResult(
+                                toolResult=ToolResultContent(
                                     toolUseId=tool_use.tool_use_id,
-                                    content=[Content(text=f"Error: {err!s}")],
+                                    content=[ToolResult(text=f"Error: {err!s}")],
                                     status="error",
                                 )
                             )
@@ -103,7 +106,7 @@ class Agent:
                     LOGGER.warning(f"LLM attempted to call tool that is not registerd: {tool_use.name}")
                     tool_content.append(
                         Content(
-                            toolResult=ToolResult(
+                            toolResult=ToolResultContent(
                                 toolUseId=tool_use.tool_use_id,
                                 content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
                                 status="error",
@@ -111,5 +114,5 @@ class Agent:
                         )
                     )
 
-                tool_message = Message(role="user", content=tool_content)
-                self.message_history.add(tool_message)
+            tool_message = Message(role="user", content=tool_content)
+            self.message_history.add(tool_message)
