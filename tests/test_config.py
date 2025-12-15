@@ -4,11 +4,12 @@ import pytest
 
 from could_you.config import InvalidConfigError, load
 
-MINIMAL_JSON = '{"llm": {"provider": "openai", "model": "gpt-4"}}'
+MINIMAL_JSON = '{"llm": {"provider": "openai", "args": { "model": "gpt-4" } }}'
 MINIMAL_YAML = """
 llm:
   provider: boto3
-  model: us.anthropic.claude-sonnet-4-20250514-v1:0
+  args:
+      modelId: us.anthropic.claude-sonnet-4-20250514-v1:0
 """
 
 
@@ -16,16 +17,16 @@ def test_load_workspace_json_config(tmp_cy_config_dir: Path, tmp_dir: Path):  # 
     w_config_path = tmp_dir / ".could-you-config.json"
     w_config_path.write_text(MINIMAL_JSON)
     config = load()
-    assert config.llm["provider"] == "openai"
-    assert config.llm["model"] == "gpt-4"
+    assert config.llm.provider == "openai"
+    assert config.llm.args["model"] == "gpt-4"
 
 
 def test_load_workspace_yaml_config(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
     w_config_path = tmp_dir / ".could-you-config.yaml"
     w_config_path.write_text(MINIMAL_YAML)
     config = load()
-    assert config.llm["provider"] == "boto3"
-    assert config.llm["model"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
+    assert config.llm.provider == "boto3"
+    assert config.llm.args["modelId"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
 
 
 def test_load_global_json_config(tmp_cy_config_dir: Path, tmp_dir: Path):
@@ -34,7 +35,7 @@ def test_load_global_json_config(tmp_cy_config_dir: Path, tmp_dir: Path):
     w_config_path = tmp_dir / ".could-you-config.json"
     w_config_path.write_text("{}")  # empty
     config = load()
-    assert config.llm["model"] == "gpt-4"
+    assert config.llm.args["model"] == "gpt-4"
 
 
 def test_load_global_yaml_config(tmp_cy_config_dir: Path, tmp_dir: Path):
@@ -43,17 +44,17 @@ def test_load_global_yaml_config(tmp_cy_config_dir: Path, tmp_dir: Path):
     w_config_path = tmp_dir / ".could-you-config.yaml"
     w_config_path.write_text("{}")  # empty
     config = load()
-    assert config.llm["model"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
+    assert config.llm.args["modelId"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
 
 
 def test_workspace_overide_global(tmp_cy_config_dir: Path, tmp_dir: Path):
     g_config_path = tmp_cy_config_dir / "config.json"
     g_config_path.write_text(MINIMAL_JSON)
     w_config_path = tmp_dir / ".could-you-config.json"
-    w_config_path.write_text('{"llm": {"model": "gpt-99"} }')
+    w_config_path.write_text('{"llm": {"args": { "model": "gpt-99"} } }')
     config = load()
-    assert config.llm["provider"] == "openai"
-    assert config.llm["model"] == "gpt-99"
+    assert config.llm.provider == "openai"
+    assert config.llm.args["model"] == "gpt-99"
 
 
 def test_empty_fails(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
@@ -99,7 +100,7 @@ def test_load_global_git_commit_script(tmp_cy_config_dir: Path, tmp_dir: Path): 
     assert config.query is not None
     assert "Conventional Commit message" in config.query
     # Should inherit llm from global config
-    assert config.llm["provider"] == "openai"
+    assert config.llm.provider == "openai"
     # Script should load mcpServers: expect the git-mcp tool config and that no "filesystem" tool is present
     git_mcp = [srv for srv in config.servers if srv.name == "git-mcp"]
     assert git_mcp, "Expected to find 'git-mcp' server loaded from script"
@@ -126,11 +127,11 @@ def test_load_workspace_script_overrides_global(tmp_cy_config_dir: Path, tmp_dir
     w_script_path = tmp_dir / ".could-you-script.git-commit.json"
     custom_query = "Workspace script override commit message."
     w_script_path.write_text(
-        f'{{"query": "{custom_query}", "llm": {{"provider": "openai", "model": "gpt-3.5-turbo"}}}}'
+        f'{{"query": "{custom_query}", "llm": {{"provider": "openai", "args": {{ "model": "gpt-3.5-turbo"}}}}}}'
     )
 
     config = load(script_name="git-commit")
     # Should read the query from the workspace script, overriding the global script's
     assert config.query == custom_query
     # Should use llm specified in the workspace script, not the global config
-    assert config.llm["model"] == "gpt-3.5-turbo"
+    assert config.llm.args["model"] == "gpt-3.5-turbo"

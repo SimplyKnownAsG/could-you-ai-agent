@@ -4,6 +4,7 @@ from typing import Any
 from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
 
+from .dynamic import Dynamic
 from .logging_config import LOGGER
 
 
@@ -23,38 +24,14 @@ class MCPTool:
         return getattr(self.tool, name)
 
 
-class MCPServer:
+class MCPServer(Dynamic):
     tools: list[MCPTool]
-    enabled: bool
-    disabled_tools: set[str]
-
-    def __init__(
-        self,
-        *,
-        name: str,
-        command: str,
-        args: list[str],
-        env: dict[str, str] | None = None,
-        enabled: bool = True,
-        disabled_tools: list[str] | None = None,
-    ):
-        """
-        Initialize an MCPServer instance.
-
-        Args:
-            name (str): Name of the server.
-            command (str): Command to execute the server.
-            args (List[str]): List of arguments for the command.
-            env (Optional[Dict[str, str]]): Environment variables for the process.
-            enabled (bool): Option to enable/disable the server.
-            disabled_tools (Optional[List[str]]): List of tool names to disable.
-        """
-        self.name = name
-        self.command = command
-        self.args = args
-        self.env = env or {}
-        self.enabled = enabled
-        self.disabled_tools = set(disabled_tools or [])
+    enabled: bool = True
+    name: str
+    command: str
+    args: list[str]
+    env: dict[str, str] = dict()
+    disabled_tools: set[str] = set()
 
     async def connect(self, *, exit_stack: AsyncExitStack) -> bool:
         if self.enabled:

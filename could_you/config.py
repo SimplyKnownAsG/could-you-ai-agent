@@ -10,6 +10,7 @@ from jsonmerge import merge
 import could_you.resources
 
 from .cy_error import CYError, FaultOwner
+from .dynamic import Dynamic
 from .logging_config import LOGGER
 from .mcp_server import MCPServer
 from .prompt import enrich_raw_prompt
@@ -31,35 +32,21 @@ COULD_YOU_LOAD_FILE(*.md)
 """
 
 
-class Config:
-    system_prompt: str | None
-    llm: dict[str, Any]
+class LLMProps(Dynamic):
+    provider: str
+    init: dict[str, Any]
+    args: dict[str, Any]
+
+
+class Config(Dynamic):
+    system_prompt: str | None = None
+    llm: LLMProps
     servers: list[MCPServer]
     root: Path
-    editor: str | None
+    editor: str | None = os.environ.get("EDITOR", "vim")
     env: dict[str, str]
     # default query for a script.
     query: str | None
-
-    def __init__(
-        self,
-        *,
-        system_prompt: str | None,
-        llm: dict[str, Any],
-        servers: list[MCPServer],
-        root: Path,
-        editor: str | None = None,
-        env: dict[str, str],
-        query: str | None = None,
-    ):
-        self.system_prompt = system_prompt
-        self.llm = llm
-        self.servers = servers
-        self.root = root
-        self.editor = editor
-        self.env = env or {}
-        self.query = query
-
 
 class InvalidConfigError(CYError):
     def __init__(self, message):
@@ -155,22 +142,19 @@ def load(script_name: str | None = None):
 
     config.system_prompt = enrich_raw_prompt(config.system_prompt)
 
-    if not config.editor:
-        config.editor = os.environ.get("EDITOR", "vim")
-
     # Validate required fields
-    if not config.llm:
+    if not config.llm or not config.llm.provider:
         msg = 'Must specify "llm" in config'
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
-    if config.llm["provider"] not in ["boto3", "ollama", "openai"]:
-        msg = f"Invalid provider. Supported providers are boto3, ollama, and openai, got {config.llm['provider']}"
+    if config.llm.provider not in ["boto3", "ollama", "openai"]:
+        msg = f"Invalid provider. Supported providers are boto3, ollama, and openai, got {config.llm.provider}"
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
     # Apply environment variables
-    for key, value in config.env.items():
+    for key, value in (config.env or {}).items():
         if value is not None:
             os.environ[key] = value
 
@@ -289,12 +273,9 @@ def _parse_from_dict(json_config: dict[str, Any], root: Path) -> Config:
     Returns:
         Config: Parsed configuration object.
     """
-    llm = json_config.get("llm", {})
+    config = Config(**json_config, root=root)
+    config.llm = LLMProps(config.llm)
     servers = []
-    env = json_config.get("env", {})
-    system_prompt = json_config.get("systemPrompt")
-    editor = json_config.get("editor")
-    query = json_config.get("query")
 
     # Parse MCP servers
     mcp_servers = json_config.get("mcpServers", {})
@@ -304,14 +285,8 @@ def _parse_from_dict(json_config: dict[str, Any], root: Path) -> Config:
         if any(missing):
             raise ValueError(f"The MCP Server '{name}' file is missing required keys: {', '.join(missing)}.")
 
-        # Extract disabled_tools if present
-        disabled_tools = server_config.get("disabledTools", [])
-
-        # Create server config without disabled_tools for MCPServer constructor
-        server_kwargs = server_config.copy()
-        server_kwargs.pop("disabledTools", None)
-
-        server = MCPServer(name=name, disabled_tools=disabled_tools, **server_kwargs)
+        server = MCPServer(name=name, **server_config)
         servers.append(server)
 
-    return Config(system_prompt=system_prompt, llm=llm, servers=servers, root=root, editor=editor, env=env, query=query)
+    config.servers = servers
+    return config

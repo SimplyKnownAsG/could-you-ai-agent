@@ -219,3 +219,4 @@ async def test_call_tool():
 
     assert result == "tool_result"
     mock_session.call_tool.assert_called_once_with("test_tool", {"arg": "value"})
+

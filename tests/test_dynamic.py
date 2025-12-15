@@ -36,6 +36,32 @@ def test_list_set_tuple_recursion():
     assert isinstance(d.tpl[0], Dynamic)
     assert d.tpl[0].z == 3
 
+class Thing(Dynamic):
+    name: str
+    number: int
+
+class ClassWithTypedList(Dynamic):
+    a_list: list
+    some_list: list[Thing]
+    some_set: set[str]
+    some_tuple: tuple[Thing]
+
+def test_typed_array_collection():
+    c = ClassWithTypedList(
+            a_list=["a", 2, False],
+            some_list=[dict(name="name", number=1)],
+            some_set=["1", 2, "2"],
+            some_tuple=[dict(name="name2", number=2)])
+
+    assert c.a_list == ["a", 2, False]
+    assert len(c.some_list) == 1
+    assert type(c.some_list[0]) == Thing
+    assert len(c.some_set) == 2
+    assert type(c.some_set) == set
+    assert c.some_set == {"1", "2"}
+    assert len(c.some_tuple) == 1
+    assert type(c.some_tuple[0]) == Thing
+    assert c.some_tuple[0].name == "name2"
 
 def test_getattr_snake_case_to_camelCase():  # noqa: N802
     d = Dynamic(camelCaseAttr=5)

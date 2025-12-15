@@ -42,6 +42,9 @@ class Message(Dynamic):
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
         info(f"## {self.role}")
         for content in self.content:
+            print(type(content), content)
+            print(type(content), content)
+            print(type(content), content)
             for key, val in vars(content).items():
                 if key == "text":
                     # Always print text content
