@@ -65,54 +65,57 @@ class Agent:
         should_continue = True
 
         while should_continue:
-            should_continue = False
-            output_message = await self.llm.converse()
-            self.message_history.add(output_message)
-            tool_content: list[Content] = []
+            llm_message = await self.llm.converse()
+            self.message_history.add(llm_message)
+            should_continue = await self.__use_tools(llm_message)
 
-            for content in output_message.content:
-                tool_use = content.tool_use
+    async def __use_tools(self, llm_message: Message):
+        tool_content: list[Content] = []
 
-                if not tool_use:
-                    continue
+        for content in llm_message.content:
+            tool_use = content.tool_use
 
-                should_continue = True
+            if not tool_use:
+                continue
 
-                if tool := self.tools.get(tool_use.name, None):
-                    try:
-                        tool_response = await tool(converter.unstructure(tool_use.input))
-                        tool_content.append(
-                            Content(
-                                toolResult=ToolResultContent(
-                                    toolUseId=tool_use.tool_use_id,
-                                    content=[ToolResult(text=c.text) for c in tool_response.content],
-                                    status="success",
-                                )
-                            )
-                        )
-
-                    except Exception as err:
-                        tool_content.append(
-                            Content(
-                                toolResult=ToolResultContent(
-                                    toolUseId=tool_use.tool_use_id,
-                                    content=[ToolResult(text=f"Error: {err!s}")],
-                                    status="error",
-                                )
-                            )
-                        )
-
-                else:
-                    LOGGER.warning(f"LLM attempted to call tool that is not registerd: {tool_use.name}")
+            if tool := self.tools.get(tool_use.name, None):
+                try:
+                    tool_response = await tool(converter.unstructure(tool_use.input))
                     tool_content.append(
                         Content(
                             toolResult=ToolResultContent(
                                 toolUseId=tool_use.tool_use_id,
-                                content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
+                                content=[ToolResult(text=c.text) for c in tool_response.content],
+                                status="success",
+                            )
+                        )
+                    )
+
+                except Exception as err:
+                    tool_content.append(
+                        Content(
+                            toolResult=ToolResultContent(
+                                toolUseId=tool_use.tool_use_id,
+                                content=[ToolResult(text=f"Error: {err!s}")],
                                 status="error",
                             )
                         )
                     )
 
+            else:
+                LOGGER.warning(f"LLM attempted to call tool that is not registerd: {tool_use.name}")
+                tool_content.append(
+                    Content(
+                        toolResult=ToolResultContent(
+                            toolUseId=tool_use.tool_use_id,
+                            content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
+                            status="error",
+                        )
+                    )
+                )
+
+        if tool_content:
             tool_message = Message(role="user", content=tool_content)
             self.message_history.add(tool_message)
+
+        return bool(tool_content)
