@@ -119,6 +119,7 @@ def load(script_name: str | None = None):
     w_config_dict = _load_raw_path(w_config_path)
     # Merge configurations with local taking priority
     m_config_dict = merge(u_config_dict, w_config_dict)
+    llm = w_config_dict.get('llm', u_config_dict.get('llm'))
 
     w_dir = w_config_path.parent if w_config_path else cwd
 
@@ -144,8 +145,11 @@ def load(script_name: str | None = None):
             del m_config_dict["mcpServers"]
 
         m_config_dict = merge(m_config_dict, s_config_dict)
+        llm = s_config_dict.get('llm', llm)
+
 
     # Parse the merged configuration
+    m_config_dict['llm'] = llm
     config = _parse_from_dict(m_config_dict)
     config.root = w_dir
 
@@ -172,6 +176,10 @@ def load(script_name: str | None = None):
             os.environ[key] = value
 
     return config
+
+def _merge_llm(parent: dict[str, object], child: dict[str, object]):
+    return f
+    pass
 
 
 def _get_user_config_path():
