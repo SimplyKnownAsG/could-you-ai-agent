@@ -46,10 +46,10 @@ class Boto3LLM(BaseLLM):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bedrock = boto3.client("bedrock-runtime")
-        converted_tools = []
+        self.tool_specs = []
 
         for tool in self.tools.values():
-            converted_tools.append(
+            self.tool_specs.append(
                 {
                     "toolSpec": {
                         "name": tool.name,
@@ -58,8 +58,6 @@ class Boto3LLM(BaseLLM):
                     }
                 }
             )
-
-        self.converted_tools = {"tools": converted_tools}
 
     async def converse(self) -> Message:
         system = [{"text": self.config.system_prompt}] if self.config.system_prompt else []
@@ -71,12 +69,13 @@ class Boto3LLM(BaseLLM):
                 if "type" in c:
                     del c["type"]
 
-        response = self.bedrock.converse(
-            system=system,
-            messages=messages,
-            toolConfig=self.converted_tools,
+        kwargs = {
+            **dict(system=system, messages=messages),
+            **({"toolConfig": {"tools": self.tool_specs}} if self.tool_specs else {}),
             **dict(self.config.llm.args),
-        )
+        }
+
+        response = self.bedrock.converse(**kwargs)
         return converter.structure(response["output"]["message"], Message)
 
 
