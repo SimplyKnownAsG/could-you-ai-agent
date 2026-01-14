@@ -68,7 +68,14 @@ def create_parser():
     cmd_group.add_argument("-i", "--init-session", action="store_true", help="Initialize a session in this directory")
     cmd_group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
     cmd_group.add_argument("-p", "--print-history", action="store_true", help="Print the message history")
-    cmd_group.add_argument("-t", "--test-connect", action="store_true", help="Test connection, and stop")
+    cmd_group.add_argument(
+        "-t",
+        "--test-connect",
+        nargs="?",
+        const="Say hi",
+        default=None,
+        help="Test connection, send a message to LLM, and stop",
+    )
     cmd_group.add_argument(
         "-s",
         "--script",
@@ -113,7 +120,7 @@ async def amain(parser, args):
             config = session_manager.load_session()
             with MessageHistory(config.root, enable=False) as message_history:
                 async with Agent(config=config, message_history=message_history) as agent:
-                    pass
+                    await agent.orchestrate(args.test_connect)
         else:
             enable_history = not args.no_history
 
