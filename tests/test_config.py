@@ -51,7 +51,7 @@ def test_workspace_overide_global(tmp_cy_config_dir: Path, tmp_dir: Path):
     g_config_path = tmp_cy_config_dir / "config.json"
     g_config_path.write_text(MINIMAL_JSON)
     w_config_path = tmp_dir / ".could-you-config.json"
-    w_config_path.write_text('{"llm": {"args": { "model": "gpt-99"} } }')
+    w_config_path.write_text('{"llm": {"provider": "openai", "args": {"model": "gpt-99"} } }')
     config = load()
     assert config.llm.provider == "openai"
     assert config.llm.args["model"] == "gpt-99"
