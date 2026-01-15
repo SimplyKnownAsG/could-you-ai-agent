@@ -5,15 +5,20 @@ from typing import Any, Literal
 from attrs import define, field
 from cattrs import Converter
 
+from .attrs_patch import AttrsAllowAliasKeyword
+
 converter = Converter(use_alias=True, omit_if_default=True)
 
 
 @define
-class ToolUse:
+class ToolUse(AttrsAllowAliasKeyword):
     tool_use_id: str = field(alias="toolUseId")
     name: str
     input: Any
     type: Literal["tool_use"] = field(default="tool_use")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 # https://github.com/python-attrs/cattrs/issues/706
@@ -30,10 +35,13 @@ class ToolResult:
 
 
 @define
-class ToolResultContent:
+class ToolResultContent(AttrsAllowAliasKeyword):
     status: Literal["success", "error"]
     tool_use_id: str = field(alias="toolUseId")
     content: list[ToolResult]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 # https://github.com/python-attrs/cattrs/issues/706
@@ -49,13 +57,16 @@ class ToolResultContent:
 
 
 @define
-class Content:
+class Content(AttrsAllowAliasKeyword):
     # ToolUseContent
     tool_use: ToolUse | None = field(alias="toolUse", default=None)
     tool_result: ToolResultContent | None = field(alias="toolResult", default=None)
     # TextContent
     text: str | None = field(default=None)
     type: str | None = field(default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 @define

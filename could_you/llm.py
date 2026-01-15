@@ -147,7 +147,7 @@ class OpenAILLM(BaseLLM):
                         type="function",
                         function=dict(
                             name=content.tool_use.name,
-                            arguments=json.dumps(content.tool_use.input.to_dict()),
+                            arguments=json.dumps(content.tool_use.input),
                         ),
                     )
                     prev = openai_msgs[-1]
@@ -163,7 +163,7 @@ class OpenAILLM(BaseLLM):
                                         type="function",
                                         function=dict(
                                             name=content.tool_use.name,
-                                            arguments=json.dumps(content.tool_use.input.to_dict()),
+                                            arguments=json.dumps(content.tool_use.input),
                                         ),
                                     )
                                 ],
@@ -179,7 +179,7 @@ class OpenAILLM(BaseLLM):
                     )
                 else:
                     raise CYError(
-                        message="I don't know what to do with " + json.dumps(content.to_dict()),
+                        message="I don't know what to do with " + json.dumps(content),
                         retriable=False,
                         fault_owner=FaultOwner.INTERNAL,
                     )
