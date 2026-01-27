@@ -1,0 +1,39 @@
+# global environment variables
+env:
+  VARIABLE_NAME: "value"
+
+
+# LLM configuration
+llm:
+  # sample boto3
+  provider: boto3
+  init: {}
+  args:
+    modelId: us.anthropic.claude-sonnet-4-20250514-v1:0
+    inferenceConfig:
+      topP: 0.1
+
+  # # sample OpenAI
+  # provider: openai
+  # init:
+  #   api_key: "sk-..."
+  # args:
+  #   model: gpt-4.1
+
+
+# MCP Servers
+mcpServers:
+  git-mcp:
+    command: uvx
+    args:
+      - mcp-server-git
+    disabledTools:
+      - git_reset
+  filesystem:
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-filesystem"
+      - "$CY_WORKSPACE"
+    disabledTools:
+      - directory_tree
