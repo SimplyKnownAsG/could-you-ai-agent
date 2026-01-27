@@ -169,6 +169,9 @@ def load(script_name: str | None = None):
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
+    for mcp_props in config.mcp_servers.values():
+        mcp_props.args = [arg.replace("$CY_WORKSPACE", str(config.root)) for arg in mcp_props.args]
+
     # Apply environment variables
     for key, value in (config.env or {}).items():
         if value is not None:
