@@ -86,9 +86,10 @@ Sessions are automatically created per directory and maintain:
 
 ### Configuration
 
-Configuration files can be placed at:
-- **Project level**: `.could-you-config.json` (in project root)
-- **User level**: `$XDG_CONFIG_HOME/could-you/config.json`
+Configuration directory and files:
+- **Workspace level**: All config is now located in the `.could-you/` directory in your workspace root
+    - The main config: `.could-you/config.json` (or `config.yaml`, `config.yml`)
+- **User level**: `$XDG_CONFIG_HOME/could-you/config.json` (or `config.yaml`, `config.yml`)
 
 > **NOTE**: All configuration files (project, user and script) support `.json`, `.yaml`, and `.yml` extensions in that preferred order.
 
@@ -153,7 +154,7 @@ Each MCP server in the `mcpServers` section supports the following options:
 - **`enabled`** (optional, default: `true`): Whether to enable this server
 - **`disabledTools`** (optional): Array of tool names to disable from this server
 
-Example configuration with tool disabling:
+Example configuration with tool disabling (in `.could-you/config.json` or `.could-you/config.yaml`):
 ```json
 {
   "llm": {
@@ -163,13 +164,13 @@ Example configuration with tool disabling:
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "$CY_WORKSPACE"],
       "enabled": true,
       "disabledTools": ["write_file", "create_directory"]
     },
     "git": {
       "command": "mcp-server-git",
-      "args": ["/workspace"],
+      "args": ["$CY_WORKSPACE"],
       "env": {
         "GIT_AUTHOR_NAME": "AI Assistant"
       }
@@ -182,6 +183,7 @@ Example configuration with tool disabling:
   }
 }
 ```
+> Note: Arguments like `$CY_WORKSPACE` are automatically replaced with the root path by the agent when launching MCP servers.
 
 **Tool Disabling**: Use `disabledTools` to prevent specific dangerous operations while keeping the server enabled. Tools listed here are filtered out during server connection and reported in logs for transparency.
 
@@ -266,12 +268,9 @@ Each connected server provides tools that the AI assistant can use to help with 
 #### How it works
 
 1. Load configuration:
-  1. Load user `$XDG_CONFIG_HOME/could-you/config.json`, remove `mcpServers`
-  2. Overwrite user with local `.could-you-config.json`, remove `mcpServers`
+   1. Load per-project workspace config from `.could-you/config.json` (or `.yaml`/`.yml`)
 2. Find and load script, and overwrite configuration. Search path is:
-  1. Current workspace: `<workspace>/.could-you-script.<name>.(json|yaml)`
-  2. User script: `$XDG_CONFIG_HOME/could-you/script.<script>.json`
-  3. Global script: `$XDG_CONFIG_HOME/could-you/script.<script>.json`
+   1. Workspace: `.could-you/script.<script>.json|yaml|yml`
 3. No message history files are loaded or written.
 
 #### Example use cases
