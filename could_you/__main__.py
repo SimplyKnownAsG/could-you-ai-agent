@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import os
 import subprocess
 import tempfile
 
@@ -89,7 +90,7 @@ def create_parser():
 async def amain(parser, args):
     # Early config dump
     if args.dump_config:
-        config = load(args.script)
+        config = load(args.script)[0]
         converter = Converter(use_alias=True)
         config_dict = converter.unstructure(config)
 
@@ -112,43 +113,47 @@ async def amain(parser, args):
             session_manager.delete_session(args.delete_session)
         elif args.print_history:
             # Print message history
-            config = session_manager.load_session()
-            with MessageHistory(config.root) as message_history:
+            session = session_manager.load_session(None)
+            with session.messages(enable=True) as message_history:
                 message_history.print_history(info=LOGGER.info, debug=LOGGER.debug)
         elif args.test_connect:
             # List servers and their tools
-            config = session_manager.load_session()
-            with MessageHistory(config.root, enable=False) as message_history:
-                async with Agent(config=config, message_history=message_history) as agent:
+            session = session_manager.load_session(None)
+            with session.messages(enable=False) as message_history:
+                async with Agent(config=session.config, message_history=message_history) as agent:
                     await agent.orchestrate(args.test_connect)
         else:
             enable_history = not args.no_history
+            session = session_manager.load_session(args.script)
 
             if args.script:
                 enable_history = False
-                config = load(script_name=args.script)
-            else:
-                config = session_manager.load_session()
 
-            query = args.query if args.query else config.query if config.query else _get_editor_input(config)
+            query = (
+                args.query
+                if args.query
+                else session.config.query
+                if session.config.query
+                else _get_editor_input(session.w_config_dir)
+            )
 
             if not query:
                 LOGGER.warning("no input provided")
                 parser.print_help()
                 return
 
-            with MessageHistory(config.root, enable=enable_history) as message_history:
-                async with Agent(config=config, message_history=message_history) as agent:
+            with session.messages(enable=enable_history) as message_history:
+                async with Agent(config=session.config, message_history=message_history) as agent:
                     await agent.orchestrate(query)
 
 
-def _get_editor_input(config):
+def _get_editor_input(w_config_dir):
     """Open a temporary file in the user's preferred editor and return the content."""
 
     with tempfile.NamedTemporaryFile(suffix=".md", mode="w+") as tf:
         tf.write("# Previous messages\n\n")
         # Write message history to the file
-        with MessageHistory(config.root) as message_history:
+        with MessageHistory(w_config_dir) as message_history:
 
             def printer(msg):
                 print(msg, file=tf)
@@ -161,7 +166,8 @@ def _get_editor_input(config):
         tf.flush()
 
         # Open the editor
-        subprocess.call([config.editor, tf.name])
+        editor = os.environ.get("EDITOR", "vim")
+        subprocess.call([editor, tf.name])
 
         # Read the content
         tf.seek(0)

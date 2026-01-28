@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from could_you.config import InvalidConfigError, _find_workspace_config_dir, init, load
+from could_you.config import Config, InvalidConfigError, _find_workspace_config_dir, init
+from could_you.config import load as real_load
 
 MINIMAL_JSON = '{"llm": {"provider": "openai", "args": { "model": "gpt-4" } }}'
 MINIMAL_YAML = """
@@ -12,6 +13,10 @@ llm:
   args:
       modelId: us.anthropic.claude-sonnet-4-20250514-v1:0
 """
+
+
+def load(script_name: str | None = None) -> Config:
+    return real_load(script_name)[0]
 
 
 def test_load_workspace_json_config(tmp_workspace: Path):

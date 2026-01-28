@@ -43,7 +43,7 @@ class LLMProps:
 class MCPServerProps:
     command: str
     args: list[str] = field(factory=list)
-    disabled_tools: set[str] = field(factory=set, alias="disabledTools")
+    disabled_tools: list[str] = field(factory=list, alias="disabledTools")
     env: dict[str, str] = field(factory=dict)
     enabled: bool = field(factory=lambda: True)
 
@@ -56,8 +56,6 @@ class Config:
     env: dict[str, str] = field(factory=dict)
     # default query for a script.
     query: str | None = field(factory=lambda: None)
-    editor: str = field(factory=lambda: os.environ.get("EDITOR", "vim"))
-    root: Path = field(factory=Path.cwd)
 
 
 class InvalidConfigError(CYError):
@@ -65,7 +63,7 @@ class InvalidConfigError(CYError):
         super().__init__(message=message, retriable=False, fault_owner=FaultOwner.USER)
 
 
-def init() -> Config:
+def init() -> Path:
     w_config_dir = Path.cwd() / ".could-you"
 
     if w_config_dir.exists():
@@ -80,10 +78,10 @@ def init() -> Config:
 
     _copy_global_config(w_config_dir)
 
-    return load()
+    return w_config_dir
 
 
-def load(script_name: str | None = None) -> Config:
+def load(script_name: str | None = None) -> tuple[Config, Path]:
     w_config_dir = _find_workspace_config_dir(Path.cwd())
     config_dict = _load_dict(w_config_dir)
 
@@ -94,10 +92,9 @@ def load(script_name: str | None = None) -> Config:
             config_dict[key] = val
 
     config = _parse_from_dict(config_dict)
-    _validate_config(config)
-    config.root = w_config_dir
+    _validate_config(config, w_config_dir)
 
-    return config
+    return config, w_config_dir
 
 
 def _load_dict(w_config_dir: Path, script_name: str | None = None) -> dict[str, Any]:
@@ -113,10 +110,8 @@ def _load_dict(w_config_dir: Path, script_name: str | None = None) -> dict[str, 
     # config_dict = _load_raw_path(config_path)
     return _load_raw_path(config_path)
 
-    # return config
 
-
-def _validate_config(config: Config):
+def _validate_config(config: Config, w_config_dir: Path):
     # Apply defaults
     if not config.system_prompt:
         config.system_prompt = DEFAULT_PROMPT
@@ -135,16 +130,12 @@ def _validate_config(config: Config):
         raise InvalidConfigError(msg)
 
     for mcp_props in config.mcp_servers.values():
-        mcp_props.args = [arg.replace("$CY_WORKSPACE", str(config.root)) for arg in mcp_props.args]
+        mcp_props.args = [arg.replace("$CY_WORKSPACE", str(w_config_dir.parent)) for arg in mcp_props.args]
 
     # Apply environment variables
     for key, value in (config.env or {}).items():
         if value is not None:
             os.environ[key] = value
-
-
-def _get_user_config_path():
-    return _get_preferred_path(_get_user_config_dir_path() / "config.json")
 
 
 def _get_user_config_dir_path():

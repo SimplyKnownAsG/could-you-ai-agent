@@ -43,7 +43,7 @@ def test_mcp_server_init():
     assert server.props.args == ["arg1", "arg2"]
     assert server.props.env == {}
     assert server.props.enabled is True
-    assert server.props.disabled_tools == set()
+    assert set(server.props.disabled_tools) == set()
 
 
 def test_mcp_server_init_with_disabled_tools():
@@ -60,7 +60,7 @@ def test_mcp_server_init_with_disabled_tools():
         ),
     )
 
-    assert server.props.disabled_tools == {"tool1", "tool2", "tool3"}
+    assert set(server.props.disabled_tools) == {"tool1", "tool2", "tool3"}
 
 
 def test_mcp_server_init_with_all_options():
@@ -84,7 +84,7 @@ def test_mcp_server_init_with_all_options():
     assert server.props.args == ["arg1"]
     assert server.props.env == {"TEST_VAR": "test_value"}
     assert server.props.enabled is False
-    assert server.props.disabled_tools == {"unwanted_tool"}
+    assert set(server.props.disabled_tools) == {"unwanted_tool"}
 
 
 @pytest.mark.asyncio

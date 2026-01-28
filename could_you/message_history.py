@@ -16,8 +16,8 @@ class MessageHistory:
     messages: list[Message]
     enable: bool
 
-    def __init__(self, root: Path, *, enable: bool = True):
-        self.path = root / ".could-you-messages.json"
+    def __init__(self, w_config_dir: Path, *, enable: bool = True):
+        self.path = w_config_dir / "messages.json"
         self.messages = []
         self.enable = enable
 
