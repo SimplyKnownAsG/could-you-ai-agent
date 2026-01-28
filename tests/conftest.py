@@ -14,6 +14,13 @@ def tmp_dir(tmp_path: Path):
 
 
 @pytest.fixture
+def tmp_workspace(tmp_path: Path, tmp_dir: Path):  # noqa: ARG001
+    workspace_path = tmp_path / ".could-you"
+    workspace_path.mkdir(parents=True)
+    return workspace_path
+
+
+@pytest.fixture
 def tmp_cy_config_dir(tmp_path, monkeypatch):
     tmp_xdg_config_home = tmp_path.with_stem(tmp_path.stem + "xdg")
     tmp_xdg_config_home.mkdir()

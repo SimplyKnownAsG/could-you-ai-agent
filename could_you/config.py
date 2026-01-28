@@ -1,13 +1,13 @@
 import importlib.resources
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
 import yaml
 from attrs import define, field
 from cattrs import ClassValidationError, Converter
-from jsonmerge import merge
 
 import could_you.resources
 
@@ -66,92 +66,57 @@ class InvalidConfigError(CYError):
 
 
 def init() -> Config:
-    u_config_dict = _load_raw_path(_get_user_config_path())
+    w_config_dir = Path.cwd() / ".could-you"
 
-    with open(CONFIG_FILE_NAME, "w") as w_config:
-        # Create a copy to avoid modifying the original
-        jsonable = u_config_dict.copy()
+    if w_config_dir.exists():
+        msg = f"Workspace path already exists, will not overwrite: {w_config_dir}"
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
 
-        # Remove root if it exists (shouldn't be in local config)
-        if "root" in jsonable:
-            del jsonable["root"]
+    user_config_dir = _get_user_config_dir_path()
 
-        # Remove None values
-        for key in list(jsonable.keys()):
-            if jsonable[key] is None:
-                del jsonable[key]
+    if user_config_dir.exists() and user_config_dir.is_dir:
+        shutil.copytree(user_config_dir, w_config_dir)
 
-        # Handle servers -> mcpServers conversion
-        servers = jsonable.get("servers", [])
-        if "servers" in jsonable:
-            del jsonable["servers"]
-
-        mcp_servers = jsonable.get("mcpServers", {})
-
-        # Convert old server format to new mcpServers format if needed
-        for s in servers:
-            name = s["name"]
-            server_config = s.copy()
-            del server_config["name"]
-            mcp_servers[name] = server_config
-
-        mcp_servers["filesystem"] = {
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-filesystem", os.path.abspath(".")],
-        }
-        jsonable["mcpServers"] = mcp_servers
-        json.dump(jsonable, w_config, indent=2)
+    _copy_global_config(w_config_dir)
 
     return load()
 
 
-def load(script_name: str | None = None):
-    # this uses prefixes
-    #   u - user
-    #   w - workspace
-    #   s - script
-    #   m - merged
-    # Load raw JSON configurations
-    cwd = Path.cwd()
-    u_config_path = _get_user_config_path()
-    u_config_dict = _load_raw_path(u_config_path)
-    w_config_path = _get_workspace_config_path(cwd, required=script_name is None)
-    w_config_dict = _load_raw_path(w_config_path)
-    # Merge configurations with local taking priority
-    m_config_dict = merge(u_config_dict, w_config_dict)
-    llm = w_config_dict.get("llm", u_config_dict.get("llm"))
-
-    w_dir = w_config_path.parent if w_config_path else cwd
+def load(script_name: str | None = None) -> Config:
+    w_config_dir = _find_workspace_config_dir(Path.cwd())
+    config_dict = _load_dict(w_config_dir)
 
     if script_name:
-        # Load script from the current folder, or from the XDG config
-        w_script_path = w_dir / f".could-you-script.{script_name}.json"
-        g_script_path = _get_user_config_dir_path() / f"script.{script_name}.json"
+        s_config_dict = _load_dict(w_config_dir, script_name)
 
-        for s_config_base_path in [w_script_path, g_script_path]:
-            s_config_path = _get_preferred_path(s_config_base_path)
+        for key, val in s_config_dict.items():
+            config_dict[key] = val
 
-            if s_config_path:
-                LOGGER.info(f"Found script: {s_config_path}")
-                s_config_dict = _load_raw_path(s_config_path)
-                break
+    config = _parse_from_dict(config_dict)
+    _validate_config(config)
+    config.root = w_config_dir
 
-            LOGGER.info(f"Script does not exist: {s_config_base_path}")
-        else:
-            s_config_dict = _load_global_script(script_name)
+    return config
 
-        # remove tools merged
-        if "mcpServers" in m_config_dict:
-            del m_config_dict["mcpServers"]
 
-        m_config_dict = merge(m_config_dict, s_config_dict)
-        llm = s_config_dict.get("llm", llm)
+def _load_dict(w_config_dir: Path, script_name: str | None = None) -> dict[str, Any]:
+    base_name = "config.json" if not script_name else f"script.{script_name}.json"
+    full_name = w_config_dir / base_name
+    config_path = _get_preferred_path(full_name)
 
-    # Parse the merged configuration
-    m_config_dict["llm"] = llm
-    config = _parse_from_dict(m_config_dict)
-    config.root = w_dir
+    if not config_path:
+        msg = f'Failed to find configuration file in "{w_config_dir}" (like "{base_name}")'
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
 
+    # config_dict = _load_raw_path(config_path)
+    return _load_raw_path(config_path)
+
+    # return config
+
+
+def _validate_config(config: Config):
     # Apply defaults
     if not config.system_prompt:
         config.system_prompt = DEFAULT_PROMPT
@@ -177,8 +142,6 @@ def load(script_name: str | None = None):
         if value is not None:
             os.environ[key] = value
 
-    return config
-
 
 def _get_user_config_path():
     return _get_preferred_path(_get_user_config_dir_path() / "config.json")
@@ -189,22 +152,17 @@ def _get_user_config_dir_path():
     return Path(xdg_config_home) / "could-you"
 
 
-def _get_workspace_config_path(current_path: Path, *, required: bool) -> Path | None:
+def _find_workspace_config_dir(current_path: Path) -> Path:
     """
     Recursively searches upward for the closest file named CONFIG_FILE_NAME.
 
     Args:
         current_path (Path): The starting directory for the search.
-                           Defaults to the current directory (".")
-
-    Returns:
-        Path | None: A Path object pointing to the closest matching file,
-                     or None if the file is not found.
     """
     # Check the current directory first
-    config_path = _get_preferred_path(current_path / CONFIG_FILE_NAME)
+    config_path = current_path / ".could-you"
 
-    if config_path:
+    if config_path.exists() and config_path.is_dir:
         return config_path
 
     # Move up to the parent directory
@@ -212,17 +170,13 @@ def _get_workspace_config_path(current_path: Path, *, required: bool) -> Path | 
 
     # Stop recursion if we've reached the root directory
     if current_path == parent_path:
-        LOGGER.warning("did not find .could-you-config.json in this or above directories.")
-
-        if required:
-            msg = "could-you must be run from within a workspace."
-            LOGGER.error(msg)
-            raise InvalidConfigError(msg)
-
-        return None
+        LOGGER.warning("did not find .could-you/ in this or above directories.")
+        msg = "could-you must be run from within a workspace."
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
 
     # Recurse into the parent directory
-    return _get_workspace_config_path(parent_path, required=required)
+    return _find_workspace_config_dir(parent_path)
 
 
 def _get_preferred_path(config_file: Path) -> Path | None:
@@ -235,25 +189,31 @@ def _get_preferred_path(config_file: Path) -> Path | None:
     return None
 
 
-def _load_global_script(script_name: str):
+def _copy_global_config(w_config_dir: Path):
     """
     Try all possible script config locations (workspace, user, package resource).
     Returns (kind, path_or_name_or_resourcehandle) or (None, None) if not found.
     kind: 'file' or 'resource'
     """
+    for resource in importlib.resources.files(could_you.resources).iterdir():
+        if not resource.is_file():
+            continue
 
-    for ext in (".json", ".yaml", ".yml"):
-        resource_name = f"script.{script_name}{ext}"
-        if importlib.resources.is_resource(could_you.resources, resource_name):
-            with importlib.resources.open_text(could_you.resources, resource_name) as f:
-                return yaml.safe_load(f)
+        if resource.suffix not in (".json", ".yaml", ".yml"):
+            continue
 
-    msg = f"Script {script_name} does not exist (checked: workspace, user, global resources)."
-    LOGGER.error(msg)
-    raise InvalidConfigError(msg)
+        dest = w_config_dir / os.path.basename(str(resource))
+
+        if dest.exists():
+            LOGGER.warning(f"File exists in destination ({dest}), will not overwrite with global version ({resource})")
+            continue
+
+        with resource.open("r") as f:
+            LOGGER.info(f"Writing file {dest} from global {resource}")
+            dest.write_text(f.read())
 
 
-def _load_raw_path(config_path: Path | None) -> dict[str, Any]:
+def _load_raw_path(config_path: Path) -> dict[str, Any]:
     """
     Load raw JSON configuration from file.
 

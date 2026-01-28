@@ -1,24 +1,25 @@
 # global environment variables
 env:
   VARIABLE_NAME: "value"
+  DEFAULT_AWS_PROFILE: "some-profile-name"
 
 
 # LLM configuration
 llm:
-  # sample boto3
-  provider: boto3
-  init: {}
-  args:
-    modelId: us.anthropic.claude-sonnet-4-20250514-v1:0
-    inferenceConfig:
-      topP: 0.1
-
-  # # sample OpenAI
-  # provider: openai
-  # init:
-  #   api_key: "sk-..."
+  # # sample boto3
+  # provider: boto3
+  # init: {}
   # args:
-  #   model: gpt-4.1
+  #   modelId: us.anthropic.claude-sonnet-4-20250514-v1:0
+  #   inferenceConfig:
+  #     topP: 0.1
+
+  # sample OpenAI
+  provider: openai
+  init:
+    api_key: "sk-..."
+  args:
+    model: gpt-4.1
 
 
 # MCP Servers
