@@ -75,7 +75,12 @@ class Boto3LLM(BaseLLM):
             **dict(self.config.llm.args),
         }
 
-        response = self.bedrock.converse(**kwargs)
+        try:
+            response = self.bedrock.converse(**kwargs)
+        except Exception as err:
+            msg = f"Error while calling Bedrock: {err}"
+            LOGGER.error("Exrror calling bedrock", err)
+            raise CYError(message=msg, retriable=False, fault_owner=FaultOwner.LLM) from err
         return converter.structure(response["output"]["message"], Message)
 
 
