@@ -3,7 +3,7 @@ import asyncio
 import json
 import os
 import subprocess
-import tempfile
+from pathlib import Path
 
 import yaml
 from cattrs import Converter
@@ -145,12 +145,18 @@ async def amain(parser, args):
             with session.messages(enable=enable_history) as message_history:
                 async with Agent(config=session.config, message_history=message_history) as agent:
                     await agent.orchestrate(query)
+                    _remove_query_md(session.w_config_dir)
 
 
-def _get_editor_input(w_config_dir):
+MARKER = "# *** PROVIDE_INPUT_AFTER_THIS_LINE ***"
+
+
+def _get_editor_input(w_config_dir: Path):
     """Open a temporary file in the user's preferred editor and return the content."""
+    query_md_path = w_config_dir / "query.md"
+    existing_query = _load_query(query_md_path)
 
-    with tempfile.NamedTemporaryFile(suffix=".md", mode="w+") as tf:
+    with query_md_path.open("w") as tf:
         tf.write("# Previous messages\n\n")
         # Write message history to the file
         with MessageHistory(w_config_dir) as message_history:
@@ -161,22 +167,26 @@ def _get_editor_input(w_config_dir):
             message_history.print_history(info=printer, debug=printer)
 
         # Write the special editor input marker - this exact line is used to find user input
-        marker = "# *** PROVIDE_INPUT_AFTER_THIS_LINE ***"
-        tf.write(f"\n{marker}\n\n")
+        tf.write(f"\n{MARKER}\n\n")
+        tf.write(existing_query)
         tf.flush()
 
-        # Open the editor
-        editor = os.environ.get("EDITOR", "vim")
-        subprocess.call([editor, tf.name])
+    # Open the editor
+    editor = os.environ.get("EDITOR", "vim")
+    subprocess.call([editor, tf.name])
 
-        # Read the content
-        tf.seek(0)
-        content = tf.read()
+    return _load_query(query_md_path)
 
-    # Split content at the marker line, looking for complete lines only
+
+def _load_query(query_md_path: Path):
+    if not query_md_path.exists():
+        return ""
+
+    content = query_md_path.read_text()
     lines = content.splitlines(keepends=True)
+
     for i, line in enumerate(lines):
-        if line == marker + "\n":
+        if line == MARKER + "\n":
             input_lines = lines[i + 1 :]
             break
     else:
@@ -191,6 +201,11 @@ def _get_editor_input(w_config_dir):
         input_lines.pop()
 
     return "".join(input_lines)
+
+
+def _remove_query_md(w_config_dir: Path):
+    query_md_path = w_config_dir / "query.md"
+    query_md_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
