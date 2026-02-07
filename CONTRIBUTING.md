@@ -69,7 +69,7 @@ could_you/
 ├── __init__.py          # Package initialization
 ├── __main__.py          # CLI entry point
 ├── config.py            # Configuration management
-├── llm.py               # LLM provider abstractions
+├── llm/                 # LLM provider abstractions
 ├── agent.py             # Main Agent implementation
 ├── mcp_server.py        # MCP server connection handling
 ├── message.py           # Message data structures
