@@ -164,13 +164,13 @@ Example configuration with tool disabling (in `.could-you/config.json` or `.coul
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "$CY_WORKSPACE"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "$COULD_YOU_WORKSPACE"],
       "enabled": true,
       "disabledTools": ["write_file", "create_directory"]
     },
     "git": {
       "command": "mcp-server-git",
-      "args": ["$CY_WORKSPACE"],
+      "args": ["$COULD_YOU_WORKSPACE"],
       "env": {
         "GIT_AUTHOR_NAME": "AI Assistant"
       }
@@ -183,7 +183,7 @@ Example configuration with tool disabling (in `.could-you/config.json` or `.coul
   }
 }
 ```
-> Note: Arguments like `$CY_WORKSPACE` are automatically replaced with the root path by the agent when launching MCP servers.
+> Note: Arguments like `$COULD_YOU_WORKSPACE` are automatically replaced with the root path by the agent when launching MCP servers.
 
 **Tool Disabling**: Use `disabledTools` to prevent specific dangerous operations while keeping the server enabled. Tools listed here are filtered out during server connection and reported in logs for transparency.
 

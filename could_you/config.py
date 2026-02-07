@@ -130,7 +130,7 @@ def _validate_config(config: Config, w_config_dir: Path):
         raise InvalidConfigError(msg)
 
     for mcp_props in config.mcp_servers.values():
-        mcp_props.args = [arg.replace("$CY_WORKSPACE", str(w_config_dir.parent)) for arg in mcp_props.args]
+        mcp_props.args = [arg.replace("$COULD_YOU_WORKSPACE", str(w_config_dir.parent)) for arg in mcp_props.args]
 
     # Apply environment variables
     for key, value in (config.env or {}).items():

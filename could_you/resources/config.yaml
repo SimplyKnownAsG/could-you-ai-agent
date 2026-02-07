@@ -35,6 +35,6 @@ mcpServers:
     args:
       - "-y"
       - "@modelcontextprotocol/server-filesystem"
-      - "$CY_WORKSPACE"
+      - "$COULD_YOU_WORKSPACE"
     disabledTools:
       - directory_tree
