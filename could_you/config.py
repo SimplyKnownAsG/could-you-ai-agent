@@ -51,7 +51,7 @@ class MCPServerProps:
 @define
 class Config:
     llm: LLMProps
-    system_prompt: str | None = field(factory=lambda: DEFAULT_PROMPT)
+    system_prompt: str | None = field(factory=lambda: DEFAULT_PROMPT, alias="systemPrompt")
     mcp_servers: dict[str, MCPServerProps] = field(factory=dict, alias="mcpServers")
     env: dict[str, str] = field(factory=dict)
     # default query for a script.
