@@ -9,6 +9,22 @@ from .logging_config import LOGGER
 
 # Pattern to match COULD_YOU_LOAD_FILE(relative/path.md or glob)
 COULD_YOU_LOAD_FILE_PATTERN = re.compile(r"^COULD_YOU_LOAD_FILE\((.+)\)$", re.MULTILINE)
+COULD_YOU_DEFAULT_PROMPT_PATTERN = re.compile(r"^COULD_YOU_DEFAULT_PROMPT(\(\))?$", re.MULTILINE)
+
+DEFAULT_PROMPT = """
+Your name is Cy.
+
+You are an agent responsible for helping a software developer perform tasks.
+
+DO ASSUME file content is correct.
+
+DO NOT ASSUME any file edits you have previously made will be persisted, or were correct.
+
+DO NOT ASSUME that you should make file edits, only make file changes if asked. For example, if asked to \"show\" or
+\"tell\" only provide an answer.
+
+COULD_YOU_LOAD_FILE(*.md)
+"""
 
 
 def enrich_raw_prompt(prompt: str) -> str:
@@ -16,7 +32,12 @@ def enrich_raw_prompt(prompt: str) -> str:
     Public entrypoint: applies all prompt enrichments to the raw prompt string.
     Add additional prompt-enriching logic here as needed.
     """
+    prompt = _expand_cy_default_pattern(prompt)
     return _expand_cy_load_file(prompt)
+
+
+def _expand_cy_default_pattern(prompt: str) -> str:
+    return COULD_YOU_DEFAULT_PROMPT_PATTERN.sub(DEFAULT_PROMPT, prompt)
 
 
 def _expand_cy_load_file(prompt: str) -> str:

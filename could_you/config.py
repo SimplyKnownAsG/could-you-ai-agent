@@ -15,22 +15,6 @@ from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
 from .prompt import enrich_raw_prompt
 
-CONFIG_FILE_NAME = ".could-you-config.json"
-DEFAULT_PROMPT = """
-Your name is Cy.
-
-You are an agent responsible for helping a software developer perform tasks.
-
-DO ASSUME file content is correct.
-
-DO NOT ASSUME any file edits you have previously made will be persisted, or were correct.
-
-DO NOT ASSUME that you should make file edits, only make file changes if asked. For example, if asked to \"show\" or
-\"tell\" only provide an answer.
-
-COULD_YOU_LOAD_FILE(*.md)
-"""
-
 
 @define
 class LLMProps:
@@ -51,7 +35,7 @@ class MCPServerProps:
 @define
 class Config:
     llm: LLMProps
-    system_prompt: str | None = field(factory=lambda: DEFAULT_PROMPT, alias="systemPrompt")
+    system_prompt: str = field(factory=lambda: "COULD_YOU_DEFAULT_PROMPT", alias="systemPrompt")
     mcp_servers: dict[str, MCPServerProps] = field(factory=dict, alias="mcpServers")
     env: dict[str, str] = field(factory=dict)
     # default query for a script.
@@ -113,9 +97,6 @@ def _load_dict(w_config_dir: Path, script_name: str | None = None) -> dict[str, 
 
 def _validate_config(config: Config, w_config_dir: Path):
     # Apply defaults
-    if not config.system_prompt:
-        config.system_prompt = DEFAULT_PROMPT
-
     config.system_prompt = enrich_raw_prompt(config.system_prompt)
 
     # Validate required fields
@@ -145,7 +126,7 @@ def _get_user_config_dir_path():
 
 def _find_workspace_config_dir(current_path: Path) -> Path:
     """
-    Recursively searches upward for the closest file named CONFIG_FILE_NAME.
+    Recursively searches upward for the closest file named config.yaml.
 
     Args:
         current_path (Path): The starting directory for the search.
