@@ -1,4 +1,5 @@
 import boto3
+from botocore.config import Config as BotoConfig
 from cattrs import Converter
 
 from ..cy_error import CYError, FaultOwner
@@ -12,7 +13,8 @@ converter = Converter(use_alias=True, omit_if_default=True)
 class Boto3LLM(BaseLLM):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.bedrock = boto3.client("bedrock-runtime")
+        boto_config = BotoConfig(**self.config.llm.init)
+        self.bedrock = boto3.client("bedrock-runtime", config=boto_config)
         self.tool_specs = []
 
         for tool in self.tools.values():
