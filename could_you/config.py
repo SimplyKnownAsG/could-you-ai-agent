@@ -2,6 +2,7 @@ import importlib.resources
 import json
 import os
 import shutil
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -57,10 +58,11 @@ def init() -> Path:
 
     user_config_dir = _get_user_config_dir_path()
 
-    if user_config_dir.exists() and user_config_dir.is_dir:
+    if user_config_dir.exists() and user_config_dir.is_dir():
         shutil.copytree(user_config_dir, w_config_dir)
 
     _copy_global_config(w_config_dir)
+    _fix_permissions(w_config_dir)
 
     return w_config_dir
 
@@ -159,6 +161,19 @@ def _get_preferred_path(config_file: Path) -> Path | None:
             return config_with_ext
 
     return None
+
+
+def _fix_permissions(root: Path) -> None:
+    """
+    Ensure all paths under root are user-writable.
+    """
+    for path in root.rglob("*"):
+        try:
+            mode = path.stat().st_mode
+            # Always ensure user-write bit is set; keep other bits unchanged
+            path.chmod(mode | stat.S_IWUSR)
+        except Exception as e:
+            LOGGER.warning(f"Could not adjust permissions for {path}: {e}")
 
 
 def _copy_global_config(w_config_dir: Path):
