@@ -5,7 +5,7 @@ from openai.types.chat import ChatCompletionToolParam
 
 from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
-from ..message import Content, Message, ToolUse
+from ..message import Message, TextContent, ToolResultContent, ToolUse, ToolUseContent
 from .base_llm import BaseLLM
 
 
@@ -39,13 +39,15 @@ class OpenAILLM(BaseLLM):
         for choice in response.choices:
             msg = choice.message
             if msg.content:
-                content.append(Content(text=msg.content, type="text"))
+                content.append(TextContent(text=msg.content, type="text"))
             elif msg.tool_calls:
                 for tool_call in msg.tool_calls:
                     tool_use_id = tool_call.id
                     name = tool_call.function.name
                     tool_input = json.loads(tool_call.function.arguments)
-                    content.append(Content(tool_use=ToolUse(tool_use_id=tool_use_id, name=name, input=tool_input)))
+                    content.append(
+                        ToolUseContent(tool_use=ToolUse(tool_use_id=tool_use_id, name=name, input=tool_input))
+                    )
             else:
                 raise CYError(
                     message=f"Cannot handle response, sry... {response}",
@@ -56,13 +58,15 @@ class OpenAILLM(BaseLLM):
 
     def _convert_messages(self) -> list[dict[str, str]]:
         openai_msgs = []
+
         if self.config.system_prompt:
             openai_msgs.append(dict(role="system", content=self.config.system_prompt))
+
         for msg in self.message_history.messages:
             for content in msg.content:
-                if content.text:
+                if isinstance(content, TextContent):
                     openai_msgs.append({"role": msg.role, "content": content.text})
-                elif content.tool_use:
+                elif isinstance(content, ToolUseContent):
                     tool_call = dict(
                         id=content.tool_use.tool_use_id,
                         type="function",
@@ -81,7 +85,7 @@ class OpenAILLM(BaseLLM):
                                 tool_calls=[tool_call],
                             )
                         )
-                elif content.tool_result:
+                elif isinstance(content, ToolResultContent):
                     openai_msgs.append(
                         dict(
                             role="tool",
@@ -95,6 +99,7 @@ class OpenAILLM(BaseLLM):
                         retriable=False,
                         fault_owner=FaultOwner.INTERNAL,
                     )
+
         return openai_msgs
 
     def _convert_tools(self) -> list[ChatCompletionToolParam]:

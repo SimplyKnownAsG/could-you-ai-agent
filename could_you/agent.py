@@ -7,7 +7,16 @@ from .cy_error import CYError, FaultOwner
 from .llm import BaseLLM, create_llm
 from .logging_config import LOGGER
 from .mcp_server import MCPServer, MCPTool
-from .message import Content, Message, ToolResult, ToolResultContent
+from .message import (
+    Content,
+    Message,
+    TextContent,
+    ToolResult,
+    ToolResultContent,
+    ToolResultInnerContent,
+    ToolResultInnerTextContent,
+    ToolUseContent,
+)
 from .message_history import MessageHistory
 
 converter = Converter(use_alias=True, omit_if_default=True)
@@ -61,7 +70,7 @@ class Agent:
         if not self.llm:
             raise CYError(message="Must __aenter__ to play!", retriable=False, fault_owner=FaultOwner.INTERNAL)
 
-        self.message_history.add(Message(role="user", content=[Content(text=query, type="text")]))
+        self.message_history.add(Message(role="user", content=[TextContent(text=query, type="text")]))
         should_continue = True
 
         while should_continue:
@@ -73,19 +82,19 @@ class Agent:
         tool_content: list[Content] = []
 
         for content in llm_message.content:
-            tool_use = content.tool_use
-
-            if not tool_use:
+            if not isinstance(content, ToolUseContent):
                 continue
+
+            tool_use = content.tool_use
 
             if tool := self.tools.get(tool_use.name, None):
                 try:
                     tool_response = await tool(converter.unstructure(tool_use.input))
                     tool_content.append(
-                        Content(
-                            toolResult=ToolResultContent(
+                        ToolResultContent(
+                            toolResult=ToolResult(
                                 toolUseId=tool_use.tool_use_id,
-                                content=[ToolResult(text=c.text) for c in tool_response.content],
+                                content=[converter.structure(c, ToolResultInnerContent) for c in tool_response.content],
                                 status="success",
                             )
                         )
@@ -93,10 +102,10 @@ class Agent:
 
                 except Exception as err:
                     tool_content.append(
-                        Content(
+                        ToolResultContent(
                             toolResult=ToolResultContent(
                                 toolUseId=tool_use.tool_use_id,
-                                content=[ToolResult(text=f"Error: {err!s}")],
+                                content=[ToolResultInnerTextContent(text=f"Error: {err!s}")],
                                 status="error",
                             )
                         )
@@ -105,10 +114,10 @@ class Agent:
             else:
                 LOGGER.warning(f"LLM attempted to call tool that is not registerd: {tool_use.name}")
                 tool_content.append(
-                    Content(
+                    ToolResultContent(
                         toolResult=ToolResultContent(
                             toolUseId=tool_use.tool_use_id,
-                            content=[Content(text=f'Error: No tool named "{tool_use.name}".')],
+                            content=[ToolResultInnerTextContent(text=f'Error: No tool named "{tool_use.name}".')],
                             status="error",
                         )
                     )
