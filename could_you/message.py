@@ -26,7 +26,7 @@ class ToolUse(AttrsAllowAliasKeyword):
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
         body = f"\n* **tool use id**: {self.tool_use_id}\n"
         _print_markdown(info, body, 4, f"{self.name}")
-        body2 = "```\njson" + json.dumps(self.input, indent=2) + "\n```"
+        body2 = "```json\n" + json.dumps(self.input, indent=2) + "\n```"
         _print_markdown(debug, body2, 5, "Input")
 
 
@@ -43,8 +43,13 @@ class ToolUseContent:
 class ToolResultInnerTextContent:
     text: str
 
-    def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):  # noqa: ARG002
-        _print_markdown(info, self.text, 5, "Text")
+    def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):  # noqa: ARG001
+        # XXX: tool results probably are not actual markdown, probably?
+        # XXX: if calling an agent as a tool, this will be less than ideal.
+        if self.text.startswith('```') and self.text.rstrip().endswith('```'):
+            _print_markdown(debug, self.text, 5, "Text")
+        else:
+            _print_markdown(debug, '    ' + '\n    '.join(self.text.splitlines()), 5, "Text")
 
 
 @define
@@ -111,9 +116,7 @@ class Message:
             content.print(info=info, debug=debug)
 
 
-def _print_markdown(
-    printer: Callable[[str], None], markdown_text: str, shift: int = 1, new_title: str | None = None
-) -> str:
+def _print_markdown(printer: Callable[[str], None], markdown_text: str, shift: int = 1, new_title: str | None = None):
     """
     Reshift markdown headings and optionally add a new top-level heading.
 
@@ -148,16 +151,22 @@ def _print_markdown(
     renderer = MarkdownRenderer()
     state = BlockState()
 
+    # XXX: a bit wasteful to build a string an split it!
     for line in renderer(tokens, state).splitlines():
         printer(f"{line}")
 
 
 def _shift_headings(tokens: list[dict[str, Any]], shift: int) -> None:
-    """Recursively shift all heading levels by the specified amount."""
+    """Shift top-level headings."""
     for token in tokens:
-        if token["type"] == "heading":
+        token_type = token["type"]
+
+        if token_type == "heading":  # noqa: S105
             token["attrs"]["level"] += shift
 
-        # Process children if they exist
-        if "children" in token and isinstance(token["children"], list):
-            _shift_headings(token["children"], shift)
+        elif token_type == "block_code" and token["style"] == "fenced":  # noqa: S105
+            token["raw"] = "    " + "\n    ".join(token["raw"].splitlines())
+
+        elif token_type == "block_code" and token["style"] == "indent":  # noqa: S105
+            # I don't understand why, but the MarkdownRendere transforms "indent" to "fenced"
+            token["raw"] = "    " + "\n    ".join(token["raw"].splitlines())
