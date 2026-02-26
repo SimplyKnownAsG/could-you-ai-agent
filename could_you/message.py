@@ -21,52 +21,42 @@ class ToolUse(AttrsAllowAliasKeyword):
         super().__init__(*args, **kwargs)
 
 
-# https://github.com/python-attrs/cattrs/issues/706
-#
-# @define
-# class ToolUseContent:
-#     tool_use: ToolUse = field(alias="toolUse")
+@define
+class ToolUseContent:
+    tool_use: ToolUse = field(alias="toolUse")
 
 
 @define
-class ToolResult:
+class ToolResultInnerContent:
     text: str | None = field(default=None)
     json: Any | None = field(default=None)
 
 
 @define
-class ToolResultContent(AttrsAllowAliasKeyword):
+class ToolResult(AttrsAllowAliasKeyword):
     status: Literal["success", "error"]
     tool_use_id: str = field(alias="toolUseId")
-    content: list[ToolResult]
+    content: list[ToolResultInnerContent]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-# https://github.com/python-attrs/cattrs/issues/706
-#
-# @define
-# class TextContent:
-#     text: str
-#     type: Literal["text"] = field(factory=lambda: "text")
-
-# https://github.com/python-attrs/cattrs/issues/706
-#
-# Content = TextContent|ToolUseContent|ToolResultContent
 
 
 @define
-class Content(AttrsAllowAliasKeyword):
-    # ToolUseContent
-    tool_use: ToolUse | None = field(alias="toolUse", default=None)
-    tool_result: ToolResultContent | None = field(alias="toolResult", default=None)
-    # TextContent
-    text: str | None = field(default=None)
-    type: str | None = field(default=None)
+class ToolResultContent(AttrsAllowAliasKeyword):
+    tool_result: ToolResult = field(alias="toolResult")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+@define
+class TextContent:
+    text: str
+    type: Literal["text"] = field(factory=lambda: "text")
+
+
+Content = TextContent | ToolUseContent | ToolResultContent
 
 
 @define

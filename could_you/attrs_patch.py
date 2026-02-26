@@ -1,6 +1,7 @@
 from attrs import fields
 
 
+# XXX: this may no longer be needed.
 class AttrsAllowAliasKeyword:
     def __init__(self, *args, **kwargs):
         if kwargs:
