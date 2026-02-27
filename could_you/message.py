@@ -43,13 +43,13 @@ class ToolUseContent:
 class ToolResultInnerTextContent:
     text: str
 
-    def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):  # noqa: ARG001
+    def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):  # noqa: ARG002
         # XXX: tool results probably are not actual markdown, probably?
         # XXX: if calling an agent as a tool, this will be less than ideal.
-        if self.text.startswith('```') and self.text.rstrip().endswith('```'):
+        if self.text.startswith("```") and self.text.rstrip().endswith("```"):
             _print_markdown(debug, self.text, 5, "Text")
         else:
-            _print_markdown(debug, '    ' + '\n    '.join(self.text.splitlines()), 5, "Text")
+            _print_markdown(debug, "    " + "\n    ".join(self.text.splitlines()), 5, "Text")
 
 
 @define

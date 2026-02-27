@@ -13,7 +13,7 @@ from .message import (
     TextContent,
     ToolResult,
     ToolResultContent,
-    ToolResultInnerContent,
+    ToolResultInnerJsonContent,
     ToolResultInnerTextContent,
     ToolUseContent,
 )
@@ -90,20 +90,38 @@ class Agent:
             if tool := self.tools.get(tool_use.name, None):
                 try:
                     tool_response = await tool(converter.unstructure(tool_use.input))
+                    # XXX: I'm not sure why this does not work.
+                    # ccc = [converter.structure(c, ToolResultInnerContent) for c in tool_response.content]
+                    ccc = [ToolResultInnerTextContent(text=c.text) for c in tool_response.content]
+                    for c in tool_response.content:
+                        if hasattr(c, "text"):
+                            ccc.append(ToolResultInnerTextContent(text=c.text))
+                        elif hasattr(c, "json"):
+                            ccc.append(ToolResultInnerJsonContent(json=c.json))
+                        else:
+                            raise CYError(  # noqa: TRY301
+                                message=f"Do not know how to handle response: {c}",
+                                retriable=False,
+                                fault_owner=FaultOwner.INTERNAL,
+                            )
+
                     tool_content.append(
                         ToolResultContent(
                             toolResult=ToolResult(
                                 toolUseId=tool_use.tool_use_id,
-                                content=[converter.structure(c, ToolResultInnerContent) for c in tool_response.content],
+                                content=ccc,
                                 status="success",
                             )
                         )
                     )
 
+                except CYError:
+                    raise
+
                 except Exception as err:
                     tool_content.append(
                         ToolResultContent(
-                            toolResult=ToolResultContent(
+                            toolResult=ToolResult(
                                 toolUseId=tool_use.tool_use_id,
                                 content=[ToolResultInnerTextContent(text=f"Error: {err!s}")],
                                 status="error",
@@ -115,7 +133,7 @@ class Agent:
                 LOGGER.warning(f"LLM attempted to call tool that is not registerd: {tool_use.name}")
                 tool_content.append(
                     ToolResultContent(
-                        toolResult=ToolResultContent(
+                        toolResult=ToolResult(
                             toolUseId=tool_use.tool_use_id,
                             content=[ToolResultInnerTextContent(text=f'Error: No tool named "{tool_use.name}".')],
                             status="error",
