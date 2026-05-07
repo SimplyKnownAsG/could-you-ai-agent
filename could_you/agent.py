@@ -92,7 +92,7 @@ class Agent:
                     tool_response = await tool(converter.unstructure(tool_use.input))
                     # XXX: I'm not sure why this does not work.
                     # ccc = [converter.structure(c, ToolResultInnerContent) for c in tool_response.content]
-                    ccc = [ToolResultInnerTextContent(text=c.text) for c in tool_response.content]
+                    ccc = []
                     for c in tool_response.content:
                         if hasattr(c, "text"):
                             ccc.append(ToolResultInnerTextContent(text=c.text))

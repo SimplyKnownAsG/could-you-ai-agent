@@ -31,7 +31,7 @@ class ToolUse(AttrsAllowAliasKeyword):
 
 
 @define
-class ToolUseContent:
+class ToolUseContent(AttrsAllowAliasKeyword):
     tool_use: ToolUse = field(alias="toolUse")
 
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
