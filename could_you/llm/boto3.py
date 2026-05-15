@@ -36,13 +36,17 @@ class Boto3LLM(BaseLLM):
         # map our messages (including tool calls and tool results) into the
         # structure expected by the Converse API.
         for m in messages:
+            # Remove internal message-level type field if present
+            m.pop("type", None)
+
             # Preserve the role, but map content types appropriately
             if m["role"] == "tool":
                 # Tool results are represented as toolResult content in Bedrock
                 m["role"] = "assistant"
                 for c in m["content"]:
-                    if "toolResult" in c:
+                    if isinstance(c, dict) and "toolResult" in c:
                         c["toolResult"]["status"] = c["toolResult"].get("status", "success")
+
             # Remove internal type field from content items if present
             for c in m["content"]:
                 if isinstance(c, dict) and "type" in c:
