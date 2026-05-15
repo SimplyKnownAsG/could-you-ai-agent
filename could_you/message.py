@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from enum import Enum
 from typing import Any, Literal
 
 import mistune
@@ -108,13 +109,47 @@ class TextContent:
 Content = TextContent | ToolUseContent | ToolResultContent
 
 
+class MessageType(str, Enum):
+    NORMAL = "normal"
+    TOOL_CALL = "tool_call"
+    TOOL_RESULT = "tool_result"
+
+
 @define
 class Message:
-    role: Literal["user", "assistant"]
+    role: Literal["user", "assistant", "tool", "system"]
     content: list[Content]
+    type: MessageType = field(default=MessageType.NORMAL)
 
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
-        info(f"## {self.role}")
+        """Render this message as markdown, making tool use/results explicit.
+
+        Roles/types are rendered as:
+        - User normal: "## User"
+        - Assistant normal: "## Assistant"
+        - System: "## System"
+        - Assistant tool_call: "## Assistant (tool call)"
+        - Tool tool_result: "## Tool result"
+        """
+        if self.type is MessageType.NORMAL:
+            if self.role == "user":
+                heading = "User"
+            elif self.role == "assistant":
+                heading = "Assistant"
+            elif self.role == "system":
+                heading = "System"
+            elif self.role == "tool":
+                heading = "Tool"
+            else:  # pragma: no cover - defensive fallback
+                heading = self.role
+        elif self.type is MessageType.TOOL_CALL:
+            heading = "Assistant (tool call)"
+        elif self.type is MessageType.TOOL_RESULT:
+            heading = "Tool result"
+        else:  # pragma: no cover - defensive fallback
+            heading = f"{self.role} ({self.type.value})"
+
+        info(f"## {heading}")
         for content in self.content:
             content.print(info=info, debug=debug)
 

@@ -5,7 +5,7 @@ from openai.types.chat import ChatCompletionToolParam
 
 from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
-from ..message import Message, TextContent, ToolResultContent, ToolUse, ToolUseContent
+from ..message import Message, MessageType, TextContent, ToolResultContent, ToolUse, ToolUseContent
 from .base_llm import BaseLLM
 
 
@@ -54,7 +54,13 @@ class OpenAILLM(BaseLLM):
                     retriable=False,
                     fault_owner=FaultOwner.INTERNAL,
                 )
-        return Message(role="assistant", content=content)
+
+        # Determine the message type based on content
+        message_type = (
+            MessageType.TOOL_CALL if any(isinstance(c, ToolUseContent) for c in content) else MessageType.NORMAL
+        )
+
+        return Message(role="assistant", content=content, type=message_type)
 
     def _convert_messages(self) -> list[dict[str, str]]:
         openai_msgs = []

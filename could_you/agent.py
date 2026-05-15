@@ -10,6 +10,7 @@ from .mcp_server import MCPServer, MCPTool
 from .message import (
     Content,
     Message,
+    MessageType,
     TextContent,
     ToolResult,
     ToolResultContent,
@@ -70,11 +71,22 @@ class Agent:
         if not self.llm:
             raise CYError(message="Must __aenter__ to play!", retriable=False, fault_owner=FaultOwner.INTERNAL)
 
-        self.message_history.add(Message(role="user", content=[TextContent(text=query, type="text")]))
+        self.message_history.add(
+            Message(role="user", content=[TextContent(text=query, type="text")], type=MessageType.NORMAL)
+        )
         should_continue = True
 
         while should_continue:
             llm_message = await self.llm.converse()
+
+            # Determine message type based on content
+            message_type = (
+                MessageType.TOOL_CALL
+                if any(isinstance(content, ToolUseContent) for content in llm_message.content)
+                else MessageType.NORMAL
+            )
+
+            llm_message.type = message_type
             self.message_history.add(llm_message)
             should_continue = await self.__use_tools(llm_message)
 
@@ -142,7 +154,7 @@ class Agent:
                 )
 
         if tool_content:
-            tool_message = Message(role="user", content=tool_content)
+            tool_message = Message(role="tool", content=tool_content, type=MessageType.TOOL_RESULT)
             self.message_history.add(tool_message)
 
         return bool(tool_content)

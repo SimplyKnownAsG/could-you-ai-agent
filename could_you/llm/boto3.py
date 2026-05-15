@@ -4,7 +4,7 @@ from cattrs import Converter
 
 from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
-from ..message import Message
+from ..message import Message, MessageType, ToolResultContent
 from .base_llm import BaseLLM
 
 converter = Converter(use_alias=True, omit_if_default=True)
@@ -31,9 +31,21 @@ class Boto3LLM(BaseLLM):
     async def converse(self) -> Message:
         system = [{"text": self.config.system_prompt}] if self.config.system_prompt else []
         messages = self.message_history.to_dict()
+
+        # Bedrock doesn't understand our internal message types, so we need to
+        # map our messages (including tool calls and tool results) into the
+        # structure expected by the Converse API.
         for m in messages:
+            # Preserve the role, but map content types appropriately
+            if m["role"] == "tool":
+                # Tool results are represented as toolResult content in Bedrock
+                m["role"] = "assistant"
+                for c in m["content"]:
+                    if "toolResult" in c:
+                        c["toolResult"]["status"] = c["toolResult"].get("status", "success")
+            # Remove internal type field from content items if present
             for c in m["content"]:
-                if "type" in c:
+                if isinstance(c, dict) and "type" in c:
                     del c["type"]
 
         kwargs = {
@@ -48,4 +60,12 @@ class Boto3LLM(BaseLLM):
             msg = f"Error while calling Bedrock: {err}"
             LOGGER.error("Error calling bedrock", err)
             raise CYError(message=msg, retriable=False, fault_owner=FaultOwner.LLM) from err
-        return converter.structure(response["output"]["message"], Message)
+
+        # Convert Bedrock output message into our internal Message structure.
+        output_message = converter.structure(response["output"]["message"], Message)
+
+        # Determine message type based on whether it contains toolUse content
+        has_tool_use = any(isinstance(content, ToolResultContent) for content in getattr(output_message, "content", []))
+        output_message.type = MessageType.TOOL_CALL if has_tool_use else MessageType.NORMAL
+
+        return output_message

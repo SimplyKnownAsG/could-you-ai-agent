@@ -390,6 +390,29 @@ In both cases, the system prompt is resolved as described in **System Prompt & P
   could-you --no-history "One-off question without saving context"
   ```
 
+The history file distinguishes between:
+
+- `user` messages – human input.
+- `assistant` messages – LLM replies.
+- `tool` messages – MCP tool outputs.
+
+Each message also has a `type` field:
+
+- `"normal"` – regular conversational turns.
+- `"tool_call"` – assistant turns that request tools.
+- `"tool_result"` – messages containing tool output.
+
+Example `messages.json` snippet:
+
+```json
+[
+  { "role": "user", "type": "normal", "content": [{ "type": "text", "text": "What files are here?" }] },
+  { "role": "assistant", "type": "tool_call", "content": [{ "toolUse": { "toolUseId": "1", "name": "filesystem.read_directory", "input": { "path": "." } } }] },
+  { "role": "tool", "type": "tool_result", "content": [{ "toolResult": { "status": "success", "toolUseId": "1", "content": [{ "text": "main.py\nREADME.md" }] } }] },
+  { "role": "assistant", "type": "normal", "content": [{ "type": "text", "text": "You have main.py and README.md in this directory." }] }
+]
+```
+
 ---
 
 ## Project Structure
