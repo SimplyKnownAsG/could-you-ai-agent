@@ -34,6 +34,9 @@ class ToolUse(AttrsAllowAliasKeyword):
 class ToolUseContent(AttrsAllowAliasKeyword):
     tool_use: ToolUse = field(alias="toolUse")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
         _print_markdown(info, "", 3, "Tool use")
         self.tool_use.print(info=info, debug=debug)
