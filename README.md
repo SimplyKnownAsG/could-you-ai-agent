@@ -120,8 +120,11 @@ Config loading works as follows (see `load()` in `could_you/config.py`):
 4. Validate and normalize the config:
    - Ensure `llm.provider` is one of `"boto3"`, `"ollama"`, or `"openai"`.
    - Expand the `systemPrompt` via the prompt utilities (see below).
+   - Infer the workspace root as the parent directory of `.could-you/` and:
+     - Set `COULD_YOU_WORKSPACE` in `os.environ` to that path.
+     - Change the process working directory to `COULD_YOU_WORKSPACE` so all relative paths are evaluated from the workspace root.
    - Apply environment variables from `env` to `os.environ`.
-   - Expand `$COULD_YOU_WORKSPACE` in MCP server arguments to the parent of the workspace directory.
+   - Expand `$COULD_YOU_WORKSPACE` in MCP server arguments and environment variables to the workspace root.
 
 ### Config schema
 
@@ -218,8 +221,8 @@ You can embed file-loading directives in your system prompt. They are expanded a
   COULD_YOU_LOAD_FILE(relative/pattern/*.md)
   ```
 
-- The pattern is treated as a glob relative to the project root.
-- For each matching file **inside** the current working directory tree, the content is loaded and wrapped in markers:
+- The pattern is treated as a glob relative to the workspace root (the parent directory of `.could-you/`).
+- For each matching file **inside** the workspace tree, the content is loaded and wrapped in markers:
 
   ```text
   <could-you-prompt-expanded-file "/absolute/path/to/file.ext">

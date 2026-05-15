@@ -3,8 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from could_you.config import Config, InvalidConfigError, _find_workspace_config_dir, init
-from could_you.config import load as real_load
+from could_you.config import Config, InvalidConfigError, _find_workspace_config_dir, init, load
 
 MINIMAL_JSON = '{"llm": {"provider": "openai", "args": { "model": "gpt-4" } }}'
 MINIMAL_YAML = """
@@ -15,14 +14,10 @@ llm:
 """
 
 
-def load(script_name: str | None = None) -> Config:
-    return real_load(script_name)[0]
-
-
 def test_load_workspace_json_config(tmp_workspace: Path):
     w_config_path = tmp_workspace / "config.json"
     w_config_path.write_text(MINIMAL_JSON)
-    config = load()
+    config, _ = load()
     assert config.llm.provider == "openai"
     assert config.llm.args["model"] == "gpt-4"
 
@@ -30,7 +25,7 @@ def test_load_workspace_json_config(tmp_workspace: Path):
 def test_load_workspace_yaml_config(tmp_workspace: Path):
     w_config_path = tmp_workspace / "config.yaml"
     w_config_path.write_text(MINIMAL_YAML)
-    config = load()
+    config, _ = load()
     assert config.llm.provider == "boto3"
     assert config.llm.args["modelId"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
 
@@ -92,7 +87,7 @@ def test_init_already_exists(tmp_workspace: Path):  # noqa: ARG001
 
 def test_load_git_commit_script(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
     init()
-    config = load(script_name="git-commit")
+    config, _ = load(script_name="git-commit")
     # Confirm query loaded from script, not from config
     assert config.query is not None
     assert "Conventional Commit message" in config.query
@@ -113,3 +108,36 @@ def test_load_nonexistent_script_raises(tmp_workspace: Path):
     # Enter workspace, expect failure
     with pytest.raises(InvalidConfigError, match="Failed to find"):
         load(script_name="definitely-does-not-exist")
+
+
+def test_load_sets_workspace_env_and_chdir(tmp_path: Path, tmp_dir: Path, monkeypatch):  # noqa: ARG001
+    """Ensure load() infers workspace root, sets COULD_YOU_WORKSPACE, and chdirs."""
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    w_config_dir = project_root / ".could-you"
+    w_config_dir.mkdir()
+
+    config_path = w_config_dir / "config.yaml"
+    config_path.write_text(MINIMAL_YAML)
+
+    # Start in a subdirectory under the project
+    subdir = project_root / "subdir"
+    subdir.mkdir()
+    monkeypatch.chdir(subdir)
+
+    # Clear any preexisting env var to be explicit
+    monkeypatch.delenv("COULD_YOU_WORKSPACE", raising=False)
+
+    config, returned_w_config_dir = load()
+
+    # w_config_dir should be the .could-you directory we created
+    assert returned_w_config_dir == w_config_dir
+
+    # COULD_YOU_WORKSPACE should be the parent (project root)
+    assert os.environ.get("COULD_YOU_WORKSPACE") == str(project_root)
+
+    # cwd should have been changed to the workspace root
+    assert Path.cwd() == project_root
+
+    # A minimal sanity check that config still parsed correctly
+    assert isinstance(config, Config)

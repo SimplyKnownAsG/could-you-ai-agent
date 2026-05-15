@@ -112,8 +112,17 @@ def _validate_config(config: Config, w_config_dir: Path):
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
+    # Define COULD_YOU_WORKSPACE as the .could-you configuration directory parent.
+    # Also change directories to here.
+    could_you_workspace = str(w_config_dir.parent)
+    os.environ["COULD_YOU_WORKSPACE"] = could_you_workspace
+    os.chdir(could_you_workspace)
+
     for mcp_props in config.mcp_servers.values():
-        mcp_props.args = [arg.replace("$COULD_YOU_WORKSPACE", str(w_config_dir.parent)) for arg in mcp_props.args]
+        mcp_props.args = [arg.replace("$COULD_YOU_WORKSPACE", could_you_workspace) for arg in mcp_props.args]
+        mcp_props.env = {
+            k: v.replace("$COULD_YOU_WORKSPACE", could_you_workspace) for k, v in (mcp_props.env or {}).items()
+        }
 
     # Apply environment variables
     for key, value in (config.env or {}).items():
