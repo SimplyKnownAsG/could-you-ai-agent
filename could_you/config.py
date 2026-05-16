@@ -56,13 +56,15 @@ def init() -> Path:
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
+    w_config_dir.mkdir()
     user_config_dir = _get_user_config_dir_path()
 
     if user_config_dir.exists() and user_config_dir.is_dir():
-        shutil.copytree(user_config_dir, w_config_dir)
+        shutil.copytree(user_config_dir, w_config_dir, dirs_exist_ok=True)
 
     _copy_global_config(w_config_dir)
     _fix_permissions(w_config_dir)
+    _ensure_workspace_privacy(Path.cwd())
 
     return w_config_dir
 
@@ -183,6 +185,25 @@ def _fix_permissions(root: Path) -> None:
             path.chmod(mode | stat.S_IWUSR)
         except Exception as e:
             LOGGER.warning(f"Could not adjust permissions for {path}: {e}")
+
+
+def _ensure_workspace_privacy(workspace_root: Path) -> None:
+    gitignore_path = workspace_root / ".gitignore"
+    ignore_entry = ".could-you/"
+
+    if gitignore_path.exists():
+        text = gitignore_path.read_text()
+        normalized_lines = {line.strip() for line in text.splitlines()}
+
+        if ignore_entry in normalized_lines or ".could-you" in normalized_lines:
+            return
+
+        separator = "" if not text else "\n" if text.endswith("\n") else "\n\n"
+        gitignore_path.write_text(f"{text}{separator}# could-you private workspace state\n{ignore_entry}\n")
+    else:
+        gitignore_path.write_text(f"# could-you private workspace state\n{ignore_entry}\n")
+
+    LOGGER.info(f"Ensured .could-you/ is ignored by {gitignore_path}")
 
 
 def _copy_global_config(w_config_dir: Path):

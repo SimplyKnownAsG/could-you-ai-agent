@@ -21,6 +21,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
 - **Script mode**: Run ephemeral scripts with their own config overlays using `--script`.
 - **Message history**: Persisted per-workspace in `.could-you/messages.json` (opt-out with `--no-history`).
+- **Private memory backups**: Copy message history into a user-owned private git repo with `--backup-memory`.
 
 ---
 
@@ -77,6 +78,8 @@ From `could_you/__main__.py`:
   - `-p`, `--print-history` – Print the message history for the current workspace
 - Connectivity:
   - `-t`, `--test-connect [MESSAGE]` – Test MCP + LLM connectivity with a simple message, then exit
+- Memory:
+  - `--backup-memory [TOPIC]` – Back up `.could-you/messages.json` to a private memory git repo
 - Scripts:
   - `-s`, `--script SCRIPT` – Run an ephemeral, stateless script config (see **Script Mode** below)
 
@@ -109,6 +112,8 @@ could-you --init-session
 ```
 
 from your project root to create `.could-you/` using any global templates shipped in `could_you.resources`.
+
+`could-you` treats `.could-you/` as private workspace state. Initialization ensures `.could-you/` is listed in the workspace `.gitignore` so conversation history, config, and future memories are not accidentally committed to the project repository.
 
 ### Config loading and merging
 
@@ -375,6 +380,45 @@ In both cases, the system prompt is resolved as described in **System Prompt & P
 
 ---
 
+## Private Memory Backups
+
+Private memory backup is implemented in `could_you/memory.py`.
+
+Run:
+
+```bash
+could-you --backup-memory "conversation about memory design"
+```
+
+This copies `.could-you/messages.json` into a private git repository and commits it. By default, the repo lives at:
+
+```text
+$XDG_DATA_HOME/could-you/memories
+```
+
+or, if `XDG_DATA_HOME` is unset:
+
+```text
+~/.local/share/could-you/memories
+```
+
+Override the location with:
+
+```bash
+export COULD_YOU_MEMORY_REPO=/path/to/private/memory/repo
+```
+
+Backups are plain files under:
+
+```text
+workspaces/<workspace-name-and-hash>/conversations/<timestamp>.messages.json
+workspaces/<workspace-name-and-hash>/conversations/<timestamp>.metadata.json
+```
+
+No remote is configured or pushed by `could-you`; the user owns that repo.
+
+---
+
 ## Message History
 
 `MessageHistory` (`could_you/message_history.py`) manages reading and writing the conversation log for a workspace:
@@ -439,6 +483,7 @@ could_you/
 ├── logging_config.py    # Logging setup
 ├── mcp_server.py        # MCP server connection & tool wrappers
 ├── message.py           # Message/content data structures
+├── memory.py            # Private message-history backup helpers
 ├── message_history.py   # Conversation history management
 ├── prompt.py            # System prompt expansion (patterns + file loading)
 ├── resources/           # Default config templates

@@ -9,9 +9,10 @@ import yaml
 from cattrs import Converter
 
 from .agent import Agent
-from .config import load
+from .config import _find_workspace_config_dir, load
 from .cy_error import CYError
 from .logging_config import LOGGER, set_up_logging
+from .memory import backup_messages
 from .message_history import MessageHistory
 from .session import SessionManager
 
@@ -83,6 +84,13 @@ def create_parser():
         metavar="SCRIPT",
         help="Run an ephemeral stateless script from $XDG_CONFIG_HOME/could-you/script.<script>.json",
     )
+    cmd_group.add_argument(
+        "--backup-memory",
+        nargs="?",
+        const="",
+        metavar="TOPIC",
+        help="Back up .could-you/messages.json to the private memory git repo",
+    )
 
     return parser
 
@@ -116,6 +124,11 @@ async def amain(parser, args):
             session = session_manager.load_session(None)
             with session.messages(enable=True) as message_history:
                 message_history.print_history(info=LOGGER.info, debug=LOGGER.debug)
+        elif args.backup_memory is not None:
+            w_config_dir = _find_workspace_config_dir(Path.cwd())
+            result = backup_messages(w_config_dir, topic=args.backup_memory or None)
+            LOGGER.info(f"Memory repo: {result.repo_path}")
+            LOGGER.info(f"Backup file: {result.backup_path}")
         elif args.test_connect:
             # List servers and their tools
             session = session_manager.load_session(None)
