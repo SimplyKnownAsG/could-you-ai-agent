@@ -83,7 +83,14 @@ def test_init(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
     assert config_dir.exists()
     assert config_dir.is_dir()
 
-    expected = {"script.summarize.yaml", "script.fix_build.json", "config.yaml", "script.git-commit.yaml"}
+    expected = {
+        "config.yaml",
+        "script.compact-history.any-script.yaml",
+        "script.compact-history.yaml",
+        "script.fix_build.json",
+        "script.git-commit.yaml",
+        "script.summarize.yaml",
+    }
     assert expected == {os.path.basename(f) for f in config_dir.iterdir()}
 
     assert (tmp_dir / ".gitignore").read_text() == "# could-you private workspace state\n.could-you/\n"

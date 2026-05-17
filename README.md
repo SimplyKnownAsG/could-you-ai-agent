@@ -420,6 +420,18 @@ TODO.md
 MEMORY.md
 ```
 
+### History compaction script
+
+The default resources include an optional script-mode memory compaction workflow:
+
+```bash
+could-you --script compact-history
+```
+
+The script loads `.could-you/messages.json`, generates a durable memory update, calls `could-you --backup-memory`, replaces `MEMORY.md`, removes the live message history, and commits the updated private memory state.
+
+This is intended as a starter template. Users should review and customize it before relying on it.
+
 ---
 
 ## Message History
