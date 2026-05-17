@@ -22,6 +22,7 @@ class LLMProps:
     provider: str
     init: dict[str, Any] = field(factory=dict)
     args: dict[str, Any] = field(factory=dict)
+    token_limit: int | None = field(default=None, alias="tokenLimit")
 
 
 @define

@@ -20,7 +20,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
   - Ollama via its OpenAI-compatible API
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
 - **Script mode**: Run ephemeral scripts with their own config overlays using `--script`.
-- **Message history**: Persisted per-workspace in `.could-you/messages.json` (opt-out with `--no-history`).
+- **Message history**: Persisted per-workspace in `.could-you/messages.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
 - **Private memory backups**: Copy message history into the private `.could-you/` git repo with `--backup-memory`.
 - **Permission inspection**: Print an observational OS-user/filesystem permission report with `--inspect-permissions`.
 
@@ -142,6 +142,7 @@ Config loading works as follows (see `load()` in `could_you/config.py`):
   - `provider: str` – one of `"boto3"`, `"ollama"`, `"openai"`.
   - `init: dict[str, Any]` – provider-specific initialization args; e.g. for OpenAI: `{ "api_key": "..." }`.
   - `args: dict[str, Any]` – per-request arguments; e.g. `{ "model": "gpt-4.1-mini" }`.
+  - `tokenLimit: int | null` – optional configured context/token limit for the selected model. Providers generally report tokens used, but not the model limit, so could-you stores this explicit configured value alongside each assistant response.
 
 - `MCPServerProps` (keyed by server name in `mcpServers`):
   - `command: str` – the executable to launch (e.g. `"npx"`).
@@ -170,7 +171,8 @@ A complete example using OpenAI and the official filesystem MCP server:
     },
     "args": {
       "model": "gpt-4.1-mini"
-    }
+    },
+    "tokenLimit": 1047576
   },
   "mcpServers": {
     "filesystem": {

@@ -1,6 +1,8 @@
 import textwrap
 
-from could_you.message import Message, MessageType, TextContent, _print_markdown
+from cattrs import Converter
+
+from could_you.message import Message, MessageType, TextContent, TokenUsage, _print_markdown
 
 
 class Printer:
@@ -101,6 +103,39 @@ def test_print_markdown_not_adjust_nested_indented_code():
     assert "  ```bash" in p.lines
     assert "  echo 'hello world'" in p.lines
     assert "  ```" in p.lines
+
+
+def test_message_token_usage_serializes_with_camel_case():
+    converter = Converter(use_alias=True, omit_if_default=True)
+    message = Message(
+        role="assistant",
+        content=[TextContent(text="hi")],
+        tokenUsage=TokenUsage(inputTokens=10, outputTokens=5, totalTokens=15, tokenLimit=100),
+    )
+
+    assert converter.unstructure(message) == {
+        "role": "assistant",
+        "content": [{"text": "hi"}],
+        "tokenUsage": {
+            "inputTokens": 10,
+            "outputTokens": 5,
+            "totalTokens": 15,
+            "tokenLimit": 100,
+        },
+    }
+
+
+def test_message_prints_token_usage():
+    p = Printer()
+    message = Message(
+        role="assistant",
+        content=[TextContent(text="hi")],
+        tokenUsage=TokenUsage(inputTokens=10, outputTokens=5, totalTokens=15, tokenLimit=100),
+    )
+
+    message.print(info=p.dummy_printer, debug=p.dummy_printer)
+
+    assert "_Token usage: input=10, output=5, total=15, limit=100_" in p.lines
 
 
 def test_message_print_headings_for_roles_and_types():

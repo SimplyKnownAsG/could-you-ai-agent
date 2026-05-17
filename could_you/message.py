@@ -116,10 +116,34 @@ class MessageType(str, Enum):
 
 
 @define
+class TokenUsage:
+    input_tokens: int | None = field(default=None, alias="inputTokens")
+    output_tokens: int | None = field(default=None, alias="outputTokens")
+    total_tokens: int | None = field(default=None, alias="totalTokens")
+    token_limit: int | None = field(default=None, alias="tokenLimit")
+
+    def print(self, *, info=Callable[[str], None]):
+        details = []
+
+        if self.input_tokens is not None:
+            details.append(f"input={self.input_tokens}")
+        if self.output_tokens is not None:
+            details.append(f"output={self.output_tokens}")
+        if self.total_tokens is not None:
+            details.append(f"total={self.total_tokens}")
+        if self.token_limit is not None:
+            details.append(f"limit={self.token_limit}")
+
+        if details:
+            info(f"_Token usage: {', '.join(details)}_")
+
+
+@define
 class Message:
     role: Literal["user", "assistant", "tool", "system"]
     content: list[Content]
     type: MessageType = field(default=MessageType.NORMAL)
+    token_usage: TokenUsage | None = field(default=None, alias="tokenUsage")
 
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
         """Render this message as markdown, making tool use/results explicit.
@@ -150,6 +174,8 @@ class Message:
             heading = f"{self.role} ({self.type.value})"
 
         info(f"## {heading}")
+        if self.token_usage:
+            self.token_usage.print(info=info)
         for content in self.content:
             content.print(info=info, debug=debug)
 

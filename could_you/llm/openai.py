@@ -5,7 +5,7 @@ from openai.types.chat import ChatCompletionToolParam
 
 from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
-from ..message import Message, MessageType, TextContent, ToolResultContent, ToolUse, ToolUseContent
+from ..message import Message, MessageType, TextContent, TokenUsage, ToolResultContent, ToolUse, ToolUseContent
 from .base_llm import BaseLLM
 
 
@@ -60,7 +60,26 @@ class OpenAILLM(BaseLLM):
             MessageType.TOOL_CALL if any(isinstance(c, ToolUseContent) for c in content) else MessageType.NORMAL
         )
 
-        return Message(role="assistant", content=content, type=message_type)
+        return Message(
+            role="assistant",
+            content=content,
+            type=message_type,
+            tokenUsage=self._extract_token_usage(response),
+        )
+
+    def _extract_token_usage(self, response) -> TokenUsage | None:
+        usage = getattr(response, "usage", None)
+        token_limit = self.config.llm.token_limit
+
+        if not usage and token_limit is None:
+            return None
+
+        return TokenUsage(
+            inputTokens=getattr(usage, "prompt_tokens", None) if usage else None,
+            outputTokens=getattr(usage, "completion_tokens", None) if usage else None,
+            totalTokens=getattr(usage, "total_tokens", None) if usage else None,
+            tokenLimit=token_limit,
+        )
 
     def _convert_messages(self) -> list[dict[str, str]]:
         openai_msgs = []

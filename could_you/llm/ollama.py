@@ -10,4 +10,4 @@ class OllamaLLM(OpenAILLM):
     """
 
     def _init_client(self):
-        return openai.OpenAI(**self.config.init)
+        return openai.OpenAI(**self.config.llm.init)

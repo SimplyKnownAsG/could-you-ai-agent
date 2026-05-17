@@ -29,6 +29,13 @@ def test_load_workspace_json_config(tmp_workspace: Path):
     assert config.llm.args["model"] == "gpt-4"
 
 
+def test_load_workspace_token_limit(tmp_workspace: Path):
+    w_config_path = tmp_workspace / "config.json"
+    w_config_path.write_text('{"llm": {"provider": "openai", "tokenLimit": 128000}}')
+    config, _ = load()
+    assert config.llm.token_limit == 128000
+
+
 def test_load_workspace_yaml_config(tmp_workspace: Path):
     w_config_path = tmp_workspace / "config.yaml"
     w_config_path.write_text(MINIMAL_YAML)

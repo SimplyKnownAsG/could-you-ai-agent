@@ -4,7 +4,7 @@ from cattrs import Converter
 
 from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
-from ..message import Message, MessageType, TextContent, ToolResultContent, ToolUseContent
+from ..message import Message, MessageType, TextContent, TokenUsage, ToolResultContent, ToolUseContent
 from .base_llm import BaseLLM
 
 converter = Converter(use_alias=True, omit_if_default=True)
@@ -47,8 +47,23 @@ class Boto3LLM(BaseLLM):
         # Determine message type based on whether it contains toolUse content
         has_tool_use = any(isinstance(content, ToolUseContent) for content in getattr(output_message, "content", []))
         output_message.type = MessageType.TOOL_CALL if has_tool_use else MessageType.NORMAL
+        output_message.token_usage = self._extract_token_usage(response)
 
         return output_message
+
+    def _extract_token_usage(self, response: dict) -> TokenUsage | None:
+        usage = response.get("usage")
+        token_limit = self.config.llm.token_limit
+
+        if not usage and token_limit is None:
+            return None
+
+        return TokenUsage(
+            inputTokens=usage.get("inputTokens") if usage else None,
+            outputTokens=usage.get("outputTokens") if usage else None,
+            totalTokens=usage.get("totalTokens") if usage else None,
+            tokenLimit=token_limit,
+        )
 
     def _build_converse_payload(self) -> dict:
         """Build the payload for the Bedrock Converse API.
