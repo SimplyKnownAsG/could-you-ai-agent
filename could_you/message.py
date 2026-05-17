@@ -136,6 +136,14 @@ class TokenUsage:
 
         return ", ".join(details)
 
+    def format_percent_used(self) -> str | None:
+        if self.total_tokens is None or not self.token_limit:
+            return None
+
+        percent = self.total_tokens / self.token_limit * 100
+        formatted = f"{percent:.2f}".rstrip("0").rstrip(".")
+        return f"{formatted}% used"
+
     def print(self, *, info=Callable[[str], None]):
         formatted = self.format()
         if formatted:
@@ -159,6 +167,12 @@ class Message:
         - Assistant tool_call: "## Assistant (tool call)"
         - Tool tool_result: "## Tool result"
         """
+        heading_details = []
+        if self.token_usage:
+            percent_used = self.token_usage.format_percent_used()
+            if percent_used:
+                heading_details.append(percent_used)
+
         if self.type is MessageType.NORMAL:
             if self.role == "user":
                 heading = "User"
@@ -171,18 +185,20 @@ class Message:
             else:  # pragma: no cover - defensive fallback
                 heading = self.role
         elif self.type is MessageType.TOOL_CALL:
-            heading = "Assistant (tool call)"
+            heading = "Assistant"
+            heading_details.append("tool call")
         elif self.type is MessageType.TOOL_RESULT:
             heading = "Tool result"
         else:  # pragma: no cover - defensive fallback
-            heading = f"{self.role} ({self.type.value})"
+            heading = self.role
+            heading_details.append(self.type.value)
 
-        if self.token_usage:
-            formatted_token_usage = self.token_usage.format()
-            if formatted_token_usage:
-                heading = f"{heading} ({formatted_token_usage})"
+        if heading_details:
+            heading = f"{heading} ({', '.join(heading_details)})"
 
         info(f"## {heading}")
+        if self.token_usage:
+            self.token_usage.print(info=info)
         for content in self.content:
             content.print(info=info, debug=debug)
 

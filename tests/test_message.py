@@ -125,7 +125,7 @@ def test_message_token_usage_serializes_with_camel_case():
     }
 
 
-def test_message_prints_token_usage_in_heading():
+def test_message_prints_token_percent_in_heading_and_breakdown_below():
     p = Printer()
     message = Message(
         role="assistant",
@@ -135,7 +135,21 @@ def test_message_prints_token_usage_in_heading():
 
     message.print(info=p.dummy_printer, debug=p.dummy_printer)
 
-    assert "## Assistant (input=10, output=5, total=15, limit=100)" in p.lines
+    assert "## Assistant (15% used)" in p.lines
+    assert "_Token usage: input=10, output=5, total=15, limit=100_" in p.lines
+
+
+def test_message_prints_token_percent_up_to_two_decimal_places():
+    p = Printer()
+    message = Message(
+        role="assistant",
+        content=[TextContent(text="hi")],
+        tokenUsage=TokenUsage(inputTokens=1, outputTokens=1, totalTokens=1, tokenLimit=300),
+    )
+
+    message.print(info=p.dummy_printer, debug=p.dummy_printer)
+
+    assert "## Assistant (0.33% used)" in p.lines
 
 
 def test_message_print_headings_for_roles_and_types():
