@@ -142,7 +142,7 @@ Config loading works as follows (see `load()` in `could_you/config.py`):
   - `provider: str` – one of `"boto3"`, `"ollama"`, `"openai"`.
   - `init: dict[str, Any]` – provider-specific initialization args; e.g. for OpenAI: `{ "api_key": "..." }`.
   - `args: dict[str, Any]` – per-request arguments; e.g. `{ "model": "gpt-4.1-mini" }`.
-  - `tokenLimit: int | null` – optional configured context/token limit for the selected model. Providers generally report tokens used, but not the model limit, so could-you stores this explicit configured value alongside each assistant response.
+  - `tokenLimit: int | null` – optional configured context/token limit for the selected model. Providers generally report tokens used, but not the model limit, so could-you stores this explicit configured value alongside each assistant response. If omitted, could-you tries a best-effort local lookup from the configured model name (`model`, `modelId`, or `model_id`).
 
 - `MCPServerProps` (keyed by server name in `mcpServers`):
   - `command: str` – the executable to launch (e.g. `"npx"`).

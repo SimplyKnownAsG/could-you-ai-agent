@@ -14,6 +14,7 @@ import could_you.resources
 
 from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
+from .model_limits import infer_token_limit
 from .prompt import enrich_raw_prompt
 
 
@@ -109,6 +110,9 @@ def _validate_config(config: Config, w_config_dir: Path):
         msg = 'Must specify "llm" in config'
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
+
+    if config.llm.token_limit is None:
+        config.llm.token_limit = infer_token_limit(config.llm.args)
 
     if config.llm.provider not in ["boto3", "ollama", "openai"]:
         msg = f"Invalid provider. Supported providers are boto3, ollama, and openai, got {config.llm.provider}"
