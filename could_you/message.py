@@ -122,7 +122,7 @@ class TokenUsage:
     total_tokens: int | None = field(default=None, alias="totalTokens")
     token_limit: int | None = field(default=None, alias="tokenLimit")
 
-    def print(self, *, info=Callable[[str], None]):
+    def format(self) -> str:
         details = []
 
         if self.input_tokens is not None:
@@ -134,8 +134,12 @@ class TokenUsage:
         if self.token_limit is not None:
             details.append(f"limit={self.token_limit}")
 
-        if details:
-            info(f"_Token usage: {', '.join(details)}_")
+        return ", ".join(details)
+
+    def print(self, *, info=Callable[[str], None]):
+        formatted = self.format()
+        if formatted:
+            info(f"_Token usage: {formatted}_")
 
 
 @define
@@ -173,9 +177,12 @@ class Message:
         else:  # pragma: no cover - defensive fallback
             heading = f"{self.role} ({self.type.value})"
 
-        info(f"## {heading}")
         if self.token_usage:
-            self.token_usage.print(info=info)
+            formatted_token_usage = self.token_usage.format()
+            if formatted_token_usage:
+                heading = f"{heading} ({formatted_token_usage})"
+
+        info(f"## {heading}")
         for content in self.content:
             content.print(info=info, debug=debug)
 

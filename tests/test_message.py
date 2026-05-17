@@ -125,7 +125,7 @@ def test_message_token_usage_serializes_with_camel_case():
     }
 
 
-def test_message_prints_token_usage():
+def test_message_prints_token_usage_in_heading():
     p = Printer()
     message = Message(
         role="assistant",
@@ -135,7 +135,7 @@ def test_message_prints_token_usage():
 
     message.print(info=p.dummy_printer, debug=p.dummy_printer)
 
-    assert "_Token usage: input=10, output=5, total=15, limit=100_" in p.lines
+    assert "## Assistant (input=10, output=5, total=15, limit=100)" in p.lines
 
 
 def test_message_print_headings_for_roles_and_types():
