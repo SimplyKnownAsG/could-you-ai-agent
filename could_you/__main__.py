@@ -14,6 +14,7 @@ from .cy_error import CYError
 from .logging_config import LOGGER, set_up_logging
 from .memory import backup_messages
 from .message_history import MessageHistory
+from .permissions import format_permission_report, inspect_permission_boundary
 from .session import SessionManager
 
 
@@ -91,6 +92,11 @@ def create_parser():
         metavar="TOPIC",
         help="Back up .could-you/messages.json to the private memory git repo",
     )
+    cmd_group.add_argument(
+        "--inspect-permissions",
+        action="store_true",
+        help="Print an observational report about the current OS-user/filesystem permission boundary",
+    )
 
     return parser
 
@@ -129,6 +135,10 @@ async def amain(parser, args):
             result = backup_messages(w_config_dir, topic=args.backup_memory or None)
             LOGGER.info(f"Memory repo: {result.repo_path}")
             LOGGER.info(f"Backup file: {result.backup_path}")
+        elif args.inspect_permissions:
+            w_config_dir = _find_workspace_config_dir(Path.cwd())
+            report = inspect_permission_boundary(w_config_dir)
+            print(format_permission_report(report))  # noqa: T201
         elif args.test_connect:
             # List servers and their tools
             session = session_manager.load_session(None)

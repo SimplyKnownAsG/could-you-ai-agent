@@ -22,6 +22,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
 - **Script mode**: Run ephemeral scripts with their own config overlays using `--script`.
 - **Message history**: Persisted per-workspace in `.could-you/messages.json` (opt-out with `--no-history`).
 - **Private memory backups**: Copy message history into the private `.could-you/` git repo with `--backup-memory`.
+- **Permission inspection**: Print an observational OS-user/filesystem permission report with `--inspect-permissions`.
 
 ---
 
@@ -80,6 +81,8 @@ From `could_you/__main__.py`:
   - `-t`, `--test-connect [MESSAGE]` – Test MCP + LLM connectivity with a simple message, then exit
 - Memory:
   - `--backup-memory [TOPIC]` – Back up `.could-you/messages.json` to the private memory git repo
+- Permissions:
+  - `--inspect-permissions` – Print an observational report about the current OS-user/filesystem permission boundary
 - Scripts:
   - `-s`, `--script SCRIPT` – Run an ephemeral, stateless script config (see **Script Mode** below)
 
@@ -431,6 +434,35 @@ could-you --script compact-history
 The script loads `.could-you/messages.json`, generates a durable memory update, calls `could-you --backup-memory`, replaces `MEMORY.md`, removes the live message history, and commits the updated private memory state.
 
 This is intended as a starter template. Users should review and customize it before relying on it.
+
+---
+
+## Permission Boundary
+
+`could-you` does not currently create an OS sandbox. MCP servers normally run as the same OS user as the `could-you` process. The preferred least-privilege boundary is therefore explicit and external: run `could-you` as a constrained user, and let normal filesystem ownership/mode bits decide what that user can read and write.
+
+You can inspect the current boundary with:
+
+```bash
+could-you --inspect-permissions
+```
+
+The report includes:
+
+- the current process user / uid / gid,
+- workspace root and `.could-you/` paths,
+- readability/writability/executability for key paths,
+- ownership and mode strings,
+- warnings for obvious risk signals such as root, world-readable `.could-you/`, or world-writable `.could-you/`.
+
+This command is observational only. It does not change permissions, switch users, or sandbox tools.
+
+Important limitations:
+
+- OS-user isolation protects files outside the agent user's permissions.
+- Subpath restrictions inside a readable/writable workspace still need tool-level controls.
+- If a configured MCP server can execute arbitrary commands as the same user, it can usually access whatever that user can access.
+- `.could-you/` contains private workspace state and should usually be readable/writable only by the intended owner/agent user.
 
 ---
 
