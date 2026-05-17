@@ -21,7 +21,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
 - **Script mode**: Run ephemeral scripts with their own config overlays using `--script`.
 - **Message history**: Persisted per-workspace in `.could-you/messages.json` (opt-out with `--no-history`).
-- **Private memory backups**: Copy message history into a user-owned private git repo with `--backup-memory`.
+- **Private memory backups**: Copy message history into the private `.could-you/` git repo with `--backup-memory`.
 
 ---
 
@@ -79,7 +79,7 @@ From `could_you/__main__.py`:
 - Connectivity:
   - `-t`, `--test-connect [MESSAGE]` – Test MCP + LLM connectivity with a simple message, then exit
 - Memory:
-  - `--backup-memory [TOPIC]` – Back up `.could-you/messages.json` to a private memory git repo
+  - `--backup-memory [TOPIC]` – Back up `.could-you/messages.json` to the private memory git repo
 - Scripts:
   - `-s`, `--script SCRIPT` – Run an ephemeral, stateless script config (see **Script Mode** below)
 
@@ -390,16 +390,10 @@ Run:
 could-you --backup-memory "conversation about memory design"
 ```
 
-This copies `.could-you/messages.json` into a private git repository and commits it. By default, the repo lives at:
+This copies `.could-you/messages.json` into a private git repository and commits it. By default, the repo is the workspace `.could-you/` directory:
 
 ```text
-$XDG_DATA_HOME/could-you/memories
-```
-
-or, if `XDG_DATA_HOME` is unset:
-
-```text
-~/.local/share/could-you/memories
+.could-you/
 ```
 
 Override the location with:
@@ -416,6 +410,15 @@ workspaces/<workspace-name-and-hash>/conversations/<timestamp>.metadata.json
 ```
 
 No remote is configured or pushed by `could-you`; the user owns that repo.
+
+When the memory repo is `.could-you/`, the backup commit also stages existing explicit prompt and memory files:
+
+```text
+config.yaml / config.yml / config.json
+SYSTEM_PROMPT.md
+TODO.md
+MEMORY.md
+```
 
 ---
 

@@ -26,13 +26,14 @@ class MemoryBackupResult:
 
 def backup_messages(w_config_dir: Path, topic: str | None = None) -> MemoryBackupResult:
     """Back up workspace messages to a private, user-owned git repository."""
+    w_config_dir = w_config_dir.resolve()
     messages_path = w_config_dir / "messages.json"
 
     if not messages_path.is_file():
         raise MemoryBackupError(f"No message history found at {messages_path}")
 
     workspace_root = w_config_dir.parent.resolve()
-    repo_path = _memory_repo_path()
+    repo_path = _memory_repo_path(w_config_dir)
     workspace_key = _workspace_key(workspace_root)
     timestamp = _timestamp()
     backup_dir = repo_path / "workspaces" / workspace_key / "conversations"
@@ -58,7 +59,7 @@ def backup_messages(w_config_dir: Path, topic: str | None = None) -> MemoryBacku
     _ensure_git_identity(repo_path)
 
     commit_message = _commit_message(topic, timestamp)
-    _git(repo_path, "add", str(backup_path), str(metadata_path))
+    _git(repo_path, "add", *_backup_commit_paths(repo_path, w_config_dir, backup_path, metadata_path))
     _git(repo_path, "commit", "-m", commit_message)
 
     LOGGER.info(f"Backed up memory to {backup_path}")
@@ -72,14 +73,25 @@ def backup_messages(w_config_dir: Path, topic: str | None = None) -> MemoryBacku
     )
 
 
-def _memory_repo_path() -> Path:
-    xdg_data_home = Path(os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+def _memory_repo_path(w_config_dir: Path) -> Path:
     configured_path = os.getenv("COULD_YOU_MEMORY_REPO")
 
     if configured_path:
         return Path(configured_path).expanduser().resolve()
 
-    return xdg_data_home / "could-you" / "memories"
+    return w_config_dir.resolve()
+
+
+def _backup_commit_paths(repo_path: Path, w_config_dir: Path, backup_path: Path, metadata_path: Path) -> list[str]:
+    paths = [backup_path, metadata_path]
+
+    for file_name in ("config.yaml", "config.yml", "config.json", "SYSTEM_PROMPT.md", "TODO.md", "MEMORY.md"):
+        path = w_config_dir / file_name
+
+        if path.is_file() and path.is_relative_to(repo_path):
+            paths.append(path)
+
+    return [str(path) for path in paths]
 
 
 def _workspace_key(workspace_root: Path) -> str:

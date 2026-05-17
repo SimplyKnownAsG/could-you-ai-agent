@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from could_you.memory import MemoryBackupError, _backup_paths, backup_messages
+from could_you.memory import MemoryBackupError, _backup_commit_paths, _backup_paths, backup_messages
 
 
 def test_backup_messages_copies_history_and_metadata(tmp_path: Path, monkeypatch):
@@ -48,6 +48,54 @@ def test_backup_messages_copies_history_and_metadata(tmp_path: Path, monkeypatch
         (memory_repo.resolve(), ("config", "user.email", "could-you@localhost")),
         (memory_repo.resolve(), ("add", str(result.backup_path), str(result.metadata_path))),
         (memory_repo.resolve(), ("commit", "-m", "memory: private memory design")),
+    ]
+
+
+def test_backup_messages_defaults_to_workspace_config_dir(tmp_path: Path, monkeypatch):
+    workspace_root = tmp_path / "project"
+    w_config_dir = workspace_root / ".could-you"
+    w_config_dir.mkdir(parents=True)
+    monkeypatch.delenv("COULD_YOU_MEMORY_REPO", raising=False)
+    monkeypatch.setattr("could_you.memory._timestamp", lambda: "20260516T123456Z")
+
+    def fake_git(_repo_path: Path, *_args: str) -> None:
+        pass
+
+    def fake_git_config_exists(_repo_path: Path, _key: str) -> bool:
+        return True
+
+    monkeypatch.setattr("could_you.memory._git", fake_git)
+    monkeypatch.setattr("could_you.memory._git_config_exists", fake_git_config_exists)
+    (w_config_dir / "messages.json").write_text('[{"role":"user"}]\n')
+
+    result = backup_messages(w_config_dir)
+
+    assert result.repo_path == w_config_dir.resolve()
+    assert result.backup_path.is_file()
+
+
+def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_path: Path):
+    w_config_dir = tmp_path / ".could-you"
+    w_config_dir.mkdir()
+    backup_path = w_config_dir / "workspaces" / "project-123" / "conversations" / "backup.messages.json"
+    metadata_path = backup_path.with_name("backup.metadata.json")
+    backup_path.parent.mkdir(parents=True)
+    backup_path.write_text("[]")
+    metadata_path.write_text("{}")
+    (w_config_dir / "config.yaml").write_text("systemPrompt: hi\n")
+    (w_config_dir / "SYSTEM_PROMPT.md").write_text("# System\n")
+    (w_config_dir / "TODO.md").write_text("# TODO\n")
+    (w_config_dir / "MEMORY.md").write_text("# Memory\n")
+
+    paths = _backup_commit_paths(w_config_dir, w_config_dir, backup_path, metadata_path)
+
+    assert paths == [
+        str(backup_path),
+        str(metadata_path),
+        str(w_config_dir / "config.yaml"),
+        str(w_config_dir / "SYSTEM_PROMPT.md"),
+        str(w_config_dir / "TODO.md"),
+        str(w_config_dir / "MEMORY.md"),
     ]
 
 
