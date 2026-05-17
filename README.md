@@ -457,12 +457,98 @@ The report includes:
 
 This command is observational only. It does not change permissions, switch users, or sandbox tools.
 
+### Boring Linux dedicated-user recipe
+
+For a stronger local boundary, run `could-you` as a dedicated OS user and put only the intended workspaces under that user's access. This is useful, but it is not magic: the dedicated user still needs a working `could-you` installation, Python environment, model credentials, Node/`npx` if your MCP servers need them, and any other tool dependencies.
+
+Example shape:
+
+```text
+human user:       owns normal home, browser profile, work credentials, SSH keys
+agent user:       owns agent home, selected workspaces, .could-you state
+remote services:  separate trust boundary; local filesystem permissions do not constrain them
+```
+
+One possible Linux setup:
+
+```bash
+# Create a dedicated user with its own home.
+sudo useradd --create-home --shell /bin/bash could-you-agent
+
+# Create a workspace owned by that user.
+sudo -u could-you-agent mkdir -p /home/could-you-agent/workspaces
+sudo -u could-you-agent git clone <repo-url> /home/could-you-agent/workspaces/my-project
+
+# Initialize private workspace state as the agent user.
+sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you --init-session'
+
+# Keep private state private.
+sudo -u could-you-agent chmod 700 /home/could-you-agent/workspaces/my-project/.could-you
+
+# Inspect what the agent process can see.
+sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you --inspect-permissions'
+```
+
+Then run normal agent work as that user:
+
+```bash
+sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you "summarize this repository"'
+```
+
+This is intentionally boring. It relies on the operating system boundary instead of asking the model or prompt to enforce filesystem secrecy. It may take normal system-administration work to make the agent user's PATH, Python environment, credentials, and MCP server dependencies usable.
+
+### Human-user tools vs agent-user tools
+
+Some tools may need the human user's credentials or desktop session, such as a browser profile, company CLI, password manager integration, or local app automation. Treat those tools as explicit privileged exceptions.
+
+Rules of thumb:
+
+- Tools launched by `could-you` usually inherit the same OS user as `could-you`.
+- A filesystem MCP server launched as the agent user should only see files that the agent user can access.
+- A browser or work-app tool launched as the human user can usually act as that human user.
+- Remote MCP servers or remote APIs are their own trust boundary; local OS permissions do not automatically constrain what they can access.
+- If an MCP server can execute arbitrary commands as a user, it can usually access whatever that user can access.
+
 Important limitations:
 
 - OS-user isolation protects files outside the agent user's permissions.
 - Subpath restrictions inside a readable/writable workspace still need tool-level controls.
 - If a configured MCP server can execute arbitrary commands as the same user, it can usually access whatever that user can access.
 - `.could-you/` contains private workspace state and should usually be readable/writable only by the intended owner/agent user.
+- A shared remote `could-you` process should not be treated as isolation between mutually untrusted users. Use separate OS users, containers, VMs, hosts, or equivalent isolation for separate trust boundaries.
+
+---
+
+## FAQ / Comparisons
+
+### How does could-you compare to OpenClaw?
+
+OpenClaw is a broad personal-assistant platform: a long-running gateway, many messaging channels, apps/nodes, browser/device integrations, tool policy, and sandboxing options.
+
+`could-you` is intentionally smaller. It is a local-first agent kernel around:
+
+- MCP server composition,
+- explicit workspace configuration,
+- private project-local state in `.could-you/`,
+- user-owned git-backed memory backups,
+- scriptable one-off workflows,
+- inspectable permission boundaries.
+
+Choose OpenClaw if you want an integrated always-on assistant platform with many channels. Choose `could-you` if you want a small, inspectable CLI/runtime that you can compose with your own MCP servers, prompts, private memory files, and OS-level boundaries.
+
+### How does could-you compare to Claude Code, Cline, and other coding agents?
+
+Those tools are often better if you want a polished coding-agent experience out of the box, especially inside a specific editor, model provider, or product workflow.
+
+`could-you` focuses on a different center:
+
+- the open kernel is small and forkable,
+- private memories are local workspace state owned by the user,
+- behavior is driven by explicit config and prompt files,
+- tool access comes through MCP servers,
+- trust boundaries should be visible and boring rather than hidden behind product defaults.
+
+The goal is not to replace every specialized coding assistant. The goal is to make the agent runtime, private state, and permission boundary easy to inspect, move, and change.
 
 ---
 
