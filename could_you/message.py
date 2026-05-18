@@ -136,11 +136,17 @@ class TokenUsage:
 
         return ", ".join(details)
 
-    def format_percent_used(self) -> str | None:
+    def percent_used(self) -> float | None:
         if self.total_tokens is None or not self.token_limit:
             return None
 
-        percent = self.total_tokens / self.token_limit * 100
+        return self.total_tokens / self.token_limit * 100
+
+    def format_percent_used(self) -> str | None:
+        percent = self.percent_used()
+        if percent is None:
+            return None
+
         formatted = f"{percent:.2f}".rstrip("0").rstrip(".")
         return f"{formatted}% used"
 

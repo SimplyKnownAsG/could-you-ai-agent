@@ -22,6 +22,13 @@ llm:
     model: gpt-4.1
 
 
+# Memory/context pressure thresholds
+memory:
+  # Warn before sending a query when prior assistant token usage is at or above this percentage.
+  warningThresholdPercent: 75
+  # Reject the next query when prior assistant token usage is at or above this percentage.
+  rejectionThresholdPercent: 90
+
 # MCP Servers
 mcpServers:
   git-mcp:

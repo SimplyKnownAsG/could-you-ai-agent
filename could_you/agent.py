@@ -7,6 +7,7 @@ from .cy_error import CYError, FaultOwner
 from .llm import BaseLLM, create_llm
 from .logging_config import LOGGER
 from .mcp_server import MCPServer, MCPTool
+from .memory import current_token_percent_used, should_reject, should_warn
 from .message import (
     Content,
     Message,
@@ -71,12 +72,42 @@ class Agent:
         if not self.llm:
             raise CYError(message="Must __aenter__ to play!", retriable=False, fault_owner=FaultOwner.INTERNAL)
 
-        self.message_history.add(
-            Message(role="user", content=[TextContent(text=query, type="text")], type=MessageType.NORMAL)
+        pending_user_message = Message(
+            role="user", content=[TextContent(text=query, type="text")], type=MessageType.NORMAL
         )
+        added_user_message = False
         should_continue = True
 
         while should_continue:
+            percent_used = current_token_percent_used(self.message_history.messages)
+            if should_reject(percent_used, self.config.memory):
+                rejection_message = (
+                    f"Memory token usage is {percent_used:.2f}%, at or above the "
+                    f"{self.config.memory.rejection_threshold_percent:.2f}% rejection threshold. "
+                    "Compact history before sending another query."
+                )
+                LOGGER.error(rejection_message)
+                self.message_history.add(
+                    Message(
+                        role="system",
+                        content=[TextContent(text=rejection_message, type="text")],
+                        type=MessageType.NORMAL,
+                    )
+                )
+                return
+
+            if should_warn(percent_used, self.config.memory):
+                LOGGER.warning(
+                    "Memory token usage is %.2f%%, at or above the %.2f%% warning threshold. "
+                    "Consider compacting history soon.",
+                    percent_used,
+                    self.config.memory.warning_threshold_percent,
+                )
+
+            if not added_user_message:
+                added_user_message = True
+                self.message_history.add(pending_user_message)
+
             llm_message = await self.llm.converse()
 
             # Determine message type based on content

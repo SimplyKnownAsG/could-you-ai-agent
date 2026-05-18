@@ -43,6 +43,20 @@ def test_load_workspace_infers_token_limit(tmp_workspace: Path):
     assert config.llm.token_limit == 128000
 
 
+def test_load_workspace_memory_thresholds(tmp_workspace: Path):
+    w_config_path = tmp_workspace / "config.yaml"
+    w_config_path.write_text("""
+llm:
+  provider: openai
+memory:
+  warningThresholdPercent: 60
+  rejectionThresholdPercent: 85
+""")
+    config, _ = load()
+    assert config.memory.warning_threshold_percent == 60
+    assert config.memory.rejection_threshold_percent == 85
+
+
 def test_load_workspace_yaml_config(tmp_workspace: Path):
     w_config_path = tmp_workspace / "config.yaml"
     w_config_path.write_text(MINIMAL_YAML)

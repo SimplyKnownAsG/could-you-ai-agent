@@ -60,6 +60,14 @@ query: |
 
   then call compact_history exactly once with those values.
 
+# Compaction is the explicit escape hatch for high memory pressure, so this script
+# raises the policy thresholds above normal interactive limits. The real model
+# context limit still applies; this only prevents could-you's configured rejection
+# threshold from blocking the maintenance run that is meant to relieve pressure.
+memory:
+  warningThresholdPercent: 95
+  rejectionThresholdPercent: 100
+
 mcpServers:
   any-script:
     command: npx

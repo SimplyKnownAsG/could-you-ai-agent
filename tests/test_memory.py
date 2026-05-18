@@ -3,7 +3,17 @@ from pathlib import Path
 
 import pytest
 
-from could_you.memory import MemoryBackupError, _backup_commit_paths, _backup_paths, backup_messages
+from could_you.config import MemoryProps
+from could_you.memory import (
+    MemoryBackupError,
+    _backup_commit_paths,
+    _backup_paths,
+    backup_messages,
+    current_token_percent_used,
+    should_reject,
+    should_warn,
+)
+from could_you.message import Message, TextContent, TokenUsage
 
 
 def test_backup_messages_copies_history_and_metadata(tmp_path: Path, monkeypatch):
@@ -116,3 +126,39 @@ def test_backup_messages_requires_history(tmp_path: Path):
 
     with pytest.raises(MemoryBackupError, match="No message history found"):
         backup_messages(w_config_dir)
+
+
+def test_current_token_percent_used_reads_latest_message_with_usage():
+    messages = [
+        Message(
+            role="assistant", content=[TextContent(text="old")], tokenUsage=TokenUsage(totalTokens=10, tokenLimit=100)
+        ),
+        Message(role="user", content=[TextContent(text="hi")]),
+        Message(
+            role="assistant", content=[TextContent(text="new")], tokenUsage=TokenUsage(totalTokens=80, tokenLimit=100)
+        ),
+    ]
+
+    assert current_token_percent_used(messages) == 80
+
+
+def test_current_token_percent_used_returns_none_without_complete_usage():
+    messages = [
+        Message(role="assistant", content=[TextContent(text="missing")], tokenUsage=TokenUsage(totalTokens=80)),
+        Message(role="user", content=[TextContent(text="hi")]),
+    ]
+
+    assert current_token_percent_used(messages) is None
+
+
+def test_memory_pressure_thresholds():
+    memory = MemoryProps(warningThresholdPercent=75, rejectionThresholdPercent=90)
+
+    assert not should_warn(None, memory)
+    assert not should_warn(74.9, memory)
+    assert should_warn(75, memory)
+    assert should_warn(90, memory)
+
+    assert not should_reject(None, memory)
+    assert not should_reject(89.9, memory)
+    assert should_reject(90, memory)

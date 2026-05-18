@@ -7,13 +7,41 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .config import MemoryProps
 from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
+from .message import Message
 
 
 class MemoryBackupError(CYError):
     def __init__(self, message: str):
         super().__init__(message=message, retriable=False, fault_owner=FaultOwner.USER)
+
+
+def current_token_percent_used(messages: list[Message]) -> float | None:
+    for message in reversed(messages):
+        if not message.token_usage:
+            continue
+
+        percent_used = message.token_usage.percent_used()
+        if percent_used is not None:
+            return percent_used
+
+    return None
+
+
+def should_warn(percent_used: float | None, memory: MemoryProps) -> bool:
+    if percent_used is None:
+        return False
+
+    return percent_used >= memory.warning_threshold_percent
+
+
+def should_reject(percent_used: float | None, memory: MemoryProps) -> bool:
+    if percent_used is None:
+        return False
+
+    return percent_used >= memory.rejection_threshold_percent
 
 
 @dataclass(frozen=True)

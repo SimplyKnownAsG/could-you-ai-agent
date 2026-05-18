@@ -116,7 +116,10 @@ class Boto3LLM(BaseLLM):
         for msg in self.message_history.messages:
             for content in msg.content:
                 if isinstance(content, TextContent):
-                    messages.append(_format_text_message(msg.role, content))
+                    if msg.role == "system":
+                        system.append({"text": content.text})
+                    else:
+                        messages.append(_format_text_message(msg.role, content))
                 elif isinstance(content, ToolUseContent):
                     _append_tool_use(messages, content)
                 elif isinstance(content, ToolResultContent):

@@ -27,6 +27,12 @@ class LLMProps:
 
 
 @define
+class MemoryProps:
+    warning_threshold_percent: float = field(default=75, alias="warningThresholdPercent")
+    rejection_threshold_percent: float = field(default=90, alias="rejectionThresholdPercent")
+
+
+@define
 class MCPServerProps:
     command: str
     args: list[str] = field(factory=list)
@@ -40,6 +46,7 @@ class Config:
     llm: LLMProps
     system_prompt: str = field(factory=lambda: "COULD_YOU_DEFAULT_PROMPT", alias="systemPrompt")
     mcp_servers: dict[str, MCPServerProps] = field(factory=dict, alias="mcpServers")
+    memory: MemoryProps = field(factory=MemoryProps)
     env: dict[str, str] = field(factory=dict)
     # default query for a script.
     query: str | None = field(factory=lambda: None)

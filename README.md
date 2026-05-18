@@ -21,6 +21,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
 - **Script mode**: Run ephemeral scripts with their own config overlays using `--script`.
 - **Message history**: Persisted per-workspace in `.could-you/messages.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
+- **Memory pressure warnings**: Configurable token-usage warning/rejection thresholds help trigger explicit compaction before context is exhausted.
 - **Private memory backups**: Copy message history into the private `.could-you/` git repo with `--backup-memory`.
 - **Permission inspection**: Print an observational OS-user/filesystem permission report with `--inspect-permissions`.
 
@@ -144,6 +145,10 @@ Config loading works as follows (see `load()` in `could_you/config.py`):
   - `args: dict[str, Any]` – per-request arguments; e.g. `{ "model": "gpt-4.1-mini" }`.
   - `tokenLimit: int | null` – optional configured context/token limit for the selected model. Providers generally report tokens used, but not the model limit, so could-you stores this explicit configured value alongside each assistant response. If omitted, could-you tries a best-effort local lookup from the configured model name (`model`, `modelId`, or `model_id`).
 
+- `MemoryProps`:
+  - `warningThresholdPercent: number` – warn before sending a query when prior assistant token usage is at or above this percentage. Defaults to `75`.
+  - `rejectionThresholdPercent: number` – reject the next query when prior assistant token usage is at or above this percentage. Defaults to `90`.
+
 - `MCPServerProps` (keyed by server name in `mcpServers`):
   - `command: str` – the executable to launch (e.g. `"npx"`).
   - `args: list[str]` – command arguments; `"$COULD_YOU_WORKSPACE"` is expanded to your workspace root.
@@ -155,6 +160,7 @@ Config loading works as follows (see `load()` in `could_you/config.py`):
   - `llm: LLMProps`
   - `systemPrompt: str | null` – system prompt or prompt pattern (see below). Defaults to `"COULD_YOU_DEFAULT_PROMPT"`.
   - `mcpServers: dict[str, MCPServerProps]`
+  - `memory: MemoryProps` – context pressure warning/rejection thresholds.
   - `env: dict[str, str]` – environment variables applied to the current process.
   - `query: str | null` – default query used in script mode when no CLI query is provided.
 
@@ -173,6 +179,10 @@ A complete example using OpenAI and the official filesystem MCP server:
       "model": "gpt-4.1-mini"
     },
     "tokenLimit": 1047576
+  },
+  "memory": {
+    "warningThresholdPercent": 75,
+    "rejectionThresholdPercent": 90
   },
   "mcpServers": {
     "filesystem": {
