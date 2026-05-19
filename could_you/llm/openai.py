@@ -87,7 +87,7 @@ class OpenAILLM(BaseLLM):
         if self.config.system_prompt:
             openai_msgs.append(dict(role="system", content=self.config.system_prompt))
 
-        for msg in self.message_history.messages:
+        for msg in self.dialogue.messages:
             for content in msg.content:
                 if isinstance(content, TextContent):
                     openai_msgs.append({"role": msg.role, "content": content.text})

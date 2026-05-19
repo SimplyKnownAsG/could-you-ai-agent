@@ -11,7 +11,7 @@ from .message import Message
 converter = Converter(use_alias=True, omit_if_default=True)
 
 
-class MessageHistory:
+class Dialogue:
     path: Path
     messages: list[Message]
     enable: bool
@@ -26,11 +26,11 @@ class MessageHistory:
             if self.path.exists():
                 with open(self.path) as f:
                     self.messages = [converter.structure(m, Message) for m in json.load(f)]
-                LOGGER.debug("Dialogue history loaded")
+                LOGGER.debug("Dialogue loaded")
             else:
-                LOGGER.debug("Dialogue history could not be found")
+                LOGGER.debug("Dialogue could not be found")
         else:
-            LOGGER.debug("Dialogue history disabled, not attempting to load")
+            LOGGER.debug("Dialogue disabled, not attempting to load")
 
         return self
 
@@ -46,11 +46,7 @@ class MessageHistory:
     def to_dict(self) -> list[dict[str, Any]]:
         return [converter.unstructure(m) for m in self.messages]
 
-    def print_history(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
-        """Print message history in a detailed format.
-
-        Args:
-            file: Optional file-like object to write to. If None, writes to sys.stdout
-        """
+    def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
+        """Print the dialogue in a detailed format."""
         for message in self.messages:
             message.print(info=info, debug=debug)

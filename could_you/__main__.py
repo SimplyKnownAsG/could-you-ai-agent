@@ -11,9 +11,9 @@ from cattrs import Converter
 from .agent import Agent
 from .config import _find_workspace_config_dir, load
 from .cy_error import CYError
+from .dialogue import Dialogue
 from .logging_config import LOGGER, set_up_logging
 from .memory import backup_dialogue
-from .message_history import MessageHistory
 from .permissions import format_permission_report, inspect_permission_boundary
 from .session import SessionManager
 
@@ -128,8 +128,8 @@ async def amain(parser, args):
         elif args.print_history:
             # Print dialogue history
             session = session_manager.load_session(None)
-            with session.messages(enable=True) as message_history:
-                message_history.print_history(info=LOGGER.info, debug=LOGGER.debug)
+            with session.dialogue(enable=True) as dialogue:
+                dialogue.print(info=LOGGER.info, debug=LOGGER.debug)
         elif args.backup_memory is not None:
             w_config_dir = _find_workspace_config_dir(Path.cwd())
             result = backup_dialogue(w_config_dir, topic=args.backup_memory or None)
@@ -142,8 +142,8 @@ async def amain(parser, args):
         elif args.test_connect:
             # List servers and their tools
             session = session_manager.load_session(None)
-            with session.messages(enable=False) as message_history:
-                async with Agent(config=session.config, message_history=message_history) as agent:
+            with session.dialogue(enable=False) as dialogue:
+                async with Agent(config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(args.test_connect)
         else:
             enable_history = not args.no_history
@@ -165,8 +165,8 @@ async def amain(parser, args):
                 parser.print_help()
                 return
 
-            with session.messages(enable=enable_history) as message_history:
-                async with Agent(config=session.config, message_history=message_history) as agent:
+            with session.dialogue(enable=enable_history) as dialogue:
+                async with Agent(config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(query)
                     _remove_query_md(session.w_config_dir)
 
@@ -182,12 +182,12 @@ def _get_editor_input(w_config_dir: Path):
     with query_md_path.open("w") as tf:
         tf.write("# Previous dialogue\n\n")
         # Write dialogue history to the file
-        with MessageHistory(w_config_dir) as message_history:
+        with Dialogue(w_config_dir) as dialogue:
 
             def printer(msg):
                 print(msg, file=tf)
 
-            message_history.print_history(info=printer, debug=printer)
+            dialogue.print(info=printer, debug=printer)
 
         # Write the special editor input marker - this exact line is used to find user input
         tf.write(f"\n{MARKER}\n\n")

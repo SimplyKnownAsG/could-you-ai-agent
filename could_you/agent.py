@@ -4,6 +4,7 @@ from cattrs import Converter
 
 from .config import Config
 from .cy_error import CYError, FaultOwner
+from .dialogue import Dialogue
 from .llm import BaseLLM, create_llm
 from .logging_config import LOGGER
 from .mcp_server import MCPServer, MCPTool
@@ -19,20 +20,19 @@ from .message import (
     ToolResultInnerTextContent,
     ToolUseContent,
 )
-from .message_history import MessageHistory
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class Agent:
-    def __init__(self, *, config: Config, message_history: MessageHistory):
+    def __init__(self, *, config: Config, dialogue: Dialogue):
         # Initialize session and client objects
         self.servers: list[MCPServer] = [
             MCPServer(name=name, props=props) for name, props in config.mcp_servers.items()
         ]
         self.exit_stack = AsyncExitStack()
         self.config = config
-        self.message_history = message_history
+        self.dialogue = dialogue
         self.llm: BaseLLM | None = None
         self.tools: dict[str, MCPTool] = {}
 
@@ -55,7 +55,7 @@ class Agent:
 
                 self.tools[t.name] = t
 
-        self.llm = create_llm(self.config, self.message_history, self.tools)
+        self.llm = create_llm(self.config, self.dialogue, self.tools)
         return self
 
     async def __aexit__(self, *args):
@@ -79,7 +79,7 @@ class Agent:
         should_continue = True
 
         while should_continue:
-            percent_used = current_token_percent_used(self.message_history.messages)
+            percent_used = current_token_percent_used(self.dialogue.messages)
             if should_reject(percent_used, self.config.memory):
                 rejection_message = (
                     f"Memory token usage is {percent_used:.2f}%, at or above the "
@@ -87,7 +87,7 @@ class Agent:
                     "Compact history before sending another query."
                 )
                 LOGGER.error(rejection_message)
-                self.message_history.add(
+                self.dialogue.add(
                     Message(
                         role="system",
                         content=[TextContent(text=rejection_message, type="text")],
@@ -106,7 +106,7 @@ class Agent:
 
             if not added_user_message:
                 added_user_message = True
-                self.message_history.add(pending_user_message)
+                self.dialogue.add(pending_user_message)
 
             llm_message = await self.llm.converse()
 
@@ -118,7 +118,7 @@ class Agent:
             )
 
             llm_message.type = message_type
-            self.message_history.add(llm_message)
+            self.dialogue.add(llm_message)
             should_continue = await self.__use_tools(llm_message)
 
     async def __use_tools(self, llm_message: Message):
@@ -186,6 +186,6 @@ class Agent:
 
         if tool_content:
             tool_message = Message(role="tool", content=tool_content, type=MessageType.TOOL_RESULT)
-            self.message_history.add(tool_message)
+            self.dialogue.add(tool_message)
 
         return bool(tool_content)

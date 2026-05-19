@@ -1,20 +1,20 @@
 from abc import ABC, abstractmethod
 
 from ..config import Config
+from ..dialogue import Dialogue
 from ..mcp_server import MCPTool
 from ..message import Message
-from ..message_history import MessageHistory
 
 
 class BaseLLM(ABC):
     def __init__(
         self,
         config: Config,
-        message_history: MessageHistory,
+        dialogue: Dialogue,
         tools: dict[str, MCPTool],
     ):
         self.config = config
-        self.message_history = message_history
+        self.dialogue = dialogue
         self.tools = tools
 
     @abstractmethod

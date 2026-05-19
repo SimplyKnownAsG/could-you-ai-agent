@@ -20,9 +20,9 @@ The project name is `could-you`, and the primary CLI entry point is typically in
   - Ollama via its OpenAI-compatible API
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
 - **Script mode**: Run ephemeral scripts with their own config overlays using `--script`.
-- **Dialogue history**: Persisted per-workspace in `.could-you/dialogue.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
+- **Dialogue**: Persisted per-workspace in `.could-you/dialogue.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
 - **Memory pressure warnings**: Configurable token-usage warning/rejection thresholds help trigger explicit compaction before context is exhausted.
-- **Private memory backups**: Copy dialogue history into the private `.could-you/` git repo with `--backup-memory`.
+- **Private memory backups**: Copy dialogue into the private `.could-you/` git repo with `--backup-memory`.
 - **Permission inspection**: Print an observational OS-user/filesystem permission report with `--inspect-permissions`.
 
 ---
@@ -60,7 +60,7 @@ Inside a project where you've initialized a workspace (see below), you can run:
 could-you "Refactor the config loading logic to support environment overlays."
 ```
 
-Without a direct query, `could-you` will open your `$EDITOR` (default `vim`) on a temporary `query.md`, showing previous messages and a marker for you to type after.
+Without a direct query, `could-you` will open your `$EDITOR` (default `vim`) on a temporary `query.md`, showing previous dialogue and a marker for you to type after.
 
 ### CLI options
 
@@ -70,14 +70,14 @@ From `could_you/__main__.py`:
   - `-v`, `--verbose` – DEBUG level logging
   - `-q`, `--quiet` – WARNING level logging only
 - History:
-  - `-H`, `--no-history` – Do not load or persist dialogue history for this run
+  - `-H`, `--no-history` – Do not load or persist dialogue for this run
 - Config inspection:
   - `-C`, `--dump-config [json|yaml]` – Print the effective config (after overlays) then exit
 - Session / workspace helpers:
   - `-l`, `--list-sessions` – List existing sessions from the cache
   - `-i`, `--init-session` – Initialize a `.could-you/` workspace in the current directory
   - `-d`, `--delete-session PATH` – Delete a specific session from the sessions cache
-  - `-p`, `--print-history` – Print the dialogue history for the current workspace
+  - `-p`, `--print-history` – Print the dialogue for the current workspace
 - Connectivity:
   - `-t`, `--test-connect [MESSAGE]` – Test MCP + LLM connectivity with a simple message, then exit
 - Memory:
@@ -117,7 +117,7 @@ could-you --init-session
 
 from your project root to create `.could-you/` using any global templates shipped in `could_you.resources`.
 
-`could-you` treats `.could-you/` as private workspace state. Initialization ensures `.could-you/` is listed in the workspace `.gitignore` so conversation history, config, and future memories are not accidentally committed to the project repository.
+`could-you` treats `.could-you/` as private workspace state. Initialization ensures `.could-you/` is listed in the workspace `.gitignore` so dialogue, config, and future memories are not accidentally committed to the project repository.
 
 ### Config loading and merging
 
@@ -293,7 +293,7 @@ LLM abstraction lives under `could_you/llm/` and is built around `BaseLLM`.
 `BaseLLM` exposes:
 
 - `config: Config`
-- `message_history: MessageHistory`
+- `dialogue: Dialogue`
 - `tools: dict[str, MCPTool]`
 - Abstract method `async def converse(self) -> Message`.
 
@@ -303,7 +303,7 @@ LLM abstraction lives under `could_you/llm/` and is built around `BaseLLM`.
 `could_you/llm/boto3.py`) uses `bedrock-runtime`'s `converse` API.
 
 - It converts MCP tools into Bedrock `toolConfig.tools` structures.
-- Serializes message history via `MessageHistory.to_dict()`.
+- Serializes dialogue via `Dialogue.to_dict()`.
 - On error, raises `CYError` with `FaultOwner.LLM`.
 
 ### OpenAI-compatible providers
@@ -333,11 +333,11 @@ Script mode lets you run one-off, stateless operations using custom configs.
 - When `--script <script-name>` is used:
   - The base workspace config is loaded.
   - The script config is loaded and merged over it.
-  - Message history is **disabled** for that run.
+  - Dialogue persistence is **disabled** for that run.
   - The query is resolved as:
     1. CLI `query` argument, if provided.
     2. `config.query` from the merged config, if set.
-    3. Otherwise, fall back to the editor-based `query.md` flow (though script runs generally avoid history).
+    3. Otherwise, fall back to the editor-based `query.md` flow (though script runs generally avoid dialogue persistence).
 
 ### Examples
 
@@ -564,25 +564,25 @@ The goal is not to replace every specialized coding assistant. The goal is to ma
 
 ---
 
-## Message History
+## Dialogue
 
-`MessageHistory` (`could_you/message_history.py`) manages reading and writing the conversation log for a workspace:
+`Dialogue` (`could_you/dialogue.py`) manages reading and writing the live dialogue for a workspace:
 
-- File: `.could-you/messages.json` in the discovered workspace.
+- File: `.could-you/dialogue.json` in the discovered workspace.
 - Automatically loaded and saved when used as a context manager.
-- You can print history with:
+- You can print the dialogue with:
 
   ```bash
   could-you --print-history
   ```
 
-- Disable history for a single run with:
+- Disable dialogue persistence for a single run with:
 
   ```bash
   could-you --no-history "One-off question without saving context"
   ```
 
-The history file distinguishes between:
+The dialogue file distinguishes between:
 
 - `user` messages – human input.
 - `assistant` messages – LLM replies.
@@ -594,7 +594,7 @@ Each message also has a `type` field:
 - `"tool_call"` – assistant turns that request tools.
 - `"tool_result"` – messages containing tool output.
 
-Example `messages.json` snippet:
+Example `dialogue.json` snippet:
 
 ```json
 [
@@ -628,8 +628,8 @@ could_you/
 ├── logging_config.py    # Logging setup
 ├── mcp_server.py        # MCP server connection & tool wrappers
 ├── message.py           # Message/content data structures
-├── memory.py            # Private message-history backup helpers
-├── message_history.py   # Conversation history management
+├── memory.py            # Private dialogue backup helpers
+├── dialogue.py          # Live dialogue management
 ├── prompt.py            # System prompt expansion (patterns + file loading)
 ├── resources/           # Default config templates
 └── session.py           # Workspace + session management

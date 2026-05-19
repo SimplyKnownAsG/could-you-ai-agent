@@ -113,7 +113,7 @@ class Boto3LLM(BaseLLM):
             else:
                 msgs.append({"role": "user", "content": [block]})
 
-        for msg in self.message_history.messages:
+        for msg in self.dialogue.messages:
             for content in msg.content:
                 if isinstance(content, TextContent):
                     if msg.role == "system":

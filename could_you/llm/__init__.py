@@ -6,7 +6,7 @@ from .openai import OpenAILLM
 # Factory for LLM
 
 
-def create_llm(config, message_history, tools) -> BaseLLM:
+def create_llm(config, dialogue, tools) -> BaseLLM:
     provider = config.llm.provider
     providers = {
         "boto3": Boto3LLM,
@@ -15,7 +15,7 @@ def create_llm(config, message_history, tools) -> BaseLLM:
     }
 
     if provider in providers:
-        return providers[provider](config, message_history, tools)
+        return providers[provider](config, dialogue, tools)
     raise ValueError(f"Unsupported LLM provider: {provider}")
 
 

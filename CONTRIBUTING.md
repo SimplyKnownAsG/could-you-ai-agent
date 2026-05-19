@@ -103,7 +103,7 @@ could_you/
 ├── logging_config.py    # Logging setup
 ├── mcp_server.py        # MCP server connection handling
 ├── message.py           # Message data structures
-├── message_history.py   # Conversation history management
+├── dialogue.py          # Live dialogue management
 ├── prompt.py            # System prompt expansion helpers
 ├── resources/           # Packaged default configs
 └── llm/                 # LLM provider abstractions

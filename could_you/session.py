@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 
 from .config import Config, init, load
+from .dialogue import Dialogue
 from .logging_config import LOGGER
-from .message_history import MessageHistory
 
 # Constants for XDG paths
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -25,8 +25,8 @@ class Session:
         self.script_name = script_name
         self.config = config
 
-    def messages(self, *, enable: bool):
-        return MessageHistory(self.w_config_dir, enable=enable)
+    def dialogue(self, *, enable: bool):
+        return Dialogue(self.w_config_dir, enable=enable)
 
 
 class SessionManager:
