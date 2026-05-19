@@ -16,8 +16,12 @@ llm:
 
   # sample OpenAI
   provider: openai
-  init:
-    api_key: "sk-..."
+  # You can provide credentials with api_key; however, I don't recommend it. You'd potentially be giving
+  # your token to Your-borg. Instead load it as a system variable. Don't get me wrong, a smart Agent can
+  # definitely still get this, but it would be more difficult.
+  #
+  # init:
+  #   api_key: "sk-..."
   args:
     model: gpt-4.1
 
