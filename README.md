@@ -20,9 +20,9 @@ The project name is `could-you`, and the primary CLI entry point is typically in
   - Ollama via its OpenAI-compatible API
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
 - **Script mode**: Run ephemeral scripts with their own config overlays using `--script`.
-- **Message history**: Persisted per-workspace in `.could-you/messages.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
+- **Dialogue history**: Persisted per-workspace in `.could-you/dialogue.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
 - **Memory pressure warnings**: Configurable token-usage warning/rejection thresholds help trigger explicit compaction before context is exhausted.
-- **Private memory backups**: Copy message history into the private `.could-you/` git repo with `--backup-memory`.
+- **Private memory backups**: Copy dialogue history into the private `.could-you/` git repo with `--backup-memory`.
 - **Permission inspection**: Print an observational OS-user/filesystem permission report with `--inspect-permissions`.
 
 ---
@@ -70,18 +70,18 @@ From `could_you/__main__.py`:
   - `-v`, `--verbose` – DEBUG level logging
   - `-q`, `--quiet` – WARNING level logging only
 - History:
-  - `-H`, `--no-history` – Do not load or persist message history for this run
+  - `-H`, `--no-history` – Do not load or persist dialogue history for this run
 - Config inspection:
   - `-C`, `--dump-config [json|yaml]` – Print the effective config (after overlays) then exit
 - Session / workspace helpers:
   - `-l`, `--list-sessions` – List existing sessions from the cache
   - `-i`, `--init-session` – Initialize a `.could-you/` workspace in the current directory
   - `-d`, `--delete-session PATH` – Delete a specific session from the sessions cache
-  - `-p`, `--print-history` – Print the message history for the current workspace
+  - `-p`, `--print-history` – Print the dialogue history for the current workspace
 - Connectivity:
   - `-t`, `--test-connect [MESSAGE]` – Test MCP + LLM connectivity with a simple message, then exit
 - Memory:
-  - `--backup-memory [TOPIC]` – Back up `.could-you/messages.json` to the private memory git repo
+  - `--backup-memory [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
 - Permissions:
   - `--inspect-permissions` – Print an observational report about the current OS-user/filesystem permission boundary
 - Scripts:
@@ -104,7 +104,7 @@ project-root/
   .could-you/
     config.json (or .yaml / .yml)
     script.<name>.json (or .yaml / .yml)
-    messages.json        # created automatically as you interact
+    dialogue.json        # created automatically as you interact
   src/
   README.md
 ```
@@ -405,7 +405,7 @@ Run:
 could-you --backup-memory "conversation about memory design"
 ```
 
-This copies `.could-you/messages.json` into a private git repository and commits it. By default, the repo is the workspace `.could-you/` directory:
+This copies `.could-you/dialogue.json` into a private git repository and commits it. By default, the repo is the workspace `.could-you/` directory:
 
 ```text
 .could-you/
@@ -420,7 +420,7 @@ export COULD_YOU_MEMORY_REPO=/path/to/private/memory/repo
 Backups are plain files under:
 
 ```text
-workspaces/<workspace-name-and-hash>/conversations/<timestamp>.messages.json
+workspaces/<workspace-name-and-hash>/conversations/<timestamp>.dialogue.json
 workspaces/<workspace-name-and-hash>/conversations/<timestamp>.metadata.json
 ```
 
@@ -443,7 +443,7 @@ The default resources include an optional script-mode memory compaction workflow
 could-you --script compact-history
 ```
 
-The script loads `.could-you/messages.json`, generates a durable memory update, calls `could-you --backup-memory`, replaces `MEMORY.md`, removes the live message history, and commits the updated private memory state.
+The script loads `.could-you/dialogue.json`, generates a durable memory update, calls `could-you --backup-memory`, replaces `MEMORY.md`, removes the live dialogue history, and commits the updated private memory state.
 
 This is intended as a starter template. Users should review and customize it before relying on it.
 

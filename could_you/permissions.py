@@ -34,8 +34,8 @@ def inspect_permission_boundary(w_config_dir: Path) -> dict[str, Any]:
         "paths": {
             "workspaceRoot": _path_info(workspace_root),
             "configDir": _path_info(w_config_dir),
-            "messagesFile": _path_info(w_config_dir / "messages.json"),
-            "messagesParent": _path_info(w_config_dir),
+            "dialogueFile": _path_info(w_config_dir / "dialogue.json"),
+            "dialogueParent": _path_info(w_config_dir),
         },
         "warnings": [],
         "notes": [
@@ -60,7 +60,7 @@ def inspect_permission_boundary(w_config_dir: Path) -> dict[str, Any]:
         warnings.append(".could-you is not readable by the current user.")
 
     if not config_info["writable"]:
-        warnings.append(".could-you is not writable by the current user; history and private memory updates may fail.")
+        warnings.append(".could-you is not writable by the current user; dialogue and private memory updates may fail.")
 
     if config_info["worldReadable"]:
         warnings.append(".could-you appears world-readable; private workspace state may be exposed to other users.")

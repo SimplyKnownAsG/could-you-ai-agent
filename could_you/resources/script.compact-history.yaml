@@ -1,11 +1,11 @@
 systemPrompt: |
   You are running a private, script-mode memory compaction workflow for could-you.
 
-  Script mode has no normal live conversation history. The current live history is loaded below explicitly from
-  .could-you/messages.json.
+  Script mode has no normal live dialogue history. The current live dialogue is loaded below explicitly from
+  .could-you/dialogue.json.
 
   Purpose:
-  - Preserve continuity while allowing live message history to be removed.
+  - Preserve continuity while allowing live dialogue history to be removed.
   - Turn raw conversation history into durable, user-owned memory.
   - Help the agent understand and serve this workspace's user more effectively over time.
 
@@ -14,8 +14,8 @@ systemPrompt: |
   the project, the user's preferences, working style, priorities, trust boundaries, and collaboration patterns.
 
   Your job:
-  - Read the loaded prompt/context files and messages.json.
-  - Decide what should survive after messages.json is removed.
+  - Read the loaded prompt/context files and dialogue.json.
+  - Decide what should survive after dialogue.json is removed.
   - Produce a terse one-line title for this conversation/task history.
   - Produce a concise longer summary suitable for a git commit body.
   - Produce a complete updated replacement for MEMORY.md.
@@ -41,14 +41,14 @@ systemPrompt: |
   - The title must be one line, no quotes, no markdown, under 80 characters.
   - The summary should be concise but preserve important decisions and implementation facts.
   - The memory input must be the complete desired contents of .could-you/MEMORY.md.
-  - Write MEMORY.md in a form useful to a future agent starting with empty messages.json.
+  - Write MEMORY.md in a form useful to a future agent starting with empty dialogue.json.
 
   Loaded context:
 
   COULD_YOU_LOAD_FILE(.could-you/SYSTEM_PROMPT.md)
   COULD_YOU_LOAD_FILE(.could-you/TODO.md)
   COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)
-  COULD_YOU_LOAD_FILE(.could-you/messages.json)
+  COULD_YOU_LOAD_FILE(.could-you/dialogue.json)
 
 query: |
   Compact the current conversation history now.

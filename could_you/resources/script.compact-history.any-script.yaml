@@ -2,8 +2,8 @@ tools:
   - name: compact_history
     description: >
       Finalize semantic memory compaction. Use this only after generating a title, commit summary,
-      and complete replacement MEMORY.md. The tool backs up the raw message history, installs the
-      generated MEMORY.md, removes live messages.json so the next run starts fresh, and commits the
+      and complete replacement MEMORY.md. The tool backs up the raw dialogue history, installs the
+      generated MEMORY.md, removes live dialogue.json so the next run starts fresh, and commits the
       updated private memory state.
     inputs:
       title:
@@ -46,15 +46,15 @@ tools:
         exit 1
       fi
 
-      if [ ! -s .could-you/messages.json ]; then
-        echo "missing .could-you/messages.json" >&2
+      if [ ! -s .could-you/dialogue.json ]; then
+        echo "missing .could-you/dialogue.json" >&2
         exit 1
       fi
 
       could-you --backup-memory "$title"
 
       cp "$memory_file" .could-you/MEMORY.md
-      rm '.could-you/messages.json'
+      rm '.could-you/dialogue.json'
 
       cd .could-you
       git add MEMORY.md

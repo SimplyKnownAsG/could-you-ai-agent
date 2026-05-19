@@ -11,20 +11,20 @@ def test_inspect_permission_boundary_reports_key_paths(tmp_workspace: Path):
     assert report["configDir"] == str(tmp_workspace.resolve())
     assert report["paths"]["workspaceRoot"]["exists"] is True
     assert report["paths"]["configDir"]["exists"] is True
-    assert report["paths"]["messagesFile"]["exists"] is False
+    assert report["paths"]["dialogueFile"]["exists"] is False
     assert report["currentUser"]["name"]
     assert report["notes"]
 
 
-def test_inspect_permission_boundary_reports_messages_file(tmp_workspace: Path):
-    messages_path = tmp_workspace / "messages.json"
-    messages_path.write_text("[]")
+def test_inspect_permission_boundary_reports_dialogue_file(tmp_workspace: Path):
+    dialogue_path = tmp_workspace / "dialogue.json"
+    dialogue_path.write_text("[]")
 
     report = inspect_permission_boundary(tmp_workspace)
 
-    assert report["paths"]["messagesFile"]["exists"] is True
-    assert report["paths"]["messagesFile"]["readable"] is True
-    assert report["paths"]["messagesFile"]["path"] == str(messages_path.resolve())
+    assert report["paths"]["dialogueFile"]["exists"] is True
+    assert report["paths"]["dialogueFile"]["readable"] is True
+    assert report["paths"]["dialogueFile"]["path"] == str(dialogue_path.resolve())
 
 
 def test_format_permission_report_includes_warnings_and_notes(tmp_workspace: Path):

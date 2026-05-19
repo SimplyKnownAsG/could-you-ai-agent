@@ -17,7 +17,7 @@ class MessageHistory:
     enable: bool
 
     def __init__(self, w_config_dir: Path, *, enable: bool = True):
-        self.path = w_config_dir / "messages.json"
+        self.path = w_config_dir / "dialogue.json"
         self.messages = []
         self.enable = enable
 
@@ -26,11 +26,11 @@ class MessageHistory:
             if self.path.exists():
                 with open(self.path) as f:
                     self.messages = [converter.structure(m, Message) for m in json.load(f)]
-                LOGGER.debug("Message history loaded")
+                LOGGER.debug("Dialogue history loaded")
             else:
-                LOGGER.debug("Message history could not be found")
+                LOGGER.debug("Dialogue history could not be found")
         else:
-            LOGGER.debug("Message history disabled, not attempting to load")
+            LOGGER.debug("Dialogue history disabled, not attempting to load")
 
         return self
 

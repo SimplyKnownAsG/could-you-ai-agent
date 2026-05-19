@@ -8,7 +8,7 @@ from could_you.memory import (
     MemoryBackupError,
     _backup_commit_paths,
     _backup_paths,
-    backup_messages,
+    backup_dialogue,
     current_token_percent_used,
     should_reject,
     should_warn,
@@ -16,7 +16,7 @@ from could_you.memory import (
 from could_you.message import Message, TextContent, TokenUsage
 
 
-def test_backup_messages_copies_history_and_metadata(tmp_path: Path, monkeypatch):
+def test_backup_dialogue_copies_history_and_metadata(tmp_path: Path, monkeypatch):
     workspace_root = tmp_path / "project"
     w_config_dir = workspace_root / ".could-you"
     memory_repo = tmp_path / "memories"
@@ -36,9 +36,9 @@ def test_backup_messages_copies_history_and_metadata(tmp_path: Path, monkeypatch
 
     monkeypatch.setattr("could_you.memory._git", fake_git)
     monkeypatch.setattr("could_you.memory._git_config_exists", fake_git_config_exists)
-    (w_config_dir / "messages.json").write_text('[{"role":"user"}]\n')
+    (w_config_dir / "dialogue.json").write_text('[{"role":"user"}]\n')
 
-    result = backup_messages(w_config_dir, topic="private memory design")
+    result = backup_dialogue(w_config_dir, topic="private memory design")
 
     assert result.repo_path == memory_repo.resolve()
     assert result.backup_path.read_text() == '[{"role":"user"}]\n'
@@ -49,7 +49,7 @@ def test_backup_messages_copies_history_and_metadata(tmp_path: Path, monkeypatch
         "timestamp": "20260516T123456Z",
         "topic": "private memory design",
         "workspace": str(workspace_root.resolve()),
-        "source": str(w_config_dir / "messages.json"),
+        "source": str(w_config_dir / "dialogue.json"),
     }
 
     assert git_calls == [
@@ -61,7 +61,7 @@ def test_backup_messages_copies_history_and_metadata(tmp_path: Path, monkeypatch
     ]
 
 
-def test_backup_messages_defaults_to_workspace_config_dir(tmp_path: Path, monkeypatch):
+def test_backup_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkeypatch):
     workspace_root = tmp_path / "project"
     w_config_dir = workspace_root / ".could-you"
     w_config_dir.mkdir(parents=True)
@@ -76,9 +76,9 @@ def test_backup_messages_defaults_to_workspace_config_dir(tmp_path: Path, monkey
 
     monkeypatch.setattr("could_you.memory._git", fake_git)
     monkeypatch.setattr("could_you.memory._git_config_exists", fake_git_config_exists)
-    (w_config_dir / "messages.json").write_text('[{"role":"user"}]\n')
+    (w_config_dir / "dialogue.json").write_text('[{"role":"user"}]\n')
 
-    result = backup_messages(w_config_dir)
+    result = backup_dialogue(w_config_dir)
 
     assert result.repo_path == w_config_dir.resolve()
     assert result.backup_path.is_file()
@@ -87,7 +87,7 @@ def test_backup_messages_defaults_to_workspace_config_dir(tmp_path: Path, monkey
 def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_path: Path):
     w_config_dir = tmp_path / ".could-you"
     w_config_dir.mkdir()
-    backup_path = w_config_dir / "workspaces" / "project-123" / "conversations" / "backup.messages.json"
+    backup_path = w_config_dir / "workspaces" / "project-123" / "conversations" / "backup.dialogue.json"
     metadata_path = backup_path.with_name("backup.metadata.json")
     backup_path.parent.mkdir(parents=True)
     backup_path.write_text("[]")
@@ -112,20 +112,20 @@ def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_pa
 def test_backup_paths_avoid_overwriting_existing_backup(tmp_path: Path):
     backup_dir = tmp_path / "conversations"
     backup_dir.mkdir()
-    (backup_dir / "20260516T123456Z.messages.json").write_text("[]")
+    (backup_dir / "20260516T123456Z.dialogue.json").write_text("[]")
 
     backup_path, metadata_path = _backup_paths(backup_dir, "20260516T123456Z")
 
-    assert backup_path == backup_dir / "20260516T123456Z.1.messages.json"
+    assert backup_path == backup_dir / "20260516T123456Z.1.dialogue.json"
     assert metadata_path == backup_dir / "20260516T123456Z.1.metadata.json"
 
 
-def test_backup_messages_requires_history(tmp_path: Path):
+def test_backup_dialogue_requires_history(tmp_path: Path):
     w_config_dir = tmp_path / ".could-you"
     w_config_dir.mkdir()
 
-    with pytest.raises(MemoryBackupError, match="No message history found"):
-        backup_messages(w_config_dir)
+    with pytest.raises(MemoryBackupError, match="No dialogue history found"):
+        backup_dialogue(w_config_dir)
 
 
 def test_current_token_percent_used_reads_latest_message_with_usage():

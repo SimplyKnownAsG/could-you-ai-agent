@@ -52,13 +52,13 @@ class MemoryBackupResult:
     commit_message: str
 
 
-def backup_messages(w_config_dir: Path, topic: str | None = None) -> MemoryBackupResult:
-    """Back up workspace messages to a private, user-owned git repository."""
+def backup_dialogue(w_config_dir: Path, topic: str | None = None) -> MemoryBackupResult:
+    """Back up workspace dialogue to a private, user-owned git repository."""
     w_config_dir = w_config_dir.resolve()
-    messages_path = w_config_dir / "messages.json"
+    dialogue_path = w_config_dir / "dialogue.json"
 
-    if not messages_path.is_file():
-        raise MemoryBackupError(f"No message history found at {messages_path}")
+    if not dialogue_path.is_file():
+        raise MemoryBackupError(f"No dialogue history found at {dialogue_path}")
 
     workspace_root = w_config_dir.parent.resolve()
     repo_path = _memory_repo_path(w_config_dir)
@@ -69,14 +69,14 @@ def backup_messages(w_config_dir: Path, topic: str | None = None) -> MemoryBacku
 
     backup_path, metadata_path = _backup_paths(backup_dir, timestamp)
 
-    shutil.copy2(messages_path, backup_path)
+    shutil.copy2(dialogue_path, backup_path)
     metadata_path.write_text(
         json.dumps(
             {
                 "timestamp": timestamp,
                 "topic": topic,
                 "workspace": str(workspace_root),
-                "source": str(messages_path),
+                "source": str(dialogue_path),
             },
             indent=2,
         )
@@ -137,7 +137,7 @@ def _backup_paths(backup_dir: Path, timestamp: str) -> tuple[Path, Path]:
 
     while True:
         infix = timestamp if suffix == 0 else f"{timestamp}.{suffix}"
-        backup_path = backup_dir / f"{infix}.messages.json"
+        backup_path = backup_dir / f"{infix}.dialogue.json"
         metadata_path = backup_dir / f"{infix}.metadata.json"
 
         if not backup_path.exists() and not metadata_path.exists():

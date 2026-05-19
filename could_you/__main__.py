@@ -12,7 +12,7 @@ from .agent import Agent
 from .config import _find_workspace_config_dir, load
 from .cy_error import CYError
 from .logging_config import LOGGER, set_up_logging
-from .memory import backup_messages
+from .memory import backup_dialogue
 from .message_history import MessageHistory
 from .permissions import format_permission_report, inspect_permission_boundary
 from .session import SessionManager
@@ -53,7 +53,7 @@ def create_parser():
     log_group = parser.add_mutually_exclusive_group()
     log_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)")
     log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
-    parser.add_argument("-H", "--no-history", action="store_true", help="Ignore message history")
+    parser.add_argument("-H", "--no-history", action="store_true", help="Ignore dialogue history")
     parser.add_argument(
         "-C",
         "--dump-config",
@@ -70,7 +70,7 @@ def create_parser():
     cmd_group.add_argument("-l", "--list-sessions", action="store_true", help="List existing sessions")
     cmd_group.add_argument("-i", "--init-session", action="store_true", help="Initialize a session in this directory")
     cmd_group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
-    cmd_group.add_argument("-p", "--print-history", action="store_true", help="Print the message history")
+    cmd_group.add_argument("-p", "--print-history", action="store_true", help="Print the dialogue history")
     cmd_group.add_argument(
         "-t",
         "--test-connect",
@@ -90,7 +90,7 @@ def create_parser():
         nargs="?",
         const="",
         metavar="TOPIC",
-        help="Back up .could-you/messages.json to the private memory git repo",
+        help="Back up .could-you/dialogue.json to the private memory git repo",
     )
     cmd_group.add_argument(
         "--inspect-permissions",
@@ -126,13 +126,13 @@ async def amain(parser, args):
             # Create or switch to a session
             session_manager.delete_session(args.delete_session)
         elif args.print_history:
-            # Print message history
+            # Print dialogue history
             session = session_manager.load_session(None)
             with session.messages(enable=True) as message_history:
                 message_history.print_history(info=LOGGER.info, debug=LOGGER.debug)
         elif args.backup_memory is not None:
             w_config_dir = _find_workspace_config_dir(Path.cwd())
-            result = backup_messages(w_config_dir, topic=args.backup_memory or None)
+            result = backup_dialogue(w_config_dir, topic=args.backup_memory or None)
             LOGGER.info(f"Memory repo: {result.repo_path}")
             LOGGER.info(f"Backup file: {result.backup_path}")
         elif args.inspect_permissions:
@@ -180,8 +180,8 @@ def _get_editor_input(w_config_dir: Path):
     existing_query = _load_query(query_md_path)
 
     with query_md_path.open("w") as tf:
-        tf.write("# Previous messages\n\n")
-        # Write message history to the file
+        tf.write("# Previous dialogue\n\n")
+        # Write dialogue history to the file
         with MessageHistory(w_config_dir) as message_history:
 
             def printer(msg):
