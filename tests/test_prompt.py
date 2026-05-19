@@ -2,6 +2,7 @@ import textwrap
 from pathlib import Path
 
 from could_you import prompt
+from could_you.prompt import _default_agent_name
 
 from .dir_changer import DirChanger
 
@@ -93,7 +94,23 @@ def test_enrich_raw_prompt_excludes_outside_paths(tmp_dir: Path):
         assert "ALLOWED" in result
 
 
-def test_default_prompt_loads_workspace_memory_and_root_markdown(tmp_dir: Path):
+def test_default_agent_name_uses_current_user(monkeypatch):
+    monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
+
+    assert _default_agent_name() == "alice-borg"
+
+
+def test_default_agent_name_falls_back_to_user_borg(monkeypatch):
+    def raise_os_error():
+        raise OSError("no user")
+
+    monkeypatch.setattr("could_you.prompt.getpass.getuser", raise_os_error)
+
+    assert _default_agent_name() == "usr-borg"
+
+
+def test_default_prompt_loads_workspace_memory_and_root_markdown(tmp_dir: Path, monkeypatch):
+    monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
     (tmp_dir / "README.md").write_text("README CONTENT")
     w_config_dir = tmp_dir / ".could-you"
     w_config_dir.mkdir()
@@ -102,6 +119,7 @@ def test_default_prompt_loads_workspace_memory_and_root_markdown(tmp_dir: Path):
 
     result = prompt.enrich_raw_prompt("COULD_YOU_DEFAULT_PROMPT")
 
+    assert "Your name is alice-borg." in result
     assert "MEMORY CONTENT" in result
     assert str(memory_path) in result
     assert "README CONTENT" in result

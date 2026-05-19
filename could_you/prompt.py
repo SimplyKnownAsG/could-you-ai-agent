@@ -2,6 +2,7 @@
 Utilities for processing and expanding prompt text, including COULD_YOU_LOAD_FILE directives safely.
 """
 
+import getpass
 import re
 from pathlib import Path
 
@@ -11,8 +12,8 @@ from .logging_config import LOGGER
 COULD_YOU_LOAD_FILE_PATTERN = re.compile(r"^COULD_YOU_LOAD_FILE\((.+)\)$", re.MULTILINE)
 COULD_YOU_DEFAULT_PROMPT_PATTERN = re.compile(r"^COULD_YOU_DEFAULT_PROMPT(\(\))?$", re.MULTILINE)
 
-DEFAULT_PROMPT = """
-Your name is Cyborg.
+DEFAULT_PROMPT_TEMPLATE = """
+Your name is {agent_name}.
 
 You are an agent responsible for helping a software developer perform tasks.
 
@@ -37,7 +38,21 @@ def enrich_raw_prompt(prompt: str) -> str:
 
 
 def _expand_cy_default_pattern(prompt: str) -> str:
-    return COULD_YOU_DEFAULT_PROMPT_PATTERN.sub(DEFAULT_PROMPT, prompt)
+    return COULD_YOU_DEFAULT_PROMPT_PATTERN.sub(_default_prompt(), prompt)
+
+
+def _default_prompt() -> str:
+    return DEFAULT_PROMPT_TEMPLATE.format(agent_name=_default_agent_name())
+
+
+def _default_agent_name() -> str:
+    try:
+        user = getpass.getuser()
+    except OSError:
+        user = "usr"
+
+    user = user.strip() or "usr"
+    return f"{user}-borg"
 
 
 def _expand_cy_load_file(prompt: str) -> str:
