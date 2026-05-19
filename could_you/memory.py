@@ -113,7 +113,15 @@ def _memory_repo_path(w_config_dir: Path) -> Path:
 def _backup_commit_paths(repo_path: Path, w_config_dir: Path, backup_path: Path, metadata_path: Path) -> list[str]:
     paths = [backup_path, metadata_path]
 
-    for file_name in ("config.yaml", "config.yml", "config.json", "SYSTEM_PROMPT.md", "TODO.md", "MEMORY.md"):
+    for file_name in (
+        "config.yaml",
+        "config.yml",
+        "config.json",
+        "SYSTEM_PROMPT.md",
+        "FORMATIVE.md",
+        "TODO.md",
+        "MEMORY.md",
+    ):
         path = w_config_dir / file_name
 
         if path.is_file() and path.is_relative_to(repo_path):

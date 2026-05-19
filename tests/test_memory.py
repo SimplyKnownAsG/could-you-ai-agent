@@ -94,6 +94,7 @@ def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_pa
     metadata_path.write_text("{}")
     (w_config_dir / "config.yaml").write_text("systemPrompt: hi\n")
     (w_config_dir / "SYSTEM_PROMPT.md").write_text("# System\n")
+    (w_config_dir / "FORMATIVE.md").write_text("# Formative\n")
     (w_config_dir / "TODO.md").write_text("# TODO\n")
     (w_config_dir / "MEMORY.md").write_text("# Memory\n")
 
@@ -104,6 +105,7 @@ def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_pa
         str(metadata_path),
         str(w_config_dir / "config.yaml"),
         str(w_config_dir / "SYSTEM_PROMPT.md"),
+        str(w_config_dir / "FORMATIVE.md"),
         str(w_config_dir / "TODO.md"),
         str(w_config_dir / "MEMORY.md"),
     ]
