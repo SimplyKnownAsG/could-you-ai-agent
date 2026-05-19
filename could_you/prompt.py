@@ -21,6 +21,8 @@ DO NOT ASSUME any file edits you have previously made will be persisted, or were
 DO NOT ASSUME that you should make file edits, only make file changes if asked. For example, if asked to \"show\" or
 \"tell\" only provide an answer.
 
+COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)
+
 COULD_YOU_LOAD_FILE(*.md)
 """
 

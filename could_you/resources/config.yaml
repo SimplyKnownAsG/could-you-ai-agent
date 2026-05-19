@@ -22,6 +22,14 @@ llm:
     model: gpt-4.1
 
 
+# System prompt.
+#
+# COULD_YOU_DEFAULT_PROMPT includes any *.md files in the workspace root, and
+# .could-you/MEMORY.md load so user-owned workspace memory is part of the
+# default context when the file exists.
+systemPrompt: |
+  COULD_YOU_DEFAULT_PROMPT
+
 # Memory/context pressure thresholds
 memory:
   # Warn before sending a query when prior assistant token usage is at or above this percentage.

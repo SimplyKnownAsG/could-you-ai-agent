@@ -93,6 +93,20 @@ def test_enrich_raw_prompt_excludes_outside_paths(tmp_dir: Path):
         assert "ALLOWED" in result
 
 
+def test_default_prompt_loads_workspace_memory_and_root_markdown(tmp_dir: Path):
+    (tmp_dir / "README.md").write_text("README CONTENT")
+    w_config_dir = tmp_dir / ".could-you"
+    w_config_dir.mkdir()
+    memory_path = w_config_dir / "MEMORY.md"
+    memory_path.write_text("MEMORY CONTENT")
+
+    result = prompt.enrich_raw_prompt("COULD_YOU_DEFAULT_PROMPT")
+
+    assert "MEMORY CONTENT" in result
+    assert str(memory_path) in result
+    assert "README CONTENT" in result
+
+
 def test_enrich_raw_prompt_no_directories(tmp_dir: Path):
     (tmp_dir / "foo.md").write_text("FOO CONTENT")
     bar_dir = tmp_dir / "bar.md"

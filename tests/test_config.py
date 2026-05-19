@@ -149,12 +149,14 @@ def test_init_already_exists(tmp_workspace: Path):  # noqa: ARG001
 
 def test_load_git_commit_script(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
     init()
+    (tmp_dir / ".could-you" / "MEMORY.md").write_text("WORKSPACE MEMORY")
     config, _ = load(script_name="git-commit")
     # Confirm query loaded from script, not from config
     assert config.query is not None
     assert "Conventional Commit message" in config.query
     # Should inherit llm from global config
     assert config.llm.provider == "openai"
+    assert "WORKSPACE MEMORY" in config.system_prompt
     # Script should load mcpServers: expect the git-mcp tool config and that no "filesystem" tool is present
     git_mcp = config.mcp_servers.get("git-mcp")
     assert git_mcp, f"Expected to find 'git-mcp' server loaded from script got {config.mcp_servers}"
