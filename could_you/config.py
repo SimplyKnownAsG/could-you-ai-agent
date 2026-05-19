@@ -228,7 +228,7 @@ def _copy_global_config(w_config_dir: Path):
         if not resource.is_file():
             continue
 
-        if resource.suffix not in (".json", ".yaml", ".yml"):
+        if resource.suffix not in (".json", ".yaml", ".yml", ".md"):
             continue
 
         dest = w_config_dir / os.path.basename(str(resource))

@@ -15,14 +15,23 @@ COULD_YOU_DEFAULT_PROMPT_PATTERN = re.compile(r"^COULD_YOU_DEFAULT_PROMPT(\(\))?
 DEFAULT_PROMPT_TEMPLATE = """
 Your name is {agent_name}.
 
-You are an agent responsible for helping a software developer perform tasks.
+COULD_YOU_LOAD_FILE(.could-you/SYSTEM_PROMPT.md)
 
-DO NOT ASSUME any file edits you have previously made will be persisted, or were correct.
+COULD_YOU_LOAD_FILE(.could-you/FORMATIVE.md)
 
-DO NOT ASSUME that you should make file edits, only make file changes if asked. For example, if asked to \"show\" or
-\"tell\" only provide an answer.
+COULD_YOU_LOAD_FILE(.could-you/TODO.md)
 
 COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)
+
+> NOTE for {agent_name}
+>
+> The Markdown files expanded below may not be formatted for your use. They may
+> be out of date, and they may be completely incorrect.This default
+> configuration automatically loads markdown files in the workspace root so
+> fresh projects provide useful context. After you have intentional `.could-you`
+> memory files, consider removing `COULD_YOU_LOAD_FILE(*.md)` from
+> `.could-you/config.yaml` and loading only the files you explicitly want in the
+> prompt.
 
 COULD_YOU_LOAD_FILE(*.md)
 """

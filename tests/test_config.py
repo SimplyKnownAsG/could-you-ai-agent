@@ -113,6 +113,7 @@ def test_init(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
 
     expected = {
         "config.yaml",
+        "SYSTEM_PROMPT.md",
         "script.compact-history.any-script.yaml",
         "script.compact-history.yaml",
         "script.fix_build.json",
