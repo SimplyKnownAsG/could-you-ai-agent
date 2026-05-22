@@ -42,11 +42,18 @@ class MCPServerProps:
 
 
 @define
+class DialogueProps:
+    load: bool = True
+    store: bool = True
+
+
+@define
 class Config:
     llm: LLMProps
     system_prompt: str = field(factory=lambda: "COULD_YOU_DEFAULT_PROMPT", alias="systemPrompt")
     mcp_servers: dict[str, MCPServerProps] = field(factory=dict, alias="mcpServers")
     memory: MemoryProps = field(factory=MemoryProps)
+    dialogue: DialogueProps = field(factory=DialogueProps)
     env: dict[str, str] = field(factory=dict)
     # default query for a script.
     query: str | None = field(factory=lambda: None)

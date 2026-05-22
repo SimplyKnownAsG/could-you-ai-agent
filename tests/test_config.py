@@ -5,6 +5,7 @@ import pytest
 
 from could_you.config import (
     Config,
+    DialogueProps,
     InvalidConfigError,
     _ensure_workspace_privacy,
     _find_workspace_config_dir,
@@ -55,6 +56,29 @@ memory:
     config, _ = load()
     assert config.memory.warning_threshold_percent == 60
     assert config.memory.rejection_threshold_percent == 85
+
+
+def test_load_workspace_dialogue_defaults(tmp_workspace: Path):
+    w_config_path = tmp_workspace / "config.yaml"
+    w_config_path.write_text("""
+llm:
+  provider: openai
+""")
+    config, _ = load()
+    assert config.dialogue == DialogueProps(load=True, store=True)
+
+
+def test_load_workspace_dialogue_config(tmp_workspace: Path):
+    w_config_path = tmp_workspace / "config.yaml"
+    w_config_path.write_text("""
+llm:
+  provider: openai
+dialogue:
+  load: false
+  store: true
+""")
+    config, _ = load()
+    assert config.dialogue == DialogueProps(load=False, store=True)
 
 
 def test_load_workspace_yaml_config(tmp_workspace: Path):
