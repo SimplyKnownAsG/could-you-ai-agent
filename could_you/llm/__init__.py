@@ -2,6 +2,7 @@ from .base_llm import BaseLLM
 from .boto3 import Boto3LLM
 from .ollama import OllamaLLM
 from .openai import OpenAILLM
+from .vertex import VertexLLM
 
 # Factory for LLM
 
@@ -12,6 +13,7 @@ def create_llm(config, dialogue, tools) -> BaseLLM:
         "boto3": Boto3LLM,
         "ollama": OllamaLLM,
         "openai": OpenAILLM,
+        "vertex": VertexLLM,
     }
 
     if provider in providers:

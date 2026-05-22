@@ -31,6 +31,9 @@ DEFAULT_MODEL_TOKEN_LIMITS = [
     ModelTokenLimit(r"chatgpt[-.]4o[-.]latest", 128_000, "ChatGPT 4o latest context window"),
     ModelTokenLimit(r"gpt[-.]4o", 128_000, "GPT-4o context window"),
     ModelTokenLimit(r"gpt[-.]4[-.]turbo", 128_000, "GPT-4 Turbo context window"),
+    # Google Gemini / Vertex AI best-effort defaults.
+    ModelTokenLimit(r"gemini[-.]2[.].*", 1_048_576, "Gemini 2.x default context window"),
+    ModelTokenLimit(r"gemini[-.]1[.]5[-.](pro|flash)", 1_048_576, "Gemini 1.5 Pro/Flash default context window"),
 ]
 
 

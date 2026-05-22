@@ -14,6 +14,11 @@ def test_infer_anthropic_token_limit_from_bedrock_model_id():
     assert infer_token_limit({"modelId": "us.anthropic.claude-sonnet-4-20250514-v1:0"}) == 200_000
 
 
+def test_infer_google_gemini_token_limit():
+    assert infer_token_limit({"model": "gemini-2.5-pro"}) == 1_048_576
+    assert infer_token_limit({"model": "gemini-1.5-flash"}) == 1_048_576
+
+
 def test_infer_token_limit_returns_none_when_unknown():
     assert infer_token_limit({"model": "some-new-model"}) is None
     assert infer_token_limit(None) is None
