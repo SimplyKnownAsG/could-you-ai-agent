@@ -5,6 +5,7 @@ from typing import Any
 
 from cattrs import Converter
 
+from .config import DialogueProps
 from .logging_config import LOGGER
 from .message import Message
 
@@ -17,11 +18,19 @@ class Dialogue:
     load: bool
     store: bool
 
-    def __init__(self, w_config_dir: Path, *, load: bool = True, store: bool = True):
+    def __init__(
+        self,
+        w_config_dir: Path,
+        *,
+        props: DialogueProps | None = None,
+        load: bool | None = None,
+        store: bool | None = None,
+    ):
+        props = props or DialogueProps()
         self.path = w_config_dir / "dialogue.json"
         self.messages = []
-        self.load = load
-        self.store = store
+        self.load = props.load if load is None else load
+        self.store = props.store if store is None else store
 
     def __enter__(self):
         if self.load:

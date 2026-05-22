@@ -53,7 +53,22 @@ def create_parser():
     log_group = parser.add_mutually_exclusive_group()
     log_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)")
     log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
-    parser.add_argument("-H", "--no-history", action="store_true", help="Ignore dialogue history")
+    parser.add_argument(
+        "-L",
+        "--dialogue-load",
+        dest="dialogue_load",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override whether existing dialogue is loaded for this run",
+    )
+    parser.add_argument(
+        "-S",
+        "--dialogue-store",
+        dest="dialogue_store",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override whether dialogue is stored after this run",
+    )
     parser.add_argument(
         "-C",
         "--dump-config",
@@ -148,14 +163,10 @@ async def amain(parser, args):
         else:
             session = session_manager.load_session(args.script)
 
-            dialogue_load = session.config.dialogue.load
-            dialogue_store = session.config.dialogue.store
+            dialogue_load = session.config.dialogue.load if args.dialogue_load is None else args.dialogue_load
+            dialogue_store = session.config.dialogue.store if args.dialogue_store is None else args.dialogue_store
 
-            if args.no_history:
-                dialogue_load = False
-                dialogue_store = False
-
-            if args.script:
+            if args.script and args.dialogue_store is None:
                 dialogue_store = False
 
             query = (

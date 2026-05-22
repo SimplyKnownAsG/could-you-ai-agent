@@ -26,11 +26,7 @@ class Session:
         self.config = config
 
     def dialogue(self, *, load: bool | None = None, store: bool | None = None):
-        return Dialogue(
-            self.w_config_dir,
-            load=self.config.dialogue.load if load is None else load,
-            store=self.config.dialogue.store if store is None else store,
-        )
+        return Dialogue(self.w_config_dir, props=self.config.dialogue, load=load, store=store)
 
 
 class SessionManager:
