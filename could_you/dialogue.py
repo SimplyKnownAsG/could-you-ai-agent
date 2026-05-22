@@ -14,15 +14,17 @@ converter = Converter(use_alias=True, omit_if_default=True)
 class Dialogue:
     path: Path
     messages: list[Message]
-    enable: bool
+    load: bool
+    store: bool
 
-    def __init__(self, w_config_dir: Path, *, enable: bool = True):
+    def __init__(self, w_config_dir: Path, *, load: bool = True, store: bool = True):
         self.path = w_config_dir / "dialogue.json"
         self.messages = []
-        self.enable = enable
+        self.load = load
+        self.store = store
 
     def __enter__(self):
-        if self.enable:
+        if self.load:
             if self.path.exists():
                 with open(self.path) as f:
                     self.messages = [converter.structure(m, Message) for m in json.load(f)]
@@ -30,14 +32,16 @@ class Dialogue:
             else:
                 LOGGER.debug("Dialogue could not be found")
         else:
-            LOGGER.debug("Dialogue disabled, not attempting to load")
+            LOGGER.debug("Dialogue loading disabled, not attempting to load")
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.enable:
+        if self.store:
             with open(self.path, "w") as f:
                 json.dump(self.to_dict(), f, indent=2)
+        else:
+            LOGGER.debug("Dialogue storage disabled, not writing dialogue")
 
     def add(self, message: Message):
         self.messages.append(message)

@@ -25,8 +25,12 @@ class Session:
         self.script_name = script_name
         self.config = config
 
-    def dialogue(self, *, enable: bool):
-        return Dialogue(self.w_config_dir, enable=enable)
+    def dialogue(self, *, load: bool | None = None, store: bool | None = None):
+        return Dialogue(
+            self.w_config_dir,
+            load=self.config.dialogue.load if load is None else load,
+            store=self.config.dialogue.store if store is None else store,
+        )
 
 
 class SessionManager:

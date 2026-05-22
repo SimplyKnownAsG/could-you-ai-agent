@@ -128,7 +128,7 @@ async def amain(parser, args):
         elif args.print_history:
             # Print dialogue history
             session = session_manager.load_session(None)
-            with session.dialogue(enable=True) as dialogue:
+            with session.dialogue(load=True, store=False) as dialogue:
                 dialogue.print(info=LOGGER.info, debug=LOGGER.debug)
         elif args.backup_memory is not None:
             w_config_dir = _find_workspace_config_dir(Path.cwd())
@@ -142,15 +142,21 @@ async def amain(parser, args):
         elif args.test_connect:
             # List servers and their tools
             session = session_manager.load_session(None)
-            with session.dialogue(enable=False) as dialogue:
+            with session.dialogue(load=False, store=False) as dialogue:
                 async with Agent(config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(args.test_connect)
         else:
-            enable_history = not args.no_history
             session = session_manager.load_session(args.script)
 
+            dialogue_load = session.config.dialogue.load
+            dialogue_store = session.config.dialogue.store
+
+            if args.no_history:
+                dialogue_load = False
+                dialogue_store = False
+
             if args.script:
-                enable_history = False
+                dialogue_store = False
 
             query = (
                 args.query
@@ -165,7 +171,7 @@ async def amain(parser, args):
                 parser.print_help()
                 return
 
-            with session.dialogue(enable=enable_history) as dialogue:
+            with session.dialogue(load=dialogue_load, store=dialogue_store) as dialogue:
                 async with Agent(config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(query)
                     _remove_query_md(session.w_config_dir)
@@ -182,7 +188,7 @@ def _get_editor_input(w_config_dir: Path):
     with query_md_path.open("w") as tf:
         tf.write("# Previous dialogue\n\n")
         # Write dialogue history to the file
-        with Dialogue(w_config_dir) as dialogue:
+        with Dialogue(w_config_dir, load=True, store=False) as dialogue:
 
             def printer(msg):
                 print(msg, file=tf)
