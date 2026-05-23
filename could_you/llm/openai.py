@@ -79,6 +79,8 @@ class OpenAILLM(BaseLLM):
             outputTokens=getattr(usage, "completion_tokens", None) if usage else None,
             totalTokens=getattr(usage, "total_tokens", None) if usage else None,
             tokenLimit=token_limit,
+            provider=self.config.llm.provider,
+            model=(self.config.llm.args or {}).get("model"),
         )
 
     def _convert_messages(self) -> list[dict[str, str]]:

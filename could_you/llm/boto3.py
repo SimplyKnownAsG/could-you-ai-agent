@@ -63,6 +63,10 @@ class Boto3LLM(BaseLLM):
             outputTokens=usage.get("outputTokens") if usage else None,
             totalTokens=usage.get("totalTokens") if usage else None,
             tokenLimit=token_limit,
+            provider=self.config.llm.provider,
+            model=(self.config.llm.args or {}).get("model")
+            or (self.config.llm.args or {}).get("modelId")
+            or (self.config.llm.args or {}).get("model_id"),
         )
 
     def _build_converse_payload(self) -> dict:

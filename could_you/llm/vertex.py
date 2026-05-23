@@ -122,6 +122,8 @@ class VertexLLM(BaseLLM):
             outputTokens=getattr(usage, "candidates_token_count", None) if usage else None,
             totalTokens=getattr(usage, "total_token_count", None) if usage else None,
             tokenLimit=token_limit,
+            provider=self.config.llm.provider,
+            model=(self.config.llm.args or {}).get("model"),
         )
 
     def _convert_messages(self) -> list[types.Content]:

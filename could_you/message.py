@@ -121,6 +121,8 @@ class TokenUsage:
     output_tokens: int | None = field(default=None, alias="outputTokens")
     total_tokens: int | None = field(default=None, alias="totalTokens")
     token_limit: int | None = field(default=None, alias="tokenLimit")
+    provider: str | None = None
+    model: str | None = None
 
     def format(self) -> str:
         details = []
@@ -133,6 +135,10 @@ class TokenUsage:
             details.append(f"total={self.total_tokens}")
         if self.token_limit is not None:
             details.append(f"limit={self.token_limit}")
+        if self.provider is not None:
+            details.append(f"provider={self.provider}")
+        if self.model is not None:
+            details.append(f"model={self.model}")
 
         return ", ".join(details)
 

@@ -40,7 +40,14 @@ def test_vertex_extracts_token_usage_from_response():
 
     message = llm._transform_response(response)  # noqa: SLF001
 
-    assert message.token_usage == TokenUsage(inputTokens=12, outputTokens=7, totalTokens=19, tokenLimit=1_000_000)
+    assert message.token_usage == TokenUsage(
+        inputTokens=12,
+        outputTokens=7,
+        totalTokens=19,
+        tokenLimit=1_000_000,
+        provider="vertex",
+        model="gemini-2.5-pro",
+    )
 
 
 def test_vertex_convert_messages_maps_text_roles():

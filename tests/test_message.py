@@ -110,7 +110,14 @@ def test_message_token_usage_serializes_with_camel_case():
     message = Message(
         role="assistant",
         content=[TextContent(text="hi")],
-        tokenUsage=TokenUsage(inputTokens=10, outputTokens=5, totalTokens=15, tokenLimit=100),
+        tokenUsage=TokenUsage(
+            inputTokens=10,
+            outputTokens=5,
+            totalTokens=15,
+            tokenLimit=100,
+            provider="openai",
+            model="gpt-4o",
+        ),
     )
 
     assert converter.unstructure(message) == {
@@ -121,6 +128,8 @@ def test_message_token_usage_serializes_with_camel_case():
             "outputTokens": 5,
             "totalTokens": 15,
             "tokenLimit": 100,
+            "provider": "openai",
+            "model": "gpt-4o",
         },
     }
 
@@ -137,6 +146,26 @@ def test_message_prints_token_percent_in_heading_and_breakdown_below():
 
     assert "## Assistant (15% used)" in p.lines
     assert "_Token usage: input=10, output=5, total=15, limit=100_" in p.lines
+
+
+def test_message_prints_token_provider_and_model_when_present():
+    p = Printer()
+    message = Message(
+        role="assistant",
+        content=[TextContent(text="hi")],
+        tokenUsage=TokenUsage(
+            inputTokens=10,
+            outputTokens=5,
+            totalTokens=15,
+            tokenLimit=100,
+            provider="openai",
+            model="gpt-4o",
+        ),
+    )
+
+    message.print(info=p.dummy_printer, debug=p.dummy_printer)
+
+    assert "_Token usage: input=10, output=5, total=15, limit=100, provider=openai, model=gpt-4o_" in p.lines
 
 
 def test_message_prints_token_percent_up_to_two_decimal_places():

@@ -28,7 +28,14 @@ def test_openai_extracts_token_usage_from_response():
 
     message = llm._transform_response(response)  # noqa: SLF001
 
-    assert message.token_usage == TokenUsage(inputTokens=12, outputTokens=7, totalTokens=19, tokenLimit=128000)
+    assert message.token_usage == TokenUsage(
+        inputTokens=12,
+        outputTokens=7,
+        totalTokens=19,
+        tokenLimit=128000,
+        provider="openai",
+        model=None,
+    )
 
 
 def test_openai_convert_messages_ignores_token_usage():
