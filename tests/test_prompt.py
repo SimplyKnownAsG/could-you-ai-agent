@@ -14,11 +14,14 @@ def test_enrich_raw_prompt_exact_match(tmp_dir: Path):
     # Single
     p = "COULD_YOU_LOAD_FILE(foo.md)"
     result = prompt.enrich_raw_prompt(p)
-    assert "COULD_YOU_LOAD_FILE" not in result
-    assert "FOO CONTENT" in result
-    assert "BAR CONTENT" not in result
-    assert str(tmp_dir / "foo.md") in result
-    assert str(tmp_dir / "bar.md") not in result
+    assert "COULD_YOU_LOAD_FILE" not in result.text
+    assert "FOO CONTENT" in result.text
+    assert "BAR CONTENT" not in result.text
+    assert str(tmp_dir / "foo.md") in result.text
+    assert str(tmp_dir / "bar.md") not in result.text
+    assert result.metadata.loaded_files == [
+        prompt.LoadedFileMetadata(directive="foo.md", path=str((tmp_dir / "foo.md").absolute()), bytes=11)
+    ]
 
 
 def test_not_match(tmp_dir: Path):
@@ -28,7 +31,8 @@ def test_not_match(tmp_dir: Path):
     for p in prompts:
         # Single
         result = prompt.enrich_raw_prompt(p)
-        assert result == p
+        assert result.text == p
+        assert result.metadata.loaded_files == []
 
 
 def test_multi_line(tmp_dir: Path):
@@ -40,11 +44,13 @@ def test_multi_line(tmp_dir: Path):
     AFTER
     """)
     result = prompt.enrich_raw_prompt(p)
-    assert "BEFORE" in result
-    assert str(tmp_dir / "foo.md") in result
-    assert "COULD_YOU_LOAD_FILE" not in result
-    assert "FOO CONTENT" in result
-    assert "AFTER" in result
+    assert "BEFORE" in result.text
+    assert str(tmp_dir / "foo.md") in result.text
+    assert "COULD_YOU_LOAD_FILE" not in result.text
+    assert "FOO CONTENT" in result.text
+    assert "AFTER" in result.text
+    assert result.metadata.loaded_file_count == 1
+    assert result.metadata.total_loaded_bytes == 11
 
 
 def test_parentheses(tmp_dir: Path):
@@ -52,9 +58,12 @@ def test_parentheses(tmp_dir: Path):
     (tmp_dir / "f()().md").write_text("F()() CONTENT")
     p = "COULD_YOU_LOAD_FILE(f()().md)"
     result = prompt.enrich_raw_prompt(p)
-    assert str(tmp_dir / "f()().md") in result
-    assert "COULD_YOU_LOAD_FILE" not in result
-    assert "F()() CONTENT" in result
+    assert str(tmp_dir / "f()().md") in result.text
+    assert "COULD_YOU_LOAD_FILE" not in result.text
+    assert "F()() CONTENT" in result.text
+    assert result.metadata.loaded_files == [
+        prompt.LoadedFileMetadata(directive="f()().md", path=str((tmp_dir / "f()().md").absolute()), bytes=13)
+    ]
 
 
 def test_enrich_raw_prompt_wildcard(tmp_dir: Path):
@@ -64,11 +73,13 @@ def test_enrich_raw_prompt_wildcard(tmp_dir: Path):
     # Single
     p = "COULD_YOU_LOAD_FILE(*.md)"
     result = prompt.enrich_raw_prompt(p)
-    assert "COULD_YOU_LOAD_FILE" not in result
-    assert "FOO CONTENT" in result
-    assert "BAR CONTENT" in result
-    assert str(tmp_dir / "foo.md") in result
-    assert str(tmp_dir / "bar.md") in result
+    assert "COULD_YOU_LOAD_FILE" not in result.text
+    assert "FOO CONTENT" in result.text
+    assert "BAR CONTENT" in result.text
+    assert str(tmp_dir / "foo.md") in result.text
+    assert str(tmp_dir / "bar.md") in result.text
+    assert result.metadata.loaded_file_count == 2
+    assert result.metadata.total_loaded_bytes == 22
 
 
 def test_enrich_raw_prompt_excludes_outside_paths(tmp_dir: Path):
@@ -81,17 +92,24 @@ def test_enrich_raw_prompt_excludes_outside_paths(tmp_dir: Path):
         # Try to glob only at allowed_base, should not pick up from subdir
         result = prompt.enrich_raw_prompt("COULD_YOU_LOAD_FILE(*.md)")
         # Should not include forbidden file (in subdir), only include file at root
-        assert "FORBIDDEN" not in result
-        assert "ALLOWED" in result
+        assert "FORBIDDEN" not in result.text
+        assert "ALLOWED" in result.text
+        assert result.metadata.loaded_files == [
+            prompt.LoadedFileMetadata(directive="*.md", path=str(allowed_path.absolute()), bytes=7)
+        ]
 
         # test 2
         result = prompt.enrich_raw_prompt("COULD_YOU_LOAD_FILE(../*.md)")
-        assert result == ""
+        assert result.text == ""
+        assert result.metadata.loaded_files == []
 
         # test 3
         result = prompt.enrich_raw_prompt("COULD_YOU_LOAD_FILE(../**/*.md)")
-        assert "FORBIDDEN" not in result
-        assert "ALLOWED" in result
+        assert "FORBIDDEN" not in result.text
+        assert "ALLOWED" in result.text
+        assert result.metadata.loaded_files == [
+            prompt.LoadedFileMetadata(directive="../**/*.md", path=str(allowed_path.absolute()), bytes=7)
+        ]
 
 
 def test_default_agent_name_uses_current_user(monkeypatch):
@@ -119,10 +137,12 @@ def test_default_prompt_loads_workspace_memory_and_root_markdown(tmp_dir: Path, 
 
     result = prompt.enrich_raw_prompt("COULD_YOU_DEFAULT_PROMPT")
 
-    assert "Your name is alice-borg." in result
-    assert "MEMORY CONTENT" in result
-    assert str(memory_path) in result
-    assert "README CONTENT" in result
+    assert "Your name is alice-borg." in result.text
+    assert "MEMORY CONTENT" in result.text
+    assert str(memory_path) in result.text
+    assert "README CONTENT" in result.text
+    assert result.metadata.loaded_file_count == 2
+    assert result.metadata.total_loaded_bytes == 28
 
 
 def test_enrich_raw_prompt_no_directories(tmp_dir: Path):
@@ -133,7 +153,10 @@ def test_enrich_raw_prompt_no_directories(tmp_dir: Path):
     # Single
     p = "COULD_YOU_LOAD_FILE(*.md)"
     result = prompt.enrich_raw_prompt(p)
-    assert "COULD_YOU_LOAD_FILE" not in result
-    assert "FOO CONTENT" in result
-    assert "FOO2 CONTENT" not in result
-    assert str(tmp_dir / "foo.md") in result
+    assert "COULD_YOU_LOAD_FILE" not in result.text
+    assert "FOO CONTENT" in result.text
+    assert "FOO2 CONTENT" not in result.text
+    assert str(tmp_dir / "foo.md") in result.text
+    assert result.metadata.loaded_files == [
+        prompt.LoadedFileMetadata(directive="*.md", path=str((tmp_dir / "foo.md").absolute()), bytes=11)
+    ]

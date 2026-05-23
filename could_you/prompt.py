@@ -6,7 +6,10 @@ import getpass
 import re
 from pathlib import Path
 
+from attrs import define, field
+
 from .logging_config import LOGGER
+from .metadata import LoadedFileMetadata, PromptMetadata
 
 # Pattern to match COULD_YOU_LOAD_FILE(relative/path.md or glob)
 COULD_YOU_LOAD_FILE_PATTERN = re.compile(r"^COULD_YOU_LOAD_FILE\((.+)\)$", re.MULTILINE)
@@ -37,7 +40,13 @@ COULD_YOU_LOAD_FILE(*.md)
 """
 
 
-def enrich_raw_prompt(prompt: str) -> str:
+@define(frozen=True)
+class PromptExpansionResult:
+    text: str
+    metadata: PromptMetadata = field(factory=PromptMetadata)
+
+
+def enrich_raw_prompt(prompt: str) -> PromptExpansionResult:
     """
     Public entrypoint: applies all prompt enrichments to the raw prompt string.
     Add additional prompt-enriching logic here as needed.
@@ -64,11 +73,12 @@ def _default_agent_name() -> str:
     return f"{user}-borg"
 
 
-def _expand_cy_load_file(prompt: str) -> str:
+def _expand_cy_load_file(prompt: str) -> PromptExpansionResult:
     """
     Replace all COULD_YOU_LOAD_FILE(pattern) in the prompt with the actual contents of all files matching the glob pattern.
     """
     cwd = str(Path.cwd().resolve())
+    loaded_files: list[LoadedFileMetadata] = []
 
     def _replace(match):
         rel_pattern = match.group(1).strip()
@@ -87,6 +97,7 @@ def _expand_cy_load_file(prompt: str) -> str:
             try:
                 with open(file_path, encoding="utf-8") as f:
                     content = f.read()
+                loaded_files.append(LoadedFileMetadata.from_path(directive=rel_pattern, path=file_path))
                 result += f'\n<could-you-prompt-expanded-file "{file_path.absolute()}">\n'
                 result += content + "\n"
                 result += f'</could-you-prompt-expanded-file "{file_path.absolute()}">\n\n'
@@ -98,4 +109,5 @@ def _expand_cy_load_file(prompt: str) -> str:
 
         return result
 
-    return COULD_YOU_LOAD_FILE_PATTERN.sub(_replace, prompt)
+    expanded_prompt = COULD_YOU_LOAD_FILE_PATTERN.sub(_replace, prompt)
+    return PromptExpansionResult(text=expanded_prompt, metadata=PromptMetadata(loaded_files=loaded_files))

@@ -12,6 +12,7 @@ from .agent import Agent
 from .config import _find_workspace_config_dir, load
 from .cy_error import CYError
 from .dialogue import Dialogue
+from .inspect_memory import dump_memory_inspection_yaml, inspect_memory
 from .logging_config import LOGGER, set_up_logging
 from .memory import backup_dialogue
 from .permissions import format_permission_report, inspect_permission_boundary
@@ -108,6 +109,13 @@ def create_parser():
         help="Back up .could-you/dialogue.json to the private memory git repo",
     )
     cmd_group.add_argument(
+        "--inspect-memory",
+        "--memory-status",
+        dest="inspect_memory",
+        action="store_true",
+        help="Print a deterministic report about dialogue, prompt loads, thresholds, and memory files",
+    )
+    cmd_group.add_argument(
         "--inspect-permissions",
         action="store_true",
         help="Print an observational report about the current OS-user/filesystem permission boundary",
@@ -150,6 +158,8 @@ async def amain(parser, args):
             result = backup_dialogue(w_config_dir, topic=args.backup_memory or None)
             LOGGER.info(f"Memory repo: {result.repo_path}")
             LOGGER.info(f"Backup file: {result.backup_path}")
+        elif args.inspect_memory:
+            print(dump_memory_inspection_yaml(inspect_memory(args.script)))  # noqa: T201
         elif args.inspect_permissions:
             w_config_dir = _find_workspace_config_dir(Path.cwd())
             report = inspect_permission_boundary(w_config_dir)

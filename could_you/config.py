@@ -117,7 +117,8 @@ def _load_dict(w_config_dir: Path, script_name: str | None = None) -> dict[str, 
 
 def _validate_config(config: Config, w_config_dir: Path):
     # Apply defaults
-    config.system_prompt = enrich_raw_prompt(config.system_prompt)
+    prompt_expansion = enrich_raw_prompt(config.system_prompt)
+    config.system_prompt = prompt_expansion.text
 
     # Validate required fields
     if not config.llm or not config.llm.provider:
