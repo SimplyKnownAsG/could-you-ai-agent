@@ -105,12 +105,12 @@ def test_print_markdown_not_adjust_nested_indented_code():
     assert "  ```" in p.lines
 
 
-def test_message_token_usage_serializes_with_camel_case():
+def test_message_metadata_serializes_with_camel_case():
     converter = Converter(use_alias=True, omit_if_default=True)
     message = Message(
         role="assistant",
         content=[TextContent(text="hi")],
-        tokenUsage=TokenUsage(
+        metadata=TokenUsage(
             inputTokens=10,
             outputTokens=5,
             totalTokens=15,
@@ -123,7 +123,7 @@ def test_message_token_usage_serializes_with_camel_case():
     assert converter.unstructure(message) == {
         "role": "assistant",
         "content": [{"text": "hi"}],
-        "tokenUsage": {
+        "metadata": {
             "inputTokens": 10,
             "outputTokens": 5,
             "totalTokens": 15,
@@ -139,7 +139,7 @@ def test_message_prints_token_percent_in_heading_and_breakdown_below():
     message = Message(
         role="assistant",
         content=[TextContent(text="hi")],
-        tokenUsage=TokenUsage(inputTokens=10, outputTokens=5, totalTokens=15, tokenLimit=100),
+        metadata=TokenUsage(inputTokens=10, outputTokens=5, totalTokens=15, tokenLimit=100),
     )
 
     message.print(info=p.dummy_printer, debug=p.dummy_printer)
@@ -153,7 +153,7 @@ def test_message_prints_token_provider_and_model_when_present():
     message = Message(
         role="assistant",
         content=[TextContent(text="hi")],
-        tokenUsage=TokenUsage(
+        metadata=TokenUsage(
             inputTokens=10,
             outputTokens=5,
             totalTokens=15,
@@ -173,7 +173,7 @@ def test_message_prints_token_percent_up_to_two_decimal_places():
     message = Message(
         role="assistant",
         content=[TextContent(text="hi")],
-        tokenUsage=TokenUsage(inputTokens=1, outputTokens=1, totalTokens=1, tokenLimit=300),
+        metadata=TokenUsage(inputTokens=1, outputTokens=1, totalTokens=1, tokenLimit=300),
     )
 
     message.print(info=p.dummy_printer, debug=p.dummy_printer)

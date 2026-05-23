@@ -40,7 +40,7 @@ def test_vertex_extracts_token_usage_from_response():
 
     message = llm._transform_response(response)  # noqa: SLF001
 
-    assert message.token_usage == TokenUsage(
+    assert message.metadata == TokenUsage(
         inputTokens=12,
         outputTokens=7,
         totalTokens=19,

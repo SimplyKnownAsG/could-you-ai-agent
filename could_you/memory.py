@@ -20,10 +20,10 @@ class MemoryBackupError(CYError):
 
 def current_token_percent_used(messages: list[Message]) -> float | None:
     for message in reversed(messages):
-        if not message.token_usage:
+        if not message.metadata:
             continue
 
-        percent_used = message.token_usage.percent_used()
+        percent_used = message.metadata.percent_used()
         if percent_used is not None:
             return percent_used
 

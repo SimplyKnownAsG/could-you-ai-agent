@@ -116,7 +116,7 @@ class MessageType(str, Enum):
 
 
 @define
-class TokenUsage:
+class MessageMetadata:
     input_tokens: int | None = field(default=None, alias="inputTokens")
     output_tokens: int | None = field(default=None, alias="outputTokens")
     total_tokens: int | None = field(default=None, alias="totalTokens")
@@ -162,12 +162,20 @@ class TokenUsage:
             info(f"_Token usage: {formatted}_")
 
 
+TokenUsage = MessageMetadata
+
+
 @define
-class Message:
+class Message(AttrsAllowAliasKeyword):
     role: Literal["user", "assistant", "tool", "system"]
     content: list[Content]
     type: MessageType = field(default=MessageType.NORMAL)
-    token_usage: TokenUsage | None = field(default=None, alias="tokenUsage")
+    metadata: MessageMetadata | None = field(default=None, alias="metadata")
+
+    def __init__(self, *args, **kwargs):
+        if "tokenUsage" in kwargs and "metadata" not in kwargs:
+            kwargs["metadata"] = kwargs.pop("tokenUsage")
+        super().__init__(*args, **kwargs)
 
     def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
         """Render this message as markdown, making tool use/results explicit.
@@ -180,8 +188,8 @@ class Message:
         - Tool tool_result: "## Tool result"
         """
         heading_details = []
-        if self.token_usage:
-            percent_used = self.token_usage.format_percent_used()
+        if self.metadata:
+            percent_used = self.metadata.format_percent_used()
             if percent_used:
                 heading_details.append(percent_used)
 
@@ -209,8 +217,8 @@ class Message:
             heading = f"{heading} ({', '.join(heading_details)})"
 
         info(f"## {heading}")
-        if self.token_usage:
-            self.token_usage.print(info=info)
+        if self.metadata:
+            self.metadata.print(info=info)
         for content in self.content:
             content.print(info=info, debug=debug)
 

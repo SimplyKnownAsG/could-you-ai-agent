@@ -7,7 +7,7 @@ from google.genai import types
 
 from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
-from ..message import Message, MessageType, TextContent, TokenUsage, ToolResultContent, ToolUse, ToolUseContent
+from ..message import Message, MessageMetadata, MessageType, TextContent, ToolResultContent, ToolUse, ToolUseContent
 from .base_llm import BaseLLM
 
 
@@ -107,17 +107,17 @@ class VertexLLM(BaseLLM):
             role="assistant",
             content=content,
             type=message_type,
-            tokenUsage=self._extract_token_usage(response),
+            metadata=self._extract_token_usage(response),
         )
 
-    def _extract_token_usage(self, response) -> TokenUsage | None:
+    def _extract_token_usage(self, response) -> MessageMetadata | None:
         usage = getattr(response, "usage_metadata", None)
         token_limit = self.config.llm.token_limit
 
         if not usage and token_limit is None:
             return None
 
-        return TokenUsage(
+        return MessageMetadata(
             inputTokens=getattr(usage, "prompt_token_count", None) if usage else None,
             outputTokens=getattr(usage, "candidates_token_count", None) if usage else None,
             totalTokens=getattr(usage, "total_token_count", None) if usage else None,
