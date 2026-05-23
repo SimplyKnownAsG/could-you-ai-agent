@@ -1,24 +1,22 @@
-systemPrompt: |
-  You are running a private, script-mode memory compaction workflow for could-you.
+query: |
+  You are performing explicit memory gardening / history compaction for could-you.
 
-  Script mode has no normal live dialogue history. The current live dialogue is loaded below explicitly from
-  .could-you/dialogue.json.
+  This is a maintenance operation, not a normal user conversation.
 
-  Purpose:
-  - Preserve continuity while allowing live dialogue history to be removed.
-  - Turn raw conversation history into durable, user-owned memory.
-  - Help the agent understand and serve this workspace's user more effectively over time.
-
-  Core memory goal:
-  could-you is intended to support user-owned, local-first memory. Long-lasting memory should include durable facts about
-  the project, the user's preferences, working style, priorities, trust boundaries, and collaboration patterns.
+  Important context about memory:
+  - The live dialogue is temporary working history loaded structurally by script-mode dialogue settings, not pasted into the prompt as raw JSON.
+  - The live dialogue will be archived separately before removal. This is archival/pruning for continuity and token-cost control, not true forgetting.
+  - .could-you/FORMATIVE.md holds stable, high-confidence, identity-shaping memories and should change slowly.
+  - .could-you/MEMORY.md holds durable but more fluid continuity: project state, implementation facts, decisions, limitations, and continuation points.
+  - .could-you/TODO.md holds active working intent, open loops, and next actions. It should reflect what is still live after compaction.
 
   Your job:
-  - Read the loaded prompt/context files and dialogue.json.
-  - Decide what should survive after dialogue.json is removed.
+  - Read the loaded prompt/context files and current live dialogue.
+  - Decide what should survive after the live dialogue is removed.
   - Produce a terse one-line title for this conversation/task history.
   - Produce a concise longer summary suitable for a git commit body.
-  - Produce a complete updated replacement for MEMORY.md.
+  - Produce a complete updated replacement for .could-you/MEMORY.md.
+  - Produce a complete updated replacement for .could-you/TODO.md.
   - Call the compact_history tool exactly once.
 
   What MEMORY.md should preserve:
@@ -29,7 +27,18 @@ systemPrompt: |
   - If the conversation is in the middle of work, explicitly say so and record the immediate continuation point.
   - Any corrections where earlier assumptions were wrong.
 
-  What MEMORY.md should avoid:
+  What TODO.md should preserve:
+  - Only active open loops and next actions that still matter.
+  - The current priority and immediate continuation point.
+  - Important unresolved questions.
+
+  What TODO.md should avoid:
+  - Completed side quests.
+  - Resolved investigations.
+  - Stale tasks that no longer matter.
+  - Items that belong in durable memory rather than active work tracking.
+
+  What both files should avoid:
   - Raw transcript dumps.
   - Ephemeral chatter with no future value.
   - Secrets, credentials, or sensitive implementation details not needed for continuity.
@@ -41,22 +50,21 @@ systemPrompt: |
   - The title must be one line, no quotes, no markdown, under 80 characters.
   - The summary should be concise but preserve important decisions and implementation facts.
   - The memory input must be the complete desired contents of .could-you/MEMORY.md.
-  - Write MEMORY.md in a form useful to a future agent starting with empty dialogue.json.
+  - The todo input must be the complete desired contents of .could-you/TODO.md.
+  - Write MEMORY.md and TODO.md in a form useful to a future agent starting with empty dialogue.json.
 
   Loaded context:
 
   COULD_YOU_LOAD_FILE(.could-you/SYSTEM_PROMPT.md)
+  COULD_YOU_LOAD_FILE(.could-you/FORMATIVE.md)
   COULD_YOU_LOAD_FILE(.could-you/TODO.md)
   COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)
-  COULD_YOU_LOAD_FILE(.could-you/dialogue.json)
-
-query: |
-  Compact the current conversation history now.
 
   Generate:
   1. a terse one-line title,
   2. a concise summary,
-  3. a complete updated MEMORY.md that preserves durable continuity and user-specific understanding,
+  3. a complete updated MEMORY.md,
+  4. a complete updated TODO.md,
 
   then call compact_history exactly once with those values.
 
@@ -67,6 +75,10 @@ query: |
 memory:
   warningThresholdPercent: 95
   rejectionThresholdPercent: 100
+
+dialogue:
+  load: true
+  store: false
 
 mcpServers:
   any-script:

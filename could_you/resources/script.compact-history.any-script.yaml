@@ -2,9 +2,9 @@ tools:
   - name: compact_history
     description: >
       Finalize semantic memory compaction. Use this only after generating a title, commit summary,
-      and complete replacement MEMORY.md. The tool backs up the raw dialogue history, installs the
-      generated MEMORY.md, removes live dialogue.json so the next run starts fresh, and commits the
-      updated private memory state.
+      and complete replacement MEMORY.md and TODO.md. The tool backs up the raw dialogue history,
+      installs the generated MEMORY.md and TODO.md, removes live dialogue.json so the next run
+      starts fresh, and commits the updated private memory state.
     inputs:
       title:
         type: string
@@ -27,16 +27,25 @@ tools:
           future agent with empty live history: project state, next steps, limitations, user-specific
           preferences and values, trust/privacy boundaries, and any in-progress continuation point.
         required: true
+      todo:
+        type: string
+        description: >
+          Complete replacement contents for .could-you/TODO.md. Preserve only active open loops,
+          current priorities, next actions, and unresolved questions that should remain live after
+          compaction. Do not keep completed or stale items.
+        required: true
     run: |
       set -eu
 
       title_file=".could-you/.compact-title.tmp"
       summary_file=".could-you/.compact-summary.tmp"
       memory_file=".could-you/.compact-memory.tmp"
+      todo_file=".could-you/.compact-todo.tmp"
 
       printf '%s\n' "$INPUTS__TITLE" > "$title_file"
       printf '%s\n' "$INPUTS__SUMMARY" > "$summary_file"
       printf '%s\n' "$INPUTS__MEMORY" > "$memory_file"
+      printf '%s\n' "$INPUTS__TODO" > "$todo_file"
 
       title="$(head -n 1 "$title_file" | tr -d '\r')"
       summary="$(cat "$summary_file")"
@@ -54,12 +63,13 @@ tools:
       could-you --backup-memory "$title"
 
       cp "$memory_file" .could-you/MEMORY.md
+      cp "$todo_file" .could-you/TODO.md
       rm '.could-you/dialogue.json'
 
       cd .could-you
-      git add MEMORY.md
+      git add MEMORY.md TODO.md
       git commit -m "memory: compact history: $title" -m "$summary"
 
-      rm -f .compact-title.tmp .compact-summary.tmp .compact-memory.tmp
+      rm -f .compact-title.tmp .compact-summary.tmp .compact-memory.tmp .compact-todo.tmp
 
       echo "Compacted history: $title"
