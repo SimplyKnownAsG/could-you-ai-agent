@@ -190,6 +190,13 @@ def test_load_git_commit_script(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa
     assert not fs_servers, "Should not merge filesystem mcpServers when running a script"
 
 
+def test_load_compact_history_script_dialogue_settings(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
+    init()
+    config, _ = load(script_name="compact-history")
+
+    assert config.dialogue == DialogueProps(load=True, store=False)
+
+
 def test_load_nonexistent_script_raises(tmp_workspace: Path):
     w_config_path = tmp_workspace / "config.json"
     w_config_path.write_text(MINIMAL_JSON)
