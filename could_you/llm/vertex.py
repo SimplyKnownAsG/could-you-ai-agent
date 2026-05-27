@@ -1,6 +1,7 @@
 import json
 from copy import deepcopy
 from typing import Any
+import re
 
 from google import genai
 from google.genai import types
@@ -9,6 +10,10 @@ from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
 from ..message import Message, MessageMetadata, MessageType, TextContent, ToolResultContent, ToolUse, ToolUseContent
 from .base_llm import BaseLLM
+
+from typing import TypeVar, cast
+
+T = TypeVar('T')
 
 
 class VertexLLM(BaseLLM):
@@ -184,7 +189,7 @@ class VertexLLM(BaseLLM):
                 types.FunctionDeclaration(
                     name=tool.name,
                     description=str(tool.description),
-                    parameters=self._sanitize_schema(tool.inputSchema),
+                    parameters=types.Schema(**self._sanitize_schema(tool.inputSchema)),
                 )
             )
 
@@ -193,7 +198,7 @@ class VertexLLM(BaseLLM):
 
         return [types.Tool(function_declarations=declarations)]
 
-    def _sanitize_schema(self, schema: dict[str, Any]) -> dict[str, Any]:
+    def _sanitize_schema(self, value: T) -> T:
         """Remove provider-incompatible JSON Schema decoration.
 
         MCP tool schemas may carry extra metadata from zod/json-schema conversion
@@ -201,20 +206,25 @@ class VertexLLM(BaseLLM):
         Vertex function declarations are stricter and reject unknown keys, so
         strip obvious decoration recursively.
         """
-        cleaned = deepcopy(schema)
-        self._sanitize_schema_in_place(cleaned)
-        return cleaned
-
-    def _sanitize_schema_in_place(self, value: Any) -> None:
         if isinstance(value, dict):
-            for key in ("_def", "~standard", "$schema", "title", "default", "examples"):
-                value.pop(key, None)
+            d = {}
 
-            for inner_value in value.values():
-                self._sanitize_schema_in_place(inner_value)
+            for key, inner_value in value.items():
+                if re.match('^[^a-zA-Z0-9]', str(key)):
+                    continue
+
+                d[key] = self._sanitize_schema(inner_value)
+
+            return cast(T, d)
         elif isinstance(value, list):
+            l = []
+
             for inner_value in value:
-                self._sanitize_schema_in_place(inner_value)
+                l.append(self._sanitize_schema(inner_value))
+
+            return cast(T, l)
+        else:
+            return value
 
     def _function_call_args(self, function_call) -> dict[str, Any]:
         args = getattr(function_call, "args", None)
