@@ -129,8 +129,8 @@ def _validate_config(config: Config, w_config_dir: Path):
     if config.llm.token_limit is None:
         config.llm.token_limit = infer_token_limit(config.llm.args)
 
-    if config.llm.provider not in ["boto3", "ollama", "openai", "vertex"]:
-        msg = f"Invalid provider. Supported providers are boto3, ollama, openai, and vertex, got {config.llm.provider}"
+    if config.llm.provider not in ["boto3", "ollama", "openai", "vertex", "google"]:
+        msg = f"Invalid provider. Supported providers are boto3, ollama, openai, vertex, and google, got {config.llm.provider}"
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 

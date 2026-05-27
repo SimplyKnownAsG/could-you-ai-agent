@@ -1,5 +1,6 @@
 from .base_llm import BaseLLM
 from .boto3 import Boto3LLM
+from .google import GoogleLLM
 from .ollama import OllamaLLM
 from .openai import OpenAILLM
 from .vertex import VertexLLM
@@ -14,6 +15,7 @@ def create_llm(config, dialogue, tools) -> BaseLLM:
         "ollama": OllamaLLM,
         "openai": OpenAILLM,
         "vertex": VertexLLM,
+        "google": GoogleLLM,
     }
 
     if provider in providers:
