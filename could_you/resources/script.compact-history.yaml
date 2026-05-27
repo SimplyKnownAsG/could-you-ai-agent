@@ -3,17 +3,30 @@ query: |
 
   This is a maintenance operation, not a normal user conversation.
 
-  Important context about memory:
-  - The live dialogue is temporary working history loaded structurally by script-mode dialogue settings, not pasted into the prompt as raw JSON.
-  - The live dialogue will be archived separately before removal. This is archival/pruning for continuity and token-cost control, not true forgetting.
-  - .could-you/FORMATIVE.md holds stable, high-confidence, identity-shaping memories and should change slowly.
-  - .could-you/MEMORY.md holds durable but more fluid continuity: project state, implementation facts, decisions, limitations, and continuation points.
-  - .could-you/TODO.md holds active working intent, open loops, and next actions. It should reflect what is still live after compaction.
+  could-you has the following context available for LLM's like you!
+
+  - The dialogue - this is the actual conversation messages. It is temporary, and growing. It is also a problem, because
+    it cannot grow indefinitely. This script is being run to wipe the dialogue clear, and reset the conversation without
+    losing conversational continuity.
+  - system prompt. could-you allows the user to use the COULD_YOU_LOAD_FILE "macro" to expand file paths into the system prompt. The
+    default system prompt contains:
+
+    - .could-you/SYSTEM_PROMPT.md contains standing identity, behavior, and operating rules.
+    - .could-you/FORMATIVE.md holds stable, high-confidence, identity-shaping memories and should change slowly.
+    - .could-you/MEMORY.md holds durable but more fluid continuity: project state, implementation facts, decisions,
+      limitations, and continuation points.
+    - .could-you/TODO.md holds active working intent, open loops, and next actions. It should reflect what is still live
+      after compaction.
+
+    If the system prompt DOES NOT contain <could-you-prompt-expanded-file > markers, then the user may not be using the
+    COULD_YOU_LOAD_FILE feature. That's fine, we can still proceed. However, it would probably make sense to warn them!
+  - tool descriptions - translated for the appropriate LLM from the mcpServers in the configuration.
 
   Your job:
-  - Read the loaded prompt/context files and current live dialogue.
+  - Interpert the loaded context that includes the system propmt, the dialogue, and the tool descriptions.
+  - Briefly identify the primary task or topic in the live dialogue before deciding what should survive compaction.
   - Decide what should survive after the live dialogue is removed.
-  - Produce a terse one-line title for this conversation/task history.
+  - Produce a terse one-line title for this conversation/task history. This is used as a git commit title.
   - Produce a concise longer summary suitable for a git commit body.
   - Produce a complete updated replacement for .could-you/MEMORY.md.
   - Produce a complete updated replacement for .could-you/TODO.md.
@@ -52,13 +65,6 @@ query: |
   - The memory input must be the complete desired contents of .could-you/MEMORY.md.
   - The todo input must be the complete desired contents of .could-you/TODO.md.
   - Write MEMORY.md and TODO.md in a form useful to a future agent starting with empty dialogue.json.
-
-  Loaded context:
-
-  COULD_YOU_LOAD_FILE(.could-you/SYSTEM_PROMPT.md)
-  COULD_YOU_LOAD_FILE(.could-you/FORMATIVE.md)
-  COULD_YOU_LOAD_FILE(.could-you/TODO.md)
-  COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)
 
   Generate:
   1. a terse one-line title,
