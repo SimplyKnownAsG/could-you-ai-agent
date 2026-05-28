@@ -15,6 +15,7 @@ from .dialogue import Dialogue
 from .inspect_memory import dump_memory_inspection_yaml, inspect_memory
 from .logging_config import LOGGER, set_up_logging
 from .memory import backup_dialogue
+from .memory.search import search_memory
 from .permissions import format_permission_report, inspect_permission_boundary
 from .session import SessionManager
 
@@ -120,6 +121,18 @@ def create_parser():
         action="store_true",
         help="Print an observational report about the current OS-user/filesystem permission boundary",
     )
+    cmd_group.add_argument(
+        "--search-memory",
+        nargs="+",
+        metavar="TERM",
+        help="Search durable memory for one or more terms",
+    )
+    parser.add_argument(
+        "--format",
+        default="json",
+        choices=["json", "yaml"],
+        help="Output format for search results",
+    )
 
     return parser
 
@@ -164,6 +177,17 @@ async def amain(parser, args):
             w_config_dir = _find_workspace_config_dir(Path.cwd())
             report = inspect_permission_boundary(w_config_dir)
             print(format_permission_report(report))  # noqa: T201
+        elif args.search_memory:
+            results = search_memory(args.search_memory)
+            if results is not None:
+                if not results:
+                    # search_memory has already logged that no matches were found
+                    return
+
+                if args.format == "yaml":
+                    print(yaml.safe_dump(results, sort_keys=False, default_flow_style=False))  # noqa: T201
+                else:
+                    print(json.dumps(results, indent=2))  # noqa: T201
         elif args.test_connect:
             # List servers and their tools
             session = session_manager.load_session(None)

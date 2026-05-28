@@ -4,11 +4,13 @@ from pathlib import Path
 import pytest
 
 from could_you.config import MemoryProps
-from could_you.memory import (
+from could_you.memory.backup import (
     MemoryBackupError,
     _backup_commit_paths,
     _backup_paths,
     backup_dialogue,
+)
+from could_you.memory.tokens import (
     current_token_percent_used,
     should_reject,
     should_warn,
@@ -22,7 +24,7 @@ def test_backup_dialogue_copies_history_and_metadata(tmp_path: Path, monkeypatch
     memory_repo = tmp_path / "memories"
     w_config_dir.mkdir(parents=True)
     monkeypatch.setenv("COULD_YOU_MEMORY_REPO", str(memory_repo))
-    monkeypatch.setattr("could_you.memory._timestamp", lambda: "20260516T123456Z")
+    monkeypatch.setattr("could_you.memory.backup._timestamp", lambda: "20260516T123456Z")
 
     git_calls = []
 
@@ -34,8 +36,8 @@ def test_backup_dialogue_copies_history_and_metadata(tmp_path: Path, monkeypatch
     def fake_git_config_exists(_repo_path: Path, _key: str) -> bool:
         return False
 
-    monkeypatch.setattr("could_you.memory._git", fake_git)
-    monkeypatch.setattr("could_you.memory._git_config_exists", fake_git_config_exists)
+    monkeypatch.setattr("could_you.memory.backup._git", fake_git)
+    monkeypatch.setattr("could_you.memory.backup._git_config_exists", fake_git_config_exists)
     (w_config_dir / "dialogue.json").write_text('[{"role":"user"}]\n')
 
     result = backup_dialogue(w_config_dir, topic="private memory design")
@@ -66,7 +68,7 @@ def test_backup_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkey
     w_config_dir = workspace_root / ".could-you"
     w_config_dir.mkdir(parents=True)
     monkeypatch.delenv("COULD_YOU_MEMORY_REPO", raising=False)
-    monkeypatch.setattr("could_you.memory._timestamp", lambda: "20260516T123456Z")
+    monkeypatch.setattr("could_you.memory.backup._timestamp", lambda: "20260516T123456Z")
 
     def fake_git(_repo_path: Path, *_args: str) -> None:
         pass
@@ -74,8 +76,8 @@ def test_backup_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkey
     def fake_git_config_exists(_repo_path: Path, _key: str) -> bool:
         return True
 
-    monkeypatch.setattr("could_you.memory._git", fake_git)
-    monkeypatch.setattr("could_you.memory._git_config_exists", fake_git_config_exists)
+    monkeypatch.setattr("could_you.memory.backup._git", fake_git)
+    monkeypatch.setattr("could_you.memory.backup._git_config_exists", fake_git_config_exists)
     (w_config_dir / "dialogue.json").write_text('[{"role":"user"}]\n')
 
     result = backup_dialogue(w_config_dir)
