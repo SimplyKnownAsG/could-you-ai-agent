@@ -7,7 +7,6 @@ from could_you.config import (
     Config,
     DialogueProps,
     InvalidConfigError,
-    _ensure_workspace_privacy,
     _find_workspace_config_dir,
     init,
     load,
@@ -145,26 +144,6 @@ def test_init(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
         "script.summarize.yaml",
     }
     assert expected == {os.path.basename(f) for f in config_dir.iterdir()}
-
-    assert (tmp_dir / ".gitignore").read_text() == "# could-you private workspace state\n.could-you/\n"
-
-
-def test_ensure_workspace_privacy_appends_to_existing_gitignore(tmp_dir: Path):
-    gitignore_path = tmp_dir / ".gitignore"
-    gitignore_path.write_text("dist/\n")
-
-    _ensure_workspace_privacy(tmp_dir)
-
-    assert gitignore_path.read_text() == "dist/\n\n# could-you private workspace state\n.could-you/\n"
-
-
-def test_ensure_workspace_privacy_does_not_duplicate_existing_entry(tmp_dir: Path):
-    gitignore_path = tmp_dir / ".gitignore"
-    gitignore_path.write_text(".could-you/\n")
-
-    _ensure_workspace_privacy(tmp_dir)
-
-    assert gitignore_path.read_text() == ".could-you/\n"
 
 
 def test_init_already_exists(tmp_workspace: Path):  # noqa: ARG001
