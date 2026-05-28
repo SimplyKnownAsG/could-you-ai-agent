@@ -130,7 +130,6 @@ def test_vertex_sanitize_schema_removes_zod_metadata():
             "duration_seconds": {
                 "type": "integer",
                 "description": "Number of seconds to wait",
-                "title": "Duration",
             }
         },
         "required": ["duration_seconds"],
@@ -150,6 +149,7 @@ def test_vertex_sanitize_schema_removes_zod_metadata():
             "duration_seconds": {
                 "type": "integer",
                 "description": "Number of seconds to wait",
+                "title": "Duration",
             }
         },
         "required": ["duration_seconds"],

@@ -3,7 +3,9 @@ import re
 from typing import Any, TypeVar, cast
 
 from google import genai
+from google.api_core import exceptions as google_exceptions
 from google.genai import types
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
@@ -27,6 +29,11 @@ class VertexLLM(BaseLLM):
         response = await self._call_client()
         return self._transform_response(response)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=60),
+        retry=retry_if_exception_type(google_exceptions.ResourceExhausted),
+    )
     async def _call_client(self):
         try:
             return self.client.models.generate_content(
