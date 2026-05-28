@@ -95,11 +95,18 @@ class VertexLLM(BaseLLM):
                 content.append(TextContent(text=text, type="text"))
 
         if not content:
-            raise CYError(
-                message=f"Cannot handle Vertex response, sry... {response}",
-                retriable=False,
-                fault_owner=FaultOwner.INTERNAL,
-            )
+            finish_reason = getattr(response, "finish_reason", None)
+            # It's not an error for the model to stop without providing content.
+            # This can happen with large prompts, where the model simply has nothing
+            # further to add.
+            if finish_reason == "STOP":
+                LOGGER.warning("Model finished with an empty response.")
+            else:
+                raise CYError(
+                    message=f"Cannot handle Vertex response, sry... {response}",
+                    retriable=False,
+                    fault_owner=FaultOwner.INTERNAL,
+                )
 
         message_type = (
             MessageType.TOOL_CALL if any(isinstance(c, ToolUseContent) for c in content) else MessageType.NORMAL
