@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from could_you.__main__ import create_parser
 from could_you.config import Config, LLMProps, MemoryProps
 from could_you.inspect_memory import dump_memory_inspection_yaml, inspect_memory_from_parts
 
@@ -23,10 +24,10 @@ def test_inspect_memory_reports_structured_data_and_yaml(tmp_path: Path):
 
     dialogue_path = w_config_dir / "dialogue.json"
     dialogue_path.write_text(
-        '[\n'
+        "[\n"
         '  {"role": "user", "content": [{"text": "hi"}]},\n'
         '  {"role": "assistant", "content": [{"text": "hello"}], "metadata": {"totalTokens": 80, "tokenLimit": 100}}\n'
-        ']\n'
+        "]\n"
     )
 
     archive_dir = w_config_dir / "workspaces" / "project-123" / "conversations"
@@ -90,8 +91,6 @@ def test_inspect_memory_yaml_suggests_root_autoload_when_no_token_pressure(tmp_p
 
 
 def test_inspect_memory_cli_flags_parse():
-    from could_you.__main__ import create_parser
-
     parser = create_parser()
     args = parser.parse_args(["--inspect-memory"])
     assert args.inspect_memory is True

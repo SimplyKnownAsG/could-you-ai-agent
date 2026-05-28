@@ -1,7 +1,6 @@
 import json
-from copy import deepcopy
-from typing import Any
 import re
+from typing import Any, TypeVar, cast
 
 from google import genai
 from google.genai import types
@@ -11,9 +10,7 @@ from ..logging_config import LOGGER
 from ..message import Message, MessageMetadata, MessageType, TextContent, ToolResultContent, ToolUse, ToolUseContent
 from .base_llm import BaseLLM
 
-from typing import TypeVar, cast
-
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class VertexLLM(BaseLLM):
@@ -210,21 +207,33 @@ class VertexLLM(BaseLLM):
             d = {}
 
             for key, inner_value in value.items():
-                if re.match('^[^a-zA-Z0-9]', str(key)):
+                key_str = str(key)
+
+                if re.match(r"^[^a-zA-Z0-9]", key_str):
+                    continue
+
+                if key_str in {
+                    "additional_properties",
+                    "additionalProperties",
+                    "default",
+                    "example",
+                    "examples",
+                    "property_ordering",
+                    "propertyOrdering",
+                }:
                     continue
 
                 d[key] = self._sanitize_schema(inner_value)
 
-            return cast(T, d)
-        elif isinstance(value, list):
+            return cast("T", d)
+        if isinstance(value, list):
             l = []
 
             for inner_value in value:
                 l.append(self._sanitize_schema(inner_value))
 
-            return cast(T, l)
-        else:
-            return value
+            return cast("T", l)
+        return value
 
     def _function_call_args(self, function_call) -> dict[str, Any]:
         args = getattr(function_call, "args", None)

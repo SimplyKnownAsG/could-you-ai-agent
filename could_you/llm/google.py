@@ -10,7 +10,7 @@ from ..logging_config import LOGGER
 from ..message import Message, MessageMetadata, MessageType, TextContent, ToolResultContent, ToolUse, ToolUseContent
 from .base_llm import BaseLLM
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class GoogleLLM(BaseLLM):
@@ -225,10 +225,10 @@ class GoogleLLM(BaseLLM):
 
                 sanitized[key] = self._sanitize_schema(inner_value)
 
-            return cast('T', sanitized)
+            return cast("T", sanitized)
 
         if isinstance(value, list):
-            return cast('T', [self._sanitize_schema(inner_value) for inner_value in value])
+            return cast("T", [self._sanitize_schema(inner_value) for inner_value in value])
 
         return value
 

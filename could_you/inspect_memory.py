@@ -89,7 +89,7 @@ def inspect_memory_from_parts(*, config: Config, w_config_dir: Path) -> MemoryIn
     prompt_loaded_files = prompt_expansion.metadata.loaded_files
     archive_files = _collect_sized_files(archive_dir, ["*.json"])
 
-    report = MemoryInspection(
+    return MemoryInspection(
         workspace=str(workspace_root),
         dialogue=DialogueInspection(
             path=str(dialogue_path.resolve()),
@@ -123,8 +123,6 @@ def inspect_memory_from_parts(*, config: Config, w_config_dir: Path) -> MemoryIn
             archive_bytes=sum(file.bytes for file in archive_files),
         ),
     )
-
-    return report
 
 
 def dump_memory_inspection_yaml(report: MemoryInspection) -> str:
