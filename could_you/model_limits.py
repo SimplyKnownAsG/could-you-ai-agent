@@ -34,6 +34,20 @@ DEFAULT_MODEL_TOKEN_LIMITS = [
     # Google Gemini / Vertex AI best-effort defaults.
     ModelTokenLimit(r"gemini[-.]2[.].*", 1_048_576, "Gemini 2.x default context window"),
     ModelTokenLimit(r"gemini[-.]1[.]5[-.](pro|flash)", 1_048_576, "Gemini 1.5 Pro/Flash default context window"),
+    # Alibaba Tongyi Qianwen, retrieved 2024-07-26 from:
+    # https://help.aliyun.com/document_detail/2582584.html
+    ModelTokenLimit(r"qwen-max-longcontext", 30_720, "Qwen Max Long Context window"),
+    ModelTokenLimit(r"qwen-plus", 32_768, "Qwen Plus context window"),
+    ModelTokenLimit(r"qwen-max$", 8_192, "Qwen Max context window"),
+    ModelTokenLimit(r"qwen-turbo", 8_192, "Qwen Turbo context window"),
+    # https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-qwen-qwen3-coder-480b-a35b-instruct.html
+    ModelTokenLimit(r"qwen3-coder-480b-a35b", 128_000, "Qwen3 Coder 480B A35B Instruct"),
+    # https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-qwen-qwen3-coder-30b-a3b-instruct.html
+    ModelTokenLimit(r"qwen3-coder-30b-a3b", 256_000, "Qwen3 Coder 30B A3B Instruct"),
+    # https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-qwen-qwen3-coder-next.html
+    ModelTokenLimit(r"qwen3-coder-next", 256_000, "Qwen3 Coder Next"),
+    # https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-qwen-qwen3-coder-next.html
+    ModelTokenLimit(r"qwen3-coder-235b-a22b", 256_000, "Qwen3 235B A22B 2507"),
 ]
 
 
