@@ -270,10 +270,3 @@ def _shift_headings(tokens: list[dict[str, Any]], shift: int) -> None:
 
         if token_type == "heading":  # noqa: S105
             token["attrs"]["level"] += shift
-
-        elif token_type == "block_code" and token["style"] == "fenced":  # noqa: S105
-            token["raw"] = "    " + "\n    ".join(token["raw"].splitlines())
-
-        elif token_type == "block_code" and token["style"] == "indent":  # noqa: S105
-            # I don't understand why, but the MarkdownRendere transforms "indent" to "fenced"
-            token["raw"] = "    " + "\n    ".join(token["raw"].splitlines())

@@ -41,40 +41,6 @@ def test_print_markdown_adjust_headings2():
     assert "#### second level heading" in p.lines
 
 
-def test_print_markdown_adjust_fenced_code():
-    raw = textwrap.dedent("""
-    ```bash
-    # this is not a heading.
-    echo 'hello world'
-    ```
-    """)
-    p = Printer()
-
-    _print_markdown(p.dummy_printer, raw, 1, "text")
-
-    assert "```bash" in p.lines
-    assert "    # this is not a heading." in p.lines
-    assert "    echo 'hello world'" in p.lines
-    assert "```" in p.lines
-
-
-def test_print_markdown_adjust_indented_code():
-    raw = textwrap.dedent("""
-    here is some text before the indented code
-
-        # this is not a heading.
-        echo 'hello world'
-    """)
-    p = Printer()
-
-    _print_markdown(p.dummy_printer, raw, 1)
-
-    assert "```" in p.lines
-    assert "    # this is not a heading." in p.lines
-    assert "    echo 'hello world'" in p.lines
-    assert "```" in p.lines
-
-
 def test_print_markdown_not_adjust_nested_headings():
     raw = textwrap.dedent("""
     # actual heading
