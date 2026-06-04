@@ -23,8 +23,8 @@ def test_parse_git_grep_output_with_sample_data():
     expected = {
         ".could-you/MEMORY.md": [(123, "This is a line about memory search.")],
         ".could-you/archive/123.dialogue.json": [
-            (10, '{"role": "user", "content": "Can you search my memory?"}'),
-            (11, '{"role": "assistant", "content": "Yes, I can search my memory."}'),
+            (10, {"role": "user", "content": "Can you search my memory?"}),
+            (11, {"role": "assistant", "content": "Yes, I can search my memory."}),
         ],
     }
 
