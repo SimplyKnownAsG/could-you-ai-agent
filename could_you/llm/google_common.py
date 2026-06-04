@@ -2,7 +2,6 @@ import json
 import re
 from typing import Any, TypeVar, cast
 
-from google import genai
 from google.api_core import exceptions as google_exceptions
 from google.genai import types
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -78,9 +77,8 @@ RECOVERABLE_FINISH_REASONS = [
 
 
 class BaseGoogleLLM(BaseLLM):
-    def __init__(self, api_name: str, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.api_name = api_name
         self.client = self._init_client()
         self._converted_tools = self._convert_tools()
 
@@ -104,7 +102,7 @@ class BaseGoogleLLM(BaseLLM):
                 config=self._build_generate_content_config(),
             )
         except Exception as err:
-            msg = f"Error while calling {self.api_name}: {err}"
+            msg = f"Error while calling {self.__class__.__name__}: {err}"
             LOGGER.error(msg)
             raise CYError(message=msg, retriable=False, fault_owner=FaultOwner.LLM) from err
 
@@ -112,7 +110,7 @@ class BaseGoogleLLM(BaseLLM):
         model = (self.config.llm.args or {}).get("model")
         if not model:
             raise CYError(
-                message=f"{self.api_name} provider requires llm.args.model",
+                message=f"{self.__class__.__name__} provider requires llm.args.model",
                 retriable=False,
                 fault_owner=FaultOwner.USER,
             )
@@ -165,7 +163,7 @@ class BaseGoogleLLM(BaseLLM):
                 continue
 
             candidate_content = getattr(candidate, "content", None)
-            parts = getattr(candidate_content, "parts") or []
+            parts = candidate_content.parts or []
             for part in parts:
                 if hasattr(part, "text") and part.text:
                     content.append(TextContent(text=part.text, type="text"))
@@ -185,7 +183,7 @@ class BaseGoogleLLM(BaseLLM):
         if not content or should_raise:
             # If there's no content or a fatal error occurred, raise a CYError.
             raise CYError(
-                message=f"Cannot handle {self.api_name} response: {response}",
+                message=f"Cannot handle {self.__class__.__name__} response: {response}",
                 retriable=False,
                 fault_owner=FaultOwner.INTERNAL,
             )
