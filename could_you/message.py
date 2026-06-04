@@ -96,6 +96,17 @@ class ToolResultContent(AttrsAllowAliasKeyword):
         _print_markdown(info, "", 3, "Tool result")
         self.tool_result.print(info=info, debug=debug)
 
+    @classmethod
+    def from_error(cls, tool_use_id: str, message: str) -> "ToolResultContent":
+        """Create a ToolResultContent instance representing an error."""
+        return cls(
+            tool_result=ToolResult(
+                status="error",
+                tool_use_id=tool_use_id,
+                content=[ToolResultInnerTextContent(text=message)],
+            )
+        )
+
 
 @define
 class TextContent:
