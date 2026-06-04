@@ -19,7 +19,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
   - OpenAI-compatible providers via `openai`
   - Ollama via its OpenAI-compatible API
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
-- **Script mode**: Run ephemeral scripts with their own config overlays using `--script`.
+- **Script mode**: Run scripts with their own config overlays using `--script`.
 - **Dialogue**: Persisted per-workspace in `.could-you/dialogue.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
 - **Memory pressure warnings**: Configurable token-usage warning/rejection thresholds help trigger explicit compaction before context is exhausted.
 - **Private memory backups**: Copy dialogue into the private `.could-you/` git repo with `--backup-memory`.
@@ -85,7 +85,7 @@ From `could_you/__main__.py`:
 - Permissions:
   - `--inspect-permissions` – Print an observational report about the current OS-user/filesystem permission boundary
 - Scripts:
-  - `-s`, `--script SCRIPT` – Run an ephemeral, stateless script config (see **Script Mode** below)
+  - `-s`, `--script SCRIPT` – Run a script from the config directory. Statefulness is determined by the script's config.
 
 You can also run `could-you` with no `query` argument; in that case, it may fall back to `config.query` or launch `$EDITOR` as described above.
 
@@ -323,7 +323,8 @@ LLM abstraction lives under `could_you/llm/` and is built around `BaseLLM`.
 
 ## Script Mode
 
-Script mode lets you run one-off, stateless operations using custom configs.
+Script mode lets you run one-off operations, seemingly close to a SKILL
+[[Anthropic](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)], using custom configs.
 
 ### How it works
 
@@ -333,7 +334,7 @@ Script mode lets you run one-off, stateless operations using custom configs.
 - When `--script <script-name>` is used:
   - The base workspace config is loaded.
   - The script config is loaded and merged over it.
-  - Dialogue persistence is **disabled** for that run.
+  - The script's own config (`dialogue` section) determines whether dialogue is loaded and stored.
   - The query is resolved as:
     1. CLI `query` argument, if provided.
     2. `config.query` from the merged config, if set.

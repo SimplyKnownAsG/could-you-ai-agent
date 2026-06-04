@@ -100,7 +100,7 @@ def create_parser():
         "-s",
         "--script",
         metavar="SCRIPT",
-        help="Run an ephemeral stateless script from $XDG_CONFIG_HOME/could-you/script.<script>.json",
+        help="Run a skill from the config directory (e.g., script.<name>.json). Statefulness is determined by the skill's config.",
     )
     cmd_group.add_argument(
         "--backup-memory",
@@ -199,9 +199,6 @@ async def amain(parser, args):
 
             dialogue_load = session.config.dialogue.load if args.dialogue_load is None else args.dialogue_load
             dialogue_store = session.config.dialogue.store if args.dialogue_store is None else args.dialogue_store
-
-            if args.script and args.dialogue_store is None:
-                dialogue_store = False
 
             query = (
                 args.query
