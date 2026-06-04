@@ -1,4 +1,5 @@
 # This module will contain the core logic for the `cy --search-memory` command.
+import json
 import subprocess
 
 from ..logging_config import LOGGER
@@ -17,20 +18,31 @@ SEARCH_PATHS = [
 ]
 
 
-def _parse_git_grep_output(output: str) -> dict[str, list[tuple[int, str]]]:
+def _parse_git_grep_output(output: str) -> dict[str, list[tuple[int, str | dict]]]:
     """
     Parses the raw output from a `git grep` command into a structured dictionary.
     """
-    results: dict[str, list[tuple[int, str]]] = {}
-    for line in output.strip().split("\n"):
+    results: dict[str, list[tuple[int, str | dict]]] = {}
+    for line in output.strip().splitlines():
         if not line:
             continue
         try:
             parts = line.split(":", 2)
             if len(parts) < _GIT_GREP_LINE_PARTS:
                 continue  # Skip malformed lines
-            file_path, line_num_str, content = parts
+            file_path, line_num_str, content_str = parts
             line_num = int(line_num_str)
+
+            if file_path.endswith((".json", ".dialogue.json")):
+                try:
+                    content: str | dict = json.loads(content_str)
+                except json.JSONDecodeError:
+                    # If a line in a JSON file isn't valid JSON, return an error message
+                    # for that line. This can happen with empty lines or malformed entries.
+                    content = f"JSONDecodeError: Could not parse line in {file_path}:{line_num}."
+            else:
+                content = content_str
+
             if file_path not in results:
                 results[file_path] = []
             results[file_path].append((line_num, content))
