@@ -139,9 +139,7 @@ def test_init(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
         "SYSTEM_PROMPT.md",
         "script.compact-history.any-script.yaml",
         "script.compact-history.yaml",
-        "script.fix_build.json",
         "script.git-commit.yaml",
-        "script.summarize.yaml",
     }
     assert expected == {os.path.basename(f) for f in config_dir.iterdir()}
 
