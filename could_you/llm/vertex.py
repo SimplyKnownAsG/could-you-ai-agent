@@ -86,18 +86,17 @@ class VertexLLM(BaseLLM):
             # such as a malformed function call, which IS recoverable.
             finish_reason_str = str(getattr(candidate, "finish_reason", ""))
 
-            if "MALFORMED_FUNCTION_CALL" in finish_reason_str:
-                finish_message = getattr(candidate, "finish_message", "Unknown malformed function call.")
-                # To allow the agent to self-correct, we must provide a ToolResult
-                # that indicates the previous tool call attempt failed.
+            if reason := next((r for r in RECOVERABLE_FINISH_REASONS if r.reason in finish_reason_str), None):
+                finish_message = getattr(candidate, "finish_message", "An unknown error occurred.")
                 content.append(
                     ToolResultContent.from_error(
-                        tool_use_id="malformed-tool-call",
-                        message=f"The model generated a function call that was syntactically invalid. The API returned the following error: '{finish_message}'. Please correct the tool call and try again.",
+                        tool_use_id=reason.tool_use_id(),
+                        message=reason.message(finish_message),
                     )
                 )
                 continue
 
+            # Handle non-recoverable but also non-successful finish reasons that were not handled above.
             if finish_reason_str and finish_reason_str not in ("FinishReason.STOP", "FinishReason.MAX_TOKENS"):
                 error_text = f"Error: Model response could not be processed. Reason: {finish_reason_str}."
                 content.append(TextContent(text=error_text, type="text"))
@@ -132,9 +131,7 @@ class VertexLLM(BaseLLM):
         # Determine the message type based on the content. A tool result indicates the end
         # of a tool-using turn, so it's a NORMAL assistant message.
         message_type = (
-            MessageType.TOOL_CALL
-            if any(isinstance(c, ToolUseContent) for c in content)
-            else MessageType.NORMAL
+            MessageType.TOOL_CALL if any(isinstance(c, ToolUseContent) for c in content) else MessageType.NORMAL
         )
 
         return Message(
@@ -276,3 +273,65 @@ class VertexLLM(BaseLLM):
         if hasattr(args, "items"):
             return dict(args.items())
         return dict(args)
+
+
+class RecoverableFinishReason:
+    def __init__(self, reason: str, base_tool_use_id: str, message_template: str):
+        self.reason = reason
+        self.base_tool_use_id = base_tool_use_id
+        self.message_template = message_template
+
+    def tool_use_id(self) -> str:
+        return self.base_tool_use_id
+
+    def message(self, finish_message: str) -> str:
+        return self.message_template.format(finish_message)
+
+
+RECOVERABLE_FINISH_REASONS = [
+    RecoverableFinishReason(
+        reason="MALFORMED_FUNCTION_CALL",
+        base_tool_use_id="malformed-tool-call",
+        message_template="The model generated a function call that was syntactically invalid. The API returned the following error: '{}'. Please correct the tool call and try again.",
+    ),
+    RecoverableFinishReason(
+        reason="UNEXPECTED_TOOL_CALL",
+        base_tool_use_id="unexpected-tool-call",
+        message_template="The model generated a tool call when it was not expected. The API returned the following error: '{}'. Please review the conversation and try again.",
+    ),
+    RecoverableFinishReason(
+        reason="SAFETY",
+        base_tool_use_id="safety-violation",
+        message_template="The model's response was blocked for safety reasons. The API returned the following error: '{}'. Please generate a different response.",
+    ),
+    RecoverableFinishReason(
+        reason="RECITATION",
+        base_tool_use_id="recitation-violation",
+        message_template="The model's response was blocked due to potential copyright violations. The API returned the following error: '{}'. Please generate a different response.",
+    ),
+    RecoverableFinishReason(
+        reason="BLOCKLIST",
+        base_tool_use_id="blocklist-violation",
+        message_template="The model's response was blocked because it contained a forbidden term. The API returned the following error: '{}'. Please generate a different response.",
+    ),
+    RecoverableFinishReason(
+        reason="PROHIBITED_CONTENT",
+        base_tool_use_id="prohibited-content-violation",
+        message_template="The model's response was blocked for containing prohibited content. The API returned the following error: '{}'. Please generate a different response.",
+    ),
+    RecoverableFinishReason(
+        reason="SPII",
+        base_tool_use_id="spii-violation",
+        message_template="The model's response was blocked because it may contain Sensitive Personally Identifiable Information (SPII). The API returned the following error: '{}'. Please generate a different response.",
+    ),
+    RecoverableFinishReason(
+        reason="MODEL_ARMOR",
+        base_tool_use_id="model-armor-blocked",
+        message_template="The model's response was blocked by Model Armor. The API returned the following error: '{}'. Please generate a different response.",
+    ),
+    RecoverableFinishReason(
+        reason="OTHER",
+        base_tool_use_id="other-error",
+        message_template="The model's response was stopped for an unspecified reason. The API returned the following error: '{}'. Please try a different approach.",
+    ),
+]
