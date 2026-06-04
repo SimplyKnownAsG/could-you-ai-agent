@@ -69,54 +69,72 @@ class VertexLLM(BaseLLM):
         return types.GenerateContentConfig(**args)
 
     def _transform_response(self, response) -> Message:
-        content = []
+        content: list[TextContent | ToolUseContent | ToolResultContent] = []
+        should_raise = False
 
-        candidates = getattr(response, "candidates", None) or []
+        # The top-level response can have a finish reason for the overall generation.
+        # This is often where critical failures like invalid API keys are surfaced.
+        top_level_finish_reason = getattr(response, "finish_reason", None)
+        if top_level_finish_reason not in (None, "STOP", "MAX_TOKENS"):
+            # This indicates a problem with the request itself, not the model's behavior.
+            # It is not recoverable from the agent's perspective.
+            should_raise = True
+
+        candidates = getattr(response, "candidates", [])
         for candidate in candidates:
-            candidate_content = getattr(candidate, "content", None)
-            parts = getattr(candidate_content, "parts", None) or []
-            for part in parts:
-                text = getattr(part, "text", None)
-                if text:
-                    content.append(TextContent(text=text, type="text"))
-                    continue
+            # A candidate finish reason can indicate a problem with the model's output,
+            # such as a malformed function call, which IS recoverable.
+            finish_reason_str = str(getattr(candidate, "finish_reason", ""))
 
-                function_call = getattr(part, "function_call", None)
-                if function_call:
+            if "MALFORMED_FUNCTION_CALL" in finish_reason_str:
+                finish_message = getattr(candidate, "finish_message", "Unknown malformed function call.")
+                # To allow the agent to self-correct, we must provide a ToolResult
+                # that indicates the previous tool call attempt failed.
+                content.append(
+                    ToolResultContent.from_error(
+                        tool_use_id="malformed-tool-call",
+                        message=f"The model generated a function call that was syntactically invalid. The API returned the following error: '{finish_message}'. Please correct the tool call and try again.",
+                    )
+                )
+                continue
+
+            if finish_reason_str and finish_reason_str not in ("FinishReason.STOP", "FinishReason.MAX_TOKENS"):
+                error_text = f"Error: Model response could not be processed. Reason: {finish_reason_str}."
+                content.append(TextContent(text=error_text, type="text"))
+                continue
+
+            candidate_content = getattr(candidate, "content", None)
+            parts = getattr(candidate_content, "parts", [])
+            for part in parts:
+                if hasattr(part, "text") and part.text:
+                    content.append(TextContent(text=part.text, type="text"))
+                elif hasattr(part, "function_call"):
+                    function_call = part.function_call
                     tool_input = self._function_call_args(function_call)
                     content.append(
                         ToolUseContent(
                             tool_use=ToolUse(
-                                tool_use_id=getattr(function_call, "id", None)
-                                or getattr(function_call, "name", "tool-call"),
+                                tool_use_id=getattr(function_call, "id", None) or function_call.name,
                                 name=function_call.name,
                                 input=tool_input,
                             )
                         )
                     )
-                    continue
 
-        if not content:
-            text = getattr(response, "text", None)
-            if text:
-                content.append(TextContent(text=text, type="text"))
+        if not content or should_raise:
+            # If there's no content or a fatal error occurred, raise a CYError.
+            raise CYError(
+                message=f"Cannot handle Vertex response: {response}",
+                retriable=False,
+                fault_owner=FaultOwner.INTERNAL,
+            )
 
-        if not content:
-            finish_reason = getattr(response, "finish_reason", None)
-            # It's not an error for the model to stop without providing content.
-            # This can happen with large prompts, where the model simply has nothing
-            # further to add.
-            if finish_reason == "STOP":
-                LOGGER.warning("Model finished with an empty response.")
-            else:
-                raise CYError(
-                    message=f"Cannot handle Vertex response, sry... {response}",
-                    retriable=False,
-                    fault_owner=FaultOwner.INTERNAL,
-                )
-
+        # Determine the message type based on the content. A tool result indicates the end
+        # of a tool-using turn, so it's a NORMAL assistant message.
         message_type = (
-            MessageType.TOOL_CALL if any(isinstance(c, ToolUseContent) for c in content) else MessageType.NORMAL
+            MessageType.TOOL_CALL
+            if any(isinstance(c, ToolUseContent) for c in content)
+            else MessageType.NORMAL
         )
 
         return Message(
