@@ -14,7 +14,7 @@ SEARCH_PATHS = [
     "FORMATIVE.md",
     "MEMORY.md",
     "TODO.md",
-    "workspaces/*/conversations/*.dialogue.json",
+    "conversations/*.jsonl",
 ]
 
 
@@ -33,7 +33,7 @@ def _parse_git_grep_output(output: str) -> dict[str, list[tuple[int, str | dict]
             file_path, line_num_str, content_str = parts
             line_num = int(line_num_str)
 
-            if file_path.endswith((".json", ".dialogue.json")):
+            if file_path.endswith((".json", ".dialogue.json", ".jsonl")):
                 try:
                     content: str | dict = json.loads(content_str)
                 except json.JSONDecodeError:

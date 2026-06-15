@@ -55,8 +55,8 @@ tools:
         exit 1
       fi
 
-      if [ ! -s .could-you/dialogue.json ]; then
-        echo "missing .could-you/dialogue.json" >&2
+      if [ ! -s .could-you/dialogue.jsonl ]; then
+        echo "missing .could-you/dialogue.jsonl" >&2
         exit 1
       fi
 
@@ -64,7 +64,10 @@ tools:
 
       cp "$memory_file" .could-you/MEMORY.md
       cp "$todo_file" .could-you/TODO.md
-      rm '.could-you/dialogue.json'
+      
+      # Archive the dialogue file instead of deleting it
+      mkdir -p .could-you/conversations
+      mv .could-you/dialogue.jsonl ".could-you/conversations/$(date -u +%Y%m%dT%H%M%SZ).jsonl"
 
       cd .could-you
       git add MEMORY.md TODO.md
