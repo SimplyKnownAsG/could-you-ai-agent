@@ -1,7 +1,7 @@
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, IO
+from typing import IO, Any
 
 from cattrs import Converter
 
