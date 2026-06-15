@@ -68,8 +68,8 @@ def inspect_memory(script_name: str | None = None) -> MemoryInspection:
 
 def inspect_memory_from_parts(*, config: Config, w_config_dir: Path) -> MemoryInspection:
     workspace_root = w_config_dir.parent.resolve()
-    dialogue_path = w_config_dir / "dialogue.json"
-    archive_dir = w_config_dir / "workspaces"
+    dialogue_path = w_config_dir / "dialogue.jsonl"
+    archive_dir = w_config_dir / "conversations"
 
     original_cwd = Path.cwd()
     try:
@@ -87,7 +87,7 @@ def inspect_memory_from_parts(*, config: Config, w_config_dir: Path) -> MemoryIn
         latest_token_percent_used = current_token_percent_used(dialogue.messages)
 
     prompt_loaded_files = prompt_expansion.metadata.loaded_files
-    archive_files = _collect_sized_files(archive_dir, ["*.json"])
+    archive_files = _collect_sized_files(archive_dir, ["*.jsonl"])
 
     return MemoryInspection(
         workspace=str(workspace_root),

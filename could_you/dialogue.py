@@ -1,7 +1,7 @@
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, IO
 
 from cattrs import Converter
 
@@ -17,6 +17,7 @@ class Dialogue:
     messages: list[Message]
     load: bool
     store: bool
+    _file_handle: IO | None = None
 
     def __init__(
         self,
@@ -27,7 +28,7 @@ class Dialogue:
         store: bool | None = None,
     ):
         props = props or DialogueProps()
-        self.path = w_config_dir / "dialogue.json"
+        self.path = w_config_dir / "dialogue.jsonl"
         self.messages = []
         self.load = props.load if load is None else load
         self.store = props.store if store is None else store
@@ -36,30 +37,43 @@ class Dialogue:
         if self.load:
             if self.path.exists():
                 with open(self.path) as f:
-                    self.messages = [converter.structure(m, Message) for m in json.load(f)]
-                LOGGER.debug("Dialogue loaded")
+                    for line in f:
+                        if line.strip():
+                            self.messages.append(converter.structure(json.loads(line), Message))
+                LOGGER.debug("Dialogue loaded from %s", self.path)
             else:
-                LOGGER.debug("Dialogue could not be found")
+                LOGGER.debug("Dialogue file could not be found at %s", self.path)
         else:
             LOGGER.debug("Dialogue loading disabled, not attempting to load")
+
+        if self.store:
+            # Open the file in append mode and keep it open for the life of the context
+            self._file_handle = open(self.path, "a")
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.store:
-            with open(self.path, "w") as f:
-                json.dump(self.to_dict(), f, indent=2)
-        else:
+        if self._file_handle:
+            self._file_handle.close()
+            self._file_handle = None
+        if not self.store:
             LOGGER.debug("Dialogue storage disabled, not writing dialogue")
 
     def add(self, message: Message):
         self.messages.append(message)
         message.print(info=LOGGER.info, debug=LOGGER.debug)
 
+        if self.store and self._file_handle:
+            json_str = json.dumps(converter.unstructure(message))
+            self._file_handle.write(json_str + "\n")
+            self._file_handle.flush()
+
     def to_dict(self) -> list[dict[str, Any]]:
         return [converter.unstructure(m) for m in self.messages]
 
-    def print(self, *, info=Callable[[str], None], debug=Callable[[str], None]):
+    def print(self, *, info: Callable[[str], None] | None = None, debug: Callable[[str], None] | None = None):
         """Print the dialogue in a detailed format."""
+        info = info or LOGGER.info
+        debug = debug or LOGGER.debug
         for message in self.messages:
             message.print(info=info, debug=debug)

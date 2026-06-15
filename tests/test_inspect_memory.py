@@ -22,18 +22,15 @@ def test_inspect_memory_reports_structured_data_and_yaml(tmp_path: Path):
         memory=MemoryProps(warningThresholdPercent=50, rejectionThresholdPercent=75),
     )
 
-    dialogue_path = w_config_dir / "dialogue.json"
+    dialogue_path = w_config_dir / "dialogue.jsonl"
     dialogue_path.write_text(
-        "[\n"
-        '  {"role": "user", "content": [{"text": "hi"}]},\n'
-        '  {"role": "assistant", "content": [{"text": "hello"}], "metadata": {"totalTokens": 80, "tokenLimit": 100}}\n'
-        "]\n"
+        '{"role": "user", "content": [{"text": "hi"}]}\n'
+        '{"role": "assistant", "content": [{"text": "hello"}], "metadata": {"totalTokens": 80, "tokenLimit": 100}}\n'
     )
 
-    archive_dir = w_config_dir / "workspaces" / "project-123" / "conversations"
+    archive_dir = w_config_dir / "conversations"
     archive_dir.mkdir(parents=True)
-    (archive_dir / "20260516T123456Z.dialogue.json").write_text("[]\n")
-    (archive_dir / "20260516T123456Z.metadata.json").write_text('{"topic": "test"}\n')
+    (archive_dir / "20260516T123456Z.jsonl").write_text('{"role": "user", "content": [{"text": "previous"}]}\n')
 
     report = inspect_memory_from_parts(config=config, w_config_dir=w_config_dir)
 
@@ -53,10 +50,9 @@ def test_inspect_memory_reports_structured_data_and_yaml(tmp_path: Path):
         "MEMORY.md",
     ]
     assert sorted(Path(file.path).name for file in report.archive.files) == [
-        "20260516T123456Z.dialogue.json",
-        "20260516T123456Z.metadata.json",
+        "20260516T123456Z.jsonl",
     ]
-    assert report.archive.file_count == 2
+    assert report.archive.file_count == 1
     assert report.suggested_next_action == (
         "Dialogue is past the rejection threshold; compact or prune memory before the next normal run."
     )
