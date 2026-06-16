@@ -60,11 +60,9 @@ tools:
         exit 1
       fi
 
-      could-you --backup-memory "$title"
-
       cp "$memory_file" .could-you/MEMORY.md
       cp "$todo_file" .could-you/TODO.md
-      
+
       # Archive the dialogue file instead of deleting it
       mkdir -p .could-you/conversations
       mv .could-you/dialogue.jsonl ".could-you/conversations/$(date -u +%Y%m%dT%H%M%SZ).jsonl"
