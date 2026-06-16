@@ -51,10 +51,14 @@ def _parse_git_grep_output(output: str) -> dict[str, list[tuple[int, str | dict]
     return results
 
 
-def search_memory(terms: list[str]) -> dict | None:
+def search_memory(terms: list[str], cwd: str = ".could-you") -> dict | None:
     """
     Executes a `git grep` command to search for terms in durable memory,
     parses the output, and prints it as a YAML document.
+
+    Args:
+        terms: A list of search terms.
+        cwd: The working directory to run the git command from, defaults to ".could-you".
     """
     command = ["git", "grep", "-i", "--line-number", "--all-match"]
     for term in terms:
@@ -63,7 +67,7 @@ def search_memory(terms: list[str]) -> dict | None:
 
     try:
         # We run from within the .could-you directory
-        result = subprocess.run(command, capture_output=True, text=True, check=False, cwd=".could-you")
+        result = subprocess.run(command, capture_output=True, text=True, check=False, cwd=cwd)
 
         if result.returncode == 1:
             # git grep returns 1 if no matches are found, which is not an error for us.
