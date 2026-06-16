@@ -40,10 +40,10 @@ DEFAULT_MODEL_TOKEN_LIMITS = [
     ModelTokenLimit(r"qwen-plus", 32_768, "Qwen Plus context window"),
     ModelTokenLimit(r"qwen-max$", 8_192, "Qwen Max context window"),
     ModelTokenLimit(r"qwen-turbo", 8_192, "Qwen Turbo context window"),
-    # https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-qwen-qwen3-coder-480b-a35b-instruct.html
-    ModelTokenLimit(r"qwen3-coder-480b-a35b", 128_000, "Qwen3 Coder 480B A35B Instruct"),
-    # https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-qwen-qwen3-coder-30b-a3b-instruct.html
-    ModelTokenLimit(r"qwen3-coder-30b-a3b", 256_000, "Qwen3 Coder 30B A3B Instruct"),
+    # https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct, retrieved 2026-06-15
+    ModelTokenLimit(r"qwen3-coder-480b-a35b", 262_144, "Qwen3 Coder 480B A35B Instruct native context length"),
+    # https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct, retrieved 2026-06-15
+    ModelTokenLimit(r"qwen3-coder-30b-a3b", 262_144, "Qwen3 Coder 30B A3B Instruct"),
     # https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-qwen-qwen3-coder-next.html
     ModelTokenLimit(r"qwen3-coder-next", 256_000, "Qwen3 Coder Next"),
     # https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-qwen-qwen3-coder-next.html
