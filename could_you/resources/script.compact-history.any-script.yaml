@@ -65,10 +65,13 @@ tools:
 
       # Archive the dialogue file instead of deleting it
       mkdir -p .could-you/conversations
-      mv .could-you/dialogue.jsonl ".could-you/conversations/$(date -u +%Y%m%dT%H%M%SZ).jsonl"
+      archive_file_basename="$(date -u +%Y%m%dT%H%M%SZ).jsonl"
+      archive_file_repo_path="conversations/$archive_file_basename"
+      archive_file_workspace_path=".could-you/$archive_file_repo_path"
+      mv .could-you/dialogue.jsonl "$archive_file_workspace_path"
 
       cd .could-you
-      git add MEMORY.md TODO.md
+      git add MEMORY.md TODO.md "$archive_file_repo_path"
       git commit -m "memory: compact history: $title" -m "$summary"
 
       rm -f .compact-title.tmp .compact-summary.tmp .compact-memory.tmp .compact-todo.tmp
