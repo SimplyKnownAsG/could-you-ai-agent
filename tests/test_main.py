@@ -57,7 +57,8 @@ def test_query_flag_populates_query(monkeypatch):
 @pytest.mark.parametrize(
     ("argv", "command", "subcommand", "expected"),
     [
-        (["could-you", "init"], "init", None, None),
+        (["could-you", "workspace", "init"], "workspace", "init", None),
+        (["could-you", "workspace", "sync"], "workspace", "sync", None),
         (["could-you", "memory", "backup", "topic"], "memory", "backup", "topic"),
         (["could-you", "memory", "inspect"], "memory", "inspect", None),
         (["could-you", "memory", "status"], "memory", "inspect", None),
@@ -82,7 +83,9 @@ def test_subcommand_parsing(monkeypatch, argv, command, subcommand, expected):
         assert args.query == "hello"
         return
 
-    if command == "memory":
+    if command == "workspace":
+        assert args.workspace_command == subcommand
+    elif command == "memory":
         assert args.memory_command == subcommand
         if subcommand == "backup":
             assert args.topic == expected

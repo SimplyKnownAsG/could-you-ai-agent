@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 
-from .config import Config, init, load
+from .config import Config, init, load, sync_workspace
 from .dialogue import Dialogue
 from .logging_config import LOGGER
 
@@ -52,6 +52,12 @@ class SessionManager:
         w_config_dir = init()
         self.sessions[str(w_config_dir)] = {}
         LOGGER.info(f"initialized config dir: {w_config_dir}")
+        return w_config_dir
+
+    def sync_workspace(self):
+        w_config_dir = sync_workspace()
+        self.sessions[str(w_config_dir)] = {}
+        LOGGER.info(f"synced config dir: {w_config_dir}")
         return w_config_dir
 
     def load_session(self, script_name: str | None):

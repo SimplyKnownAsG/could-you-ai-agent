@@ -93,8 +93,18 @@ def create_parser():
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    init_parser = subparsers.add_parser("init", help="Initialize a .could-you workspace in this directory")
-    init_parser.set_defaults(command="init")
+    workspace_parser = subparsers.add_parser("workspace", help="Workspace-related commands")
+    workspace_subparsers = workspace_parser.add_subparsers(dest="workspace_command")
+
+    workspace_init_parser = workspace_subparsers.add_parser(
+        "init", help="Initialize a .could-you workspace in this directory"
+    )
+    workspace_init_parser.set_defaults(command="workspace", workspace_command="init")
+
+    workspace_sync_parser = workspace_subparsers.add_parser(
+        "sync", help="Sync managed workspace templates into .could-you"
+    )
+    workspace_sync_parser.set_defaults(command="workspace", workspace_command="sync")
 
     memory_parser = subparsers.add_parser("memory", help="Memory-related commands")
     memory_subparsers = memory_parser.add_subparsers(dest="memory_command")
@@ -174,10 +184,12 @@ async def amain(parser, args):
         return
 
     with SessionManager() as session_manager:
-        if args.command == "session" and args.session_command == "list":
-            session_manager.list()
-        elif args.command == "init":
+        if args.command == "workspace" and args.workspace_command == "init":
             session_manager.init_session()
+        elif args.command == "workspace" and args.workspace_command == "sync":
+            session_manager.sync_workspace()
+        elif args.command == "session" and args.session_command == "list":
+            session_manager.list()
         elif args.command == "session" and args.session_command == "delete":
             session_manager.delete_session(args.session_path)
         elif args.command == "dialogue" and args.dialogue_command == "print":

@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import stat
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -73,13 +74,35 @@ def init() -> Path:
         raise InvalidConfigError(msg)
 
     w_config_dir.mkdir()
-    user_config_dir = _get_user_config_dir_path()
-
-    if user_config_dir.exists() and user_config_dir.is_dir():
-        shutil.copytree(user_config_dir, w_config_dir, dirs_exist_ok=True)
-
-    _copy_global_config(w_config_dir)
+    _copy_workspace_templates(w_config_dir, overwrite=False)
     _fix_permissions(w_config_dir)
+
+    return w_config_dir
+
+
+def sync_workspace() -> Path:
+    w_config_dir = Path.cwd() / ".could-you"
+
+    if not w_config_dir.exists():
+        msg = f"Workspace path does not exist: {w_config_dir}"
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
+
+    if not w_config_dir.is_dir():
+        msg = f"Workspace path exists and is not a directory: {w_config_dir}"
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
+
+    git_dir = w_config_dir / ".git"
+
+    if git_dir.exists():
+        _require_clean_git_worktree(w_config_dir)
+
+    _copy_workspace_templates(w_config_dir, overwrite=True)
+    _fix_permissions(w_config_dir)
+
+    if git_dir.exists():
+        _commit_workspace_sync(w_config_dir)
 
     return w_config_dir
 
@@ -206,7 +229,55 @@ def _fix_permissions(root: Path) -> None:
             LOGGER.warning(f"Could not adjust permissions for {path}: {e}")
 
 
-def _copy_global_config(w_config_dir: Path):
+_PROTECTED_WORKSPACE_TEMPLATE_NAMES = {
+    "FORMATIVE.md",
+    "MEMORY.md",
+    "TODO.md",
+    "dialogue.json",
+    "dialogue.jsonl",
+    "query.md",
+}
+
+
+def _copy_workspace_templates(w_config_dir: Path, *, overwrite: bool) -> None:
+    user_config_dir = _get_user_config_dir_path()
+
+    if user_config_dir.exists() and user_config_dir.is_dir():
+        _copy_user_workspace_templates(user_config_dir, w_config_dir, overwrite=overwrite)
+
+    _copy_global_config(w_config_dir, overwrite=overwrite)
+
+
+def _copy_user_workspace_templates(source_dir: Path, dest_dir: Path, *, overwrite: bool) -> None:
+    for source in source_dir.rglob("*"):
+        if not source.is_file():
+            continue
+
+        rel_path = source.relative_to(source_dir)
+
+        if _should_skip_workspace_template(rel_path):
+            LOGGER.info(f"Skipping protected workspace template {source}")
+            continue
+
+        dest = dest_dir / rel_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+
+        if dest.exists() and not overwrite:
+            LOGGER.warning(f"File exists in destination ({dest}), will not overwrite with user version ({source})")
+            continue
+
+        action = "Overwriting" if dest.exists() else "Writing"
+        LOGGER.info(f"{action} file {dest} from user template {source}")
+        shutil.copy2(source, dest)
+
+
+def _should_skip_workspace_template(rel_path: Path) -> bool:
+    return (
+        any(part == "conversations" for part in rel_path.parts) or rel_path.name in _PROTECTED_WORKSPACE_TEMPLATE_NAMES
+    )
+
+
+def _copy_global_config(w_config_dir: Path, *, overwrite: bool = False):
     """
     Try all possible script config locations (workspace, user, package resource).
     Returns (kind, path_or_name_or_resourcehandle) or (None, None) if not found.
@@ -221,13 +292,66 @@ def _copy_global_config(w_config_dir: Path):
 
         dest = w_config_dir / os.path.basename(str(resource))
 
-        if dest.exists():
+        if _should_skip_workspace_template(Path(dest.name)):
+            LOGGER.info(f"Skipping protected packaged workspace template {resource}")
+            continue
+
+        if dest.exists() and not overwrite:
             LOGGER.warning(f"File exists in destination ({dest}), will not overwrite with global version ({resource})")
             continue
 
         with resource.open("r") as f:
-            LOGGER.info(f"Writing file {dest} from global {resource}")
+            action = "Overwriting" if dest.exists() else "Writing"
+            LOGGER.info(f"{action} file {dest} from global {resource}")
             dest.write_text(f.read())
+
+
+def _git_executable() -> str:
+    git_path = shutil.which("git")
+
+    if not git_path:
+        msg = "git is required to sync a git-backed workspace"
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
+
+    return git_path
+
+
+def _require_clean_git_worktree(repo_path: Path) -> None:
+    result = subprocess.run(
+        [_git_executable(), "-C", str(repo_path), "status", "--short"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    if result.stdout.strip():
+        msg = f"Workspace git repo has uncommitted changes: {repo_path}"
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
+
+
+def _commit_workspace_sync(repo_path: Path) -> None:
+    subprocess.run([_git_executable(), "-C", str(repo_path), "add", "."], check=True, capture_output=True, text=True)
+
+    diff_result = subprocess.run(
+        [_git_executable(), "-C", str(repo_path), "diff", "--cached", "--quiet"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    if diff_result.returncode == 0:
+        LOGGER.info(f"No workspace template changes to commit in {repo_path}")
+        return
+
+    subprocess.run(
+        [_git_executable(), "-C", str(repo_path), "commit", "-m", "sync workspace templates"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    LOGGER.info(f"Committed workspace template sync in {repo_path}")
 
 
 def _load_raw_path(config_path: Path) -> dict[str, Any]:

@@ -10,6 +10,7 @@ from could_you.config import (
     _find_workspace_config_dir,
     init,
     load,
+    sync_workspace,
 )
 
 MINIMAL_JSON = '{"llm": {"provider": "openai", "args": { "model": "gpt-4" } }}'
@@ -147,6 +148,52 @@ def test_init(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
 def test_init_already_exists(tmp_workspace: Path):  # noqa: ARG001
     with pytest.raises(InvalidConfigError, match="already exists"):
         init()
+
+
+def test_init_rejects_non_directory_workspace_path(tmp_dir: Path):
+    workspace_path = tmp_dir / ".could-you"
+    workspace_path.write_text("not a directory")
+
+    with pytest.raises(InvalidConfigError, match="already exists"):
+        init()
+
+
+def test_sync_workspace_overwrites_managed_files(tmp_workspace: Path):
+    config_path = tmp_workspace / "config.yaml"
+    config_path.write_text("llm:\n  provider: openai\n")
+
+    sync_workspace()
+
+    assert "COULD_YOU_DEFAULT_PROMPT" in config_path.read_text()
+
+
+def test_sync_workspace_skips_protected_files_from_user_templates(tmp_workspace: Path, monkeypatch):
+    user_workspace_templates = tmp_workspace.parent / "user-templates"
+    user_workspace_templates.mkdir()
+    (user_workspace_templates / "MEMORY.md").write_text("USER TEMPLATE MEMORY")
+    (user_workspace_templates / "TODO.md").write_text("USER TEMPLATE TODO")
+    (user_workspace_templates / "custom.md").write_text("CUSTOM")
+    conversations_dir = user_workspace_templates / "conversations"
+    conversations_dir.mkdir(parents=True, exist_ok=True)
+    (conversations_dir / "old.jsonl").write_text("archived")
+
+    (tmp_workspace / "MEMORY.md").write_text("WORKSPACE MEMORY")
+    (tmp_workspace / "TODO.md").write_text("WORKSPACE TODO")
+    monkeypatch.setattr("could_you.config._get_user_config_dir_path", lambda: user_workspace_templates)
+
+    sync_workspace()
+
+    assert (tmp_workspace / "MEMORY.md").read_text() == "WORKSPACE MEMORY"
+    assert (tmp_workspace / "TODO.md").read_text() == "WORKSPACE TODO"
+    assert (tmp_workspace / "custom.md").read_text() == "CUSTOM"
+    assert not (tmp_workspace / "conversations" / "old.jsonl").exists()
+
+
+def test_sync_workspace_requires_existing_directory(tmp_dir: Path, monkeypatch):
+    monkeypatch.chdir(tmp_dir)
+
+    with pytest.raises(InvalidConfigError, match="does not exist"):
+        sync_workspace()
 
 
 def test_load_git_commit_script(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001

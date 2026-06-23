@@ -79,7 +79,8 @@ From `could_you/__main__.py`:
 - Scripts:
   - `-s`, `--script SCRIPT` – Run a skill from the config directory. Statefulness is determined by the script's config.
 - Subcommands:
-  - `init` – Initialize a `.could-you/` workspace in the current directory
+  - `workspace init` – Initialize a `.could-you/` workspace in the current directory
+  - `workspace sync` – Sync managed workspace templates into `.could-you`, protecting local memory files and archived conversations
   - `memory backup [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
   - `memory inspect` / `memory status` – Print a deterministic memory inspection report
   - `memory search TERM [TERM ...]` – Search durable memory
@@ -114,10 +115,18 @@ project-root/
 Use:
 
 ```bash
-could-you init
+could-you workspace init
 ```
 
 from your project root to create `.could-you/` using any global templates shipped in `could_you.resources`.
+
+Use:
+
+```bash
+could-you workspace sync
+```
+
+from your project root to refresh managed workspace templates. Sync only overwrites managed template files; it will not overwrite local memory files like `MEMORY.md`, `TODO.md`, `FORMATIVE.md`, dialogue files, `query.md`, or archived `conversations/*` content. If `.could-you/` is itself a git repo, sync requires a clean working tree and will commit template updates automatically.
 
 `could-you` treats `.could-you/` as private workspace state. Initialization ensures `.could-you/` is listed in the workspace `.gitignore` so dialogue, config, and future memories are not accidentally committed to the project repository.
 
