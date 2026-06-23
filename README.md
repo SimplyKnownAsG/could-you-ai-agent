@@ -79,11 +79,11 @@ From `could_you/__main__.py`:
 - Scripts:
   - `-s`, `--script SCRIPT` – Run a skill from the config directory. Statefulness is determined by the script's config.
 - Subcommands:
-  - `workspace init` – Initialize a `.could-you/` workspace in the current directory
-  - `workspace sync` – Sync managed workspace templates into `.could-you`, protecting local memory files and archived conversations
-  - `memory backup [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
-  - `memory inspect` / `memory status` – Print a deterministic memory inspection report
-  - `memory search TERM [TERM ...]` – Search durable memory
+  - `workspace init` / `ws init` – Initialize a `.could-you/` workspace in the current directory
+  - `workspace sync` / `ws sync` – Sync managed workspace templates into `.could-you`, protecting local memory files and archived conversations
+  - `memory backup [TOPIC]` / `m backup [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
+  - `memory inspect` / `memory status` / `m inspect` / `m status` – Print a deterministic memory inspection report
+  - `memory search TERM [TERM ...]` / `m search TERM [TERM ...]` – Search durable memory
   - `session list` – List existing sessions from the cache
   - `session delete PATH` – Delete a specific session from the sessions cache
   - `dialogue print` – Print the dialogue for the current workspace

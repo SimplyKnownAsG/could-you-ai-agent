@@ -93,7 +93,7 @@ def create_parser():
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    workspace_parser = subparsers.add_parser("workspace", help="Workspace-related commands")
+    workspace_parser = subparsers.add_parser("workspace", aliases=["ws"], help="Workspace-related commands")
     workspace_subparsers = workspace_parser.add_subparsers(dest="workspace_command")
 
     workspace_init_parser = workspace_subparsers.add_parser(
@@ -106,7 +106,7 @@ def create_parser():
     )
     workspace_sync_parser.set_defaults(command="workspace", workspace_command="sync")
 
-    memory_parser = subparsers.add_parser("memory", help="Memory-related commands")
+    memory_parser = subparsers.add_parser("memory", aliases=["m"], help="Memory-related commands")
     memory_subparsers = memory_parser.add_subparsers(dest="memory_command")
 
     memory_backup_parser = memory_subparsers.add_parser(

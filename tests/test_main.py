@@ -59,7 +59,9 @@ def test_query_flag_populates_query(monkeypatch):
     [
         (["could-you", "workspace", "init"], "workspace", "init", None),
         (["could-you", "workspace", "sync"], "workspace", "sync", None),
+        (["could-you", "ws", "sync"], "workspace", "sync", None),
         (["could-you", "memory", "backup", "topic"], "memory", "backup", "topic"),
+        (["could-you", "m", "backup", "topic"], "memory", "backup", "topic"),
         (["could-you", "memory", "inspect"], "memory", "inspect", None),
         (["could-you", "memory", "status"], "memory", "inspect", None),
         (["could-you", "memory", "search", "alpha", "beta"], "memory", "search", ["alpha", "beta"]),
