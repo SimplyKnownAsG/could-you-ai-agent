@@ -23,26 +23,24 @@ query: |
   - tool descriptions - translated for the appropriate LLM from the mcpServers in the configuration.
 
   Your job:
-  - Interpert the loaded context that includes the system propmt, the dialogue, and the tool descriptions.
-  - Briefly identify the primary task or topic in the live dialogue before deciding what should survive compaction.
-  - Decide what should survive after the live dialogue is removed.
-  - Produce a terse one-line title for this conversation/task history. This is used as a git commit title.
-  - Produce a concise longer summary suitable for a git commit body.
-  - Produce a complete updated replacement for .could-you/MEMORY.md.
-  - Produce a complete updated replacement for .could-you/TODO.md.
-  - Call the compact_history tool exactly once.
+  1. Interpert the loaded context that includes the system propmt, the dialogue, and the tool descriptions.
+  2. Briefly identify the primary task or topic in the live dialogue before deciding what should survive compaction.
+  3. Decide what should survive after the live dialogue is removed.
+  4. Use the filesystem to create or update .could-you/MEMORY.md.
+  5. Use the filesystem to create or update .could-you/TODO.md.
+  6. Call compact_history tool exactly once.
+     * The title is used as a git commit title.
+     * The summary is used as the git commit body.
 
   What MEMORY.md should preserve:
-  - Current project state and recent implementation facts.
-  - Open decisions, next steps, and known limitations.
-  - User preferences and values that are likely to matter later.
-  - Trust/security/privacy boundaries.
-  - If the conversation is in the middle of work, explicitly say so and record the immediate continuation point.
+  - Current project state, recent implementation facts, and key decisions.
+  - User preferences, values, and trust boundaries.
+  - The immediate continuation point if work is in progress.
   - Any corrections where earlier assumptions were wrong.
 
   What TODO.md should preserve:
-  - Only active open loops and next actions that still matter.
-  - The current priority and immediate continuation point.
+  - Only active, open loops and next actions that are still relevant.
+  - The current highest priority.
   - Important unresolved questions.
 
   What TODO.md should avoid:
@@ -52,27 +50,15 @@ query: |
   - Items that belong in durable memory rather than active work tracking.
 
   What both files should avoid:
-  - Raw transcript dumps.
-  - Ephemeral chatter with no future value.
-  - Secrets, credentials, or sensitive implementation details not needed for continuity.
-  - Unsupported guesses about the user. Infer preferences only from clear evidence.
+  - Raw transcript dumps or ephemeral chatter.
+  - Completed or stale tasks.
+  - Secrets, credentials, or sensitive details not needed for continuity.
 
   Constraints:
-  - Do not ask the user questions.
-  - Do not call any tool except compact_history.
-  - The title must be one line, no quotes, no markdown, under 80 characters.
+  - Do not ask the user for input.
+  - You must update both `TODO.md` and `MEMORY.md` before calling `compact_history`.
+  - The commit `title` must be a single, terse line under 80 characters.
   - The summary should be concise but preserve important decisions and implementation facts.
-  - The memory input must be the complete desired contents of .could-you/MEMORY.md.
-  - The todo input must be the complete desired contents of .could-you/TODO.md.
-  - Write MEMORY.md and TODO.md in a form useful to a future agent starting with empty dialogue.json.
-
-  Generate:
-  1. a terse one-line title,
-  2. a concise summary,
-  3. a complete updated MEMORY.md,
-  4. a complete updated TODO.md,
-
-  then call compact_history exactly once with those values.
 
 # Compaction is the explicit escape hatch for high memory pressure, so this script
 # raises the policy thresholds above normal interactive limits. The real model
@@ -87,6 +73,16 @@ dialogue:
   store: false
 
 mcpServers:
+
+  filesystem:
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-filesystem"
+      - "$COULD_YOU_WORKSPACE/.could-you"
+    disabledTools:
+      - directory_tree
+
   any-script:
     command: npx
     args:

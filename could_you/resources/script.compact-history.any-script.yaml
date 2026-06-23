@@ -20,32 +20,14 @@ tools:
           implementation facts, user preferences, open threads, and whether the conversation ended
           mid-task. This is for git history, not a full transcript.
         required: true
-      memory:
-        type: string
-        description: >
-          Complete replacement contents for .could-you/MEMORY.md. Preserve durable continuity for a
-          future agent with empty live history: project state, next steps, limitations, user-specific
-          preferences and values, trust/privacy boundaries, and any in-progress continuation point.
-        required: true
-      todo:
-        type: string
-        description: >
-          Complete replacement contents for .could-you/TODO.md. Preserve only active open loops,
-          current priorities, next actions, and unresolved questions that should remain live after
-          compaction. Do not keep completed or stale items.
-        required: true
     run: |
       set -eu
 
       title_file=".could-you/.compact-title.tmp"
       summary_file=".could-you/.compact-summary.tmp"
-      memory_file=".could-you/.compact-memory.tmp"
-      todo_file=".could-you/.compact-todo.tmp"
 
       printf '%s\n' "$INPUTS__TITLE" > "$title_file"
       printf '%s\n' "$INPUTS__SUMMARY" > "$summary_file"
-      printf '%s\n' "$INPUTS__MEMORY" > "$memory_file"
-      printf '%s\n' "$INPUTS__TODO" > "$todo_file"
 
       title="$(head -n 1 "$title_file" | tr -d '\r')"
       summary="$(cat "$summary_file")"
@@ -60,10 +42,9 @@ tools:
         exit 1
       fi
 
-      cp "$memory_file" .could-you/MEMORY.md
-      cp "$todo_file" .could-you/TODO.md
+      # MEMORY.md and TODO.md are assumed to be updated already.
 
-      # Archive the dialogue file instead of deleting it
+      # Archive the dialogue file instead of deleting it.
       mkdir -p .could-you/conversations
       archive_file_basename="$(date -u +%Y%m%dT%H%M%SZ).jsonl"
       archive_file_repo_path="conversations/$archive_file_basename"
@@ -74,6 +55,6 @@ tools:
       git add MEMORY.md TODO.md "$archive_file_repo_path"
       git commit -m "memory: compact history: $title" -m "$summary"
 
-      rm -f .compact-title.tmp .compact-summary.tmp .compact-memory.tmp .compact-todo.tmp
+      rm -f .compact-title.tmp .compact-summary.tmp
 
       echo "Compacted history: $title"
