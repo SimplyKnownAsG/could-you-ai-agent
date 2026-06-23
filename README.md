@@ -83,8 +83,6 @@ From `could_you/__main__.py`:
   - `memory backup [TOPIC]` / `m backup [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
   - `memory inspect` / `memory status` / `m inspect` / `m status` – Print a deterministic memory inspection report
   - `memory search TERM [TERM ...]` / `m search TERM [TERM ...]` – Search durable memory
-  - `session list` – List existing sessions from the cache
-  - `session delete PATH` – Delete a specific session from the sessions cache
   - `dialogue print` – Print the dialogue for the current workspace
   - `permissions` – Print an observational report about the current OS-user/filesystem permission boundary
   - `test connect [MESSAGE]` – Test MCP + LLM connectivity with a simple message, then exit

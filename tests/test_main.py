@@ -67,8 +67,6 @@ def test_query_flag_populates_query(monkeypatch):
         (["could-you", "memory", "inspect"], "memory", "inspect", None),
         (["could-you", "memory", "status"], "memory", "inspect", None),
         (["could-you", "memory", "search", "alpha", "beta"], "memory", "search", ["alpha", "beta"]),
-        (["could-you", "session", "list"], "session", "list", None),
-        (["could-you", "session", "delete", "/tmp/session"], "session", "delete", "/tmp/session"),
         (["could-you", "dialogue", "print"], "dialogue", "print", None),
         (["could-you", "permissions"], "permissions", None, None),
         (["could-you", "test", "connect", "ping"], "test", "connect", "ping"),
@@ -97,10 +95,6 @@ def test_subcommand_parsing(monkeypatch, argv, command, subcommand, expected):
             assert args.topic == expected
         elif subcommand == "search":
             assert args.terms == expected
-    elif command == "session":
-        assert args.session_command == subcommand
-        if subcommand == "delete":
-            assert args.session_path == expected
     elif command == "dialogue":
         assert args.dialogue_command == subcommand
     elif command == "test":

@@ -134,16 +134,6 @@ def create_parser():
     memory_search_parser.add_argument("terms", nargs="+", metavar="TERM", help="Search terms")
     memory_search_parser.set_defaults(command="memory", memory_command="search")
 
-    session_parser = subparsers.add_parser("session", help="Session-related commands")
-    session_subparsers = session_parser.add_subparsers(dest="session_command")
-
-    session_list_parser = session_subparsers.add_parser("list", help="List existing sessions")
-    session_list_parser.set_defaults(command="session", session_command="list")
-
-    session_delete_parser = session_subparsers.add_parser("delete", help="Delete a specific session")
-    session_delete_parser.add_argument("session_path", help="Session path to delete")
-    session_delete_parser.set_defaults(command="session", session_command="delete")
-
     dialogue_parser = subparsers.add_parser("dialogue", help="Dialogue-related commands")
     dialogue_subparsers = dialogue_parser.add_subparsers(dest="dialogue_command")
 
@@ -194,10 +184,6 @@ async def amain(parser, args):
             session_manager.init_session()
         elif args.command == "workspace" and args.workspace_command == "sync":
             session_manager.sync_workspace()
-        elif args.command == "session" and args.session_command == "list":
-            session_manager.list()
-        elif args.command == "session" and args.session_command == "delete":
-            session_manager.delete_session(args.session_path)
         elif args.command == "dialogue" and args.dialogue_command == "print":
             session = session_manager.load_session(None)
             with session.dialogue(load=True, store=False) as dialogue:
