@@ -413,7 +413,7 @@ Private memory backup is implemented in `could_you/memory.py`.
 Run:
 
 ```bash
-could-you --backup-memory "conversation about memory design"
+could-you memory backup "conversation about memory design"
 ```
 
 This copies `.could-you/dialogue.json` into a private git repository and commits it. By default, the repo is the workspace `.could-you/` directory:
@@ -467,7 +467,7 @@ This is intended as a starter template. Users should review and customize it bef
 You can inspect the current boundary with:
 
 ```bash
-could-you --inspect-permissions
+could-you permissions
 ```
 
 The report includes:
@@ -503,19 +503,19 @@ sudo -u could-you-agent mkdir -p /home/could-you-agent/workspaces
 sudo -u could-you-agent git clone <repo-url> /home/could-you-agent/workspaces/my-project
 
 # Initialize private workspace state as the agent user.
-sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you --init-session'
+sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you workspace init'
 
 # Keep private state private.
 sudo -u could-you-agent chmod 700 /home/could-you-agent/workspaces/my-project/.could-you
 
 # Inspect what the agent process can see.
-sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you --inspect-permissions'
+sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you permissions'
 ```
 
 Then run normal agent work as that user:
 
 ```bash
-sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you "summarize this repository"'
+sudo -u could-you-agent bash -lc 'cd /home/could-you-agent/workspaces/my-project && could-you --query "summarize this repository"'
 ```
 
 This is intentionally boring. It relies on the operating system boundary instead of asking the model or prompt to enforce filesystem secrecy. It may take normal system-administration work to make the agent user's PATH, Python environment, credentials, and MCP server dependencies usable.
@@ -584,13 +584,13 @@ The goal is not to replace every specialized coding assistant. The goal is to ma
 - You can print the dialogue with:
 
   ```bash
-  could-you --print-history
+  could-you dialogue print
   ```
 
 - Disable dialogue persistence for a single run with:
 
   ```bash
-  could-you --no-history "One-off question without saving context"
+  could-you --no-dialogue-store --query "One-off question without saving context"
   ```
 
 The dialogue file distinguishes between:
