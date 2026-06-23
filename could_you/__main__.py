@@ -85,13 +85,19 @@ def create_parser():
         dest="query",
         help="A question or request to process",
     )
-    parser.add_argument(
-        "-s",
-        "--script",
-        metavar="SCRIPT",
-        help="Run a skill from the config directory (e.g., script.<name>.json). Statefulness is determined by the skill's config.",
-    )
     subparsers = parser.add_subparsers(dest="command")
+
+    script_parser = subparsers.add_parser(
+        "script",
+        aliases=["s"],
+        help="Run a skill from the config directory (e.g., script.<name>.json)",
+    )
+    script_parser.add_argument(
+        "script_name",
+        metavar="SCRIPT",
+        help="Script name. Statefulness is determined by the script's config.",
+    )
+    script_parser.set_defaults(command="script")
 
     workspace_parser = subparsers.add_parser("workspace", aliases=["ws"], help="Workspace-related commands")
     workspace_subparsers = workspace_parser.add_subparsers(dest="workspace_command")
@@ -172,7 +178,7 @@ async def amain(parser, args):
 
     # Early config dump
     if args.dump_config:
-        config = load(args.script)[0]
+        config = load(_get_script_name(args))[0]
         converter = Converter(use_alias=True)
         config_dict = converter.unstructure(config)
 
@@ -202,7 +208,7 @@ async def amain(parser, args):
             LOGGER.info(f"Memory repo: {result.repo_path}")
             LOGGER.info(f"Backup file: {result.backup_path}")
         elif args.command == "memory" and args.memory_command == "inspect":
-            print(dump_memory_inspection_yaml(inspect_memory(args.script)))  # noqa: T201
+            print(dump_memory_inspection_yaml(inspect_memory(_get_script_name(args))))  # noqa: T201
         elif args.command == "permissions":
             w_config_dir = _find_workspace_config_dir(Path.cwd())
             report = inspect_permission_boundary(w_config_dir)
@@ -223,7 +229,7 @@ async def amain(parser, args):
                 async with Agent(config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(args.message)
         else:
-            session = session_manager.load_session(args.script)
+            session = session_manager.load_session(_get_script_name(args))
 
             dialogue_load = session.config.dialogue.load if args.dialogue_load is None else args.dialogue_load
             dialogue_store = session.config.dialogue.store if args.dialogue_store is None else args.dialogue_store
@@ -248,6 +254,13 @@ async def amain(parser, args):
 
 
 MARKER = "# *** PROVIDE_INPUT_AFTER_THIS_LINE ***"
+
+
+def _get_script_name(args):
+    if getattr(args, "command", None) == "script":
+        return args.script_name
+
+    return None
 
 
 def _get_editor_input(w_config_dir: Path):

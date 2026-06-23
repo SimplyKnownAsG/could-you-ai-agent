@@ -57,6 +57,8 @@ def test_query_flag_populates_query(monkeypatch):
 @pytest.mark.parametrize(
     ("argv", "command", "subcommand", "expected"),
     [
+        (["could-you", "script", "git-commit"], "script", None, "git-commit"),
+        (["could-you", "s", "git-commit"], "script", None, "git-commit"),
         (["could-you", "workspace", "init"], "workspace", "init", None),
         (["could-you", "workspace", "sync"], "workspace", "sync", None),
         (["could-you", "ws", "sync"], "workspace", "sync", None),
@@ -85,7 +87,9 @@ def test_subcommand_parsing(monkeypatch, argv, command, subcommand, expected):
         assert args.query == "hello"
         return
 
-    if command == "workspace":
+    if command == "script":
+        assert args.script_name == expected
+    elif command == "workspace":
         assert args.workspace_command == subcommand
     elif command == "memory":
         assert args.memory_command == subcommand

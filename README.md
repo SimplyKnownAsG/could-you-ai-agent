@@ -19,7 +19,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
   - OpenAI-compatible providers via `openai`
   - Ollama via its OpenAI-compatible API
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
-- **Script mode**: Run scripts with their own config overlays using `--script`.
+- **Script mode**: Run scripts with their own config overlays using `script` / `s`.
 - **Dialogue**: Persisted per-workspace in `.could-you/dialogue.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
 - **Memory pressure warnings**: Configurable token-usage warning/rejection thresholds help trigger explicit compaction before context is exhausted.
 - **Private memory backups**: Copy dialogue into the private `.could-you/` git repo with `memory backup`.
@@ -76,9 +76,8 @@ From `could_you/__main__.py`:
   - `-C`, `--dump-config [json|yaml]` – Print the effective config (after overlays) then exit
 - Query input:
   - `--query TEXT` – Explicit one-off query text
-- Scripts:
-  - `-s`, `--script SCRIPT` – Run a skill from the config directory. Statefulness is determined by the script's config.
 - Subcommands:
+  - `script SCRIPT` / `s SCRIPT` – Run a skill from the config directory. Statefulness is determined by the script's config.
   - `workspace init` / `ws init` – Initialize a `.could-you/` workspace in the current directory
   - `workspace sync` / `ws sync` – Sync managed workspace templates into `.could-you`, protecting local memory files and archived conversations
   - `memory backup [TOPIC]` / `m backup [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
@@ -136,7 +135,7 @@ Config loading works as follows (see `load()` in `could_you/config.py`):
 
 1. Locate the nearest `.could-you/` directory from the current working directory.
 2. Load the base config from `.could-you/config.(json|yaml|yml)`.
-3. If `--script <name>` is provided, also load `.could-you/script.<name>.(json|yaml|yml)` and overlay its values on top of the base config.
+3. If `script <name>` is provided, also load `.could-you/script.<name>.(json|yaml|yml)` and overlay its values on top of the base config.
 4. Validate and normalize the config:
    - Ensure `llm.provider` is one of `"boto3"`, `"ollama"`, or `"openai"`.
    - Expand the `systemPrompt` via the prompt utilities (see below).
@@ -342,7 +341,7 @@ Script mode lets you run one-off operations, seemingly close to a SKILL
 - A script config file is named:
   - `$XDG_CONFIG_HOME/could-you/script.<script-name>.json` (user-global), or
   - `.could-you/script.<script-name>.json` (project-local workspace).
-- When `--script <script-name>` is used:
+- When `script <script-name>` is used:
   - The base workspace config is loaded.
   - The script config is loaded and merged over it.
   - The script's own config (`dialogue` section) determines whether dialogue is loaded and stored.
@@ -375,7 +374,7 @@ Script mode lets you run one-off operations, seemingly close to a SKILL
 Run with:
 
 ```bash
-could-you --script git-commit
+could-you script git-commit
 ```
 
 #### 2. Script with workspace-local config
@@ -400,7 +399,7 @@ could-you --script git-commit
 Run with:
 
 ```bash
-could-you --script git-commit
+could-you script git-commit
 ```
 
 In both cases, the system prompt is resolved as described in **System Prompt & Prompt Expansion**.
@@ -452,7 +451,7 @@ MEMORY.md
 The default resources include an optional script-mode memory compaction workflow:
 
 ```bash
-could-you --script compact-history
+could-you script compact-history
 ```
 
 The script loads `.could-you/dialogue.json`, generates a durable memory update, calls `could-you --backup-memory`, replaces `MEMORY.md`, removes the live dialogue history, and commits the updated private memory state.
