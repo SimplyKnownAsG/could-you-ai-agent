@@ -88,8 +88,10 @@ def test_inspect_memory_yaml_suggests_root_autoload_when_no_token_pressure(tmp_p
 
 def test_inspect_memory_cli_flags_parse():
     parser = create_parser()
-    args = parser.parse_args(["--inspect-memory"])
-    assert args.inspect_memory is True
+    args = parser.parse_args(["memory", "inspect"])
+    assert args.command == "memory"
+    assert args.memory_command == "inspect"
 
-    args = parser.parse_args(["--memory-status"])
-    assert args.inspect_memory is True
+    args = parser.parse_args(["memory", "status"])
+    assert args.command == "memory"
+    assert args.memory_command == "inspect"

@@ -22,8 +22,8 @@ The project name is `could-you`, and the primary CLI entry point is typically in
 - **Script mode**: Run scripts with their own config overlays using `--script`.
 - **Dialogue**: Persisted per-workspace in `.could-you/dialogue.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
 - **Memory pressure warnings**: Configurable token-usage warning/rejection thresholds help trigger explicit compaction before context is exhausted.
-- **Private memory backups**: Copy dialogue into the private `.could-you/` git repo with `--backup-memory`.
-- **Permission inspection**: Print an observational OS-user/filesystem permission report with `--inspect-permissions`.
+- **Private memory backups**: Copy dialogue into the private `.could-you/` git repo with `memory backup`.
+- **Permission inspection**: Print an observational OS-user/filesystem permission report with `permissions`.
 
 ---
 
@@ -57,7 +57,7 @@ This will install the `could-you` (and/or `cy`) CLI entrypoint, depending on pac
 Inside a project where you've initialized a workspace (see below), you can run:
 
 ```bash
-could-you "Refactor the config loading logic to support environment overlays."
+could-you --query "Refactor the config loading logic to support environment overlays."
 ```
 
 Without a direct query, `could-you` will open your `$EDITOR` (default `vim`) on a temporary `query.md`, showing previous dialogue and a marker for you to type after.
@@ -69,25 +69,27 @@ From `could_you/__main__.py`:
 - Logging verbosity (mutually exclusive):
   - `-v`, `--verbose` – DEBUG level logging
   - `-q`, `--quiet` – WARNING level logging only
-- History:
-  - `-H`, `--no-history` – Do not load or persist dialogue for this run
+- Dialogue behavior:
+  - `-L`, `--dialogue-load` / `--no-dialogue-load` – Override whether existing dialogue is loaded for this run
+  - `-S`, `--dialogue-store` / `--no-dialogue-store` – Override whether dialogue is stored after this run
 - Config inspection:
   - `-C`, `--dump-config [json|yaml]` – Print the effective config (after overlays) then exit
-- Session / workspace helpers:
-  - `-l`, `--list-sessions` – List existing sessions from the cache
-  - `-i`, `--init-session` – Initialize a `.could-you/` workspace in the current directory
-  - `-d`, `--delete-session PATH` – Delete a specific session from the sessions cache
-  - `-p`, `--print-history` – Print the dialogue for the current workspace
-- Connectivity:
-  - `-t`, `--test-connect [MESSAGE]` – Test MCP + LLM connectivity with a simple message, then exit
-- Memory:
-  - `--backup-memory [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
-- Permissions:
-  - `--inspect-permissions` – Print an observational report about the current OS-user/filesystem permission boundary
+- Query input:
+  - `--query TEXT` – Explicit one-off query text
 - Scripts:
-  - `-s`, `--script SCRIPT` – Run a script from the config directory. Statefulness is determined by the script's config.
+  - `-s`, `--script SCRIPT` – Run a skill from the config directory. Statefulness is determined by the script's config.
+- Subcommands:
+  - `init` – Initialize a `.could-you/` workspace in the current directory
+  - `memory backup [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
+  - `memory inspect` / `memory status` – Print a deterministic memory inspection report
+  - `memory search TERM [TERM ...]` – Search durable memory
+  - `session list` – List existing sessions from the cache
+  - `session delete PATH` – Delete a specific session from the sessions cache
+  - `dialogue print` – Print the dialogue for the current workspace
+  - `permissions` – Print an observational report about the current OS-user/filesystem permission boundary
+  - `test connect [MESSAGE]` – Test MCP + LLM connectivity with a simple message, then exit
 
-You can also run `could-you` with no `query` argument; in that case, it may fall back to `config.query` or launch `$EDITOR` as described above.
+If `--query` is omitted, could-you may fall back to `config.query` or launch `$EDITOR` as described above.
 
 ---
 
@@ -112,7 +114,7 @@ project-root/
 Use:
 
 ```bash
-could-you --init-session
+could-you init
 ```
 
 from your project root to create `.could-you/` using any global templates shipped in `could_you.resources`.

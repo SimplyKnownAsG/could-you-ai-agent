@@ -80,53 +80,73 @@ def create_parser():
         default=None,
         help="Print the effective configuration as JSON (default) or YAML, then exit",
     )
-    # Define a mutually exclusive group
-    cmd_group = parser.add_mutually_exclusive_group()
-
-    cmd_group.add_argument("query", nargs="?", help="A question or request to process")
-    cmd_group.add_argument("-l", "--list-sessions", action="store_true", help="List existing sessions")
-    cmd_group.add_argument("-i", "--init-session", action="store_true", help="Initialize a session in this directory")
-    cmd_group.add_argument("-d", "--delete-session", metavar="session_path", help="Delete a specific session")
-    cmd_group.add_argument("-p", "--print-history", action="store_true", help="Print the dialogue history")
-    cmd_group.add_argument(
-        "-t",
-        "--test-connect",
-        nargs="?",
-        const="Say hi",
-        default=None,
-        help="Test connection, send a message to LLM, and stop",
+    parser.add_argument(
+        "--query",
+        dest="query",
+        help="A question or request to process",
     )
-    cmd_group.add_argument(
+    parser.add_argument(
         "-s",
         "--script",
         metavar="SCRIPT",
         help="Run a skill from the config directory (e.g., script.<name>.json). Statefulness is determined by the skill's config.",
     )
-    cmd_group.add_argument(
-        "--backup-memory",
-        nargs="?",
-        const="",
-        metavar="TOPIC",
-        help="Back up .could-you/dialogue.json to the private memory git repo",
+    subparsers = parser.add_subparsers(dest="command")
+
+    init_parser = subparsers.add_parser("init", help="Initialize a .could-you workspace in this directory")
+    init_parser.set_defaults(command="init")
+
+    memory_parser = subparsers.add_parser("memory", help="Memory-related commands")
+    memory_subparsers = memory_parser.add_subparsers(dest="memory_command")
+
+    memory_backup_parser = memory_subparsers.add_parser(
+        "backup", help="Back up dialogue to the private memory git repo"
     )
-    cmd_group.add_argument(
-        "--inspect-memory",
-        "--memory-status",
-        dest="inspect_memory",
-        action="store_true",
+    memory_backup_parser.add_argument(
+        "topic", nargs="?", default=None, help="Optional topic for the backup commit message"
+    )
+    memory_backup_parser.set_defaults(command="memory", memory_command="backup")
+
+    memory_inspect_parser = memory_subparsers.add_parser(
+        "inspect",
+        aliases=["status"],
         help="Print a deterministic report about dialogue, prompt loads, thresholds, and memory files",
     )
-    cmd_group.add_argument(
-        "--inspect-permissions",
-        action="store_true",
+    memory_inspect_parser.set_defaults(command="memory", memory_command="inspect")
+
+    memory_search_parser = memory_subparsers.add_parser("search", help="Search durable memory for one or more terms")
+    memory_search_parser.add_argument("terms", nargs="+", metavar="TERM", help="Search terms")
+    memory_search_parser.set_defaults(command="memory", memory_command="search")
+
+    session_parser = subparsers.add_parser("session", help="Session-related commands")
+    session_subparsers = session_parser.add_subparsers(dest="session_command")
+
+    session_list_parser = session_subparsers.add_parser("list", help="List existing sessions")
+    session_list_parser.set_defaults(command="session", session_command="list")
+
+    session_delete_parser = session_subparsers.add_parser("delete", help="Delete a specific session")
+    session_delete_parser.add_argument("session_path", help="Session path to delete")
+    session_delete_parser.set_defaults(command="session", session_command="delete")
+
+    dialogue_parser = subparsers.add_parser("dialogue", help="Dialogue-related commands")
+    dialogue_subparsers = dialogue_parser.add_subparsers(dest="dialogue_command")
+
+    dialogue_print_parser = dialogue_subparsers.add_parser("print", help="Print the dialogue history")
+    dialogue_print_parser.set_defaults(command="dialogue", dialogue_command="print")
+
+    permissions_parser = subparsers.add_parser(
+        "permissions",
         help="Print an observational report about the current OS-user/filesystem permission boundary",
     )
-    cmd_group.add_argument(
-        "--search-memory",
-        nargs="+",
-        metavar="TERM",
-        help="Search durable memory for one or more terms",
-    )
+    permissions_parser.set_defaults(command="permissions")
+
+    test_parser = subparsers.add_parser("test", help="Connectivity and validation commands")
+    test_subparsers = test_parser.add_subparsers(dest="test_command")
+
+    test_connect_parser = test_subparsers.add_parser("connect", help="Test connection, send a message to LLM, and stop")
+    test_connect_parser.add_argument("message", nargs="?", default="Say hi", help="Test message to send")
+    test_connect_parser.set_defaults(command="test", test_command="connect")
+
     parser.add_argument(
         "--format",
         default="json",
@@ -138,6 +158,8 @@ def create_parser():
 
 
 async def amain(parser, args):
+    query = args.query
+
     # Early config dump
     if args.dump_config:
         config = load(args.script)[0]
@@ -152,48 +174,42 @@ async def amain(parser, args):
         return
 
     with SessionManager() as session_manager:
-        if args.list_sessions:
-            # List all sessions
+        if args.command == "session" and args.session_command == "list":
             session_manager.list()
-        elif args.init_session:
-            # Create or switch to a session
+        elif args.command == "init":
             session_manager.init_session()
-        elif args.delete_session:
-            # Create or switch to a session
-            session_manager.delete_session(args.delete_session)
-        elif args.print_history:
-            # Print dialogue history
+        elif args.command == "session" and args.session_command == "delete":
+            session_manager.delete_session(args.session_path)
+        elif args.command == "dialogue" and args.dialogue_command == "print":
             session = session_manager.load_session(None)
             with session.dialogue(load=True, store=False) as dialogue:
                 dialogue.print(info=LOGGER.info, debug=LOGGER.debug)
-        elif args.backup_memory is not None:
+        elif args.command == "memory" and args.memory_command == "backup":
             w_config_dir = _find_workspace_config_dir(Path.cwd())
-            result = backup_dialogue(w_config_dir, topic=args.backup_memory or None)
+            result = backup_dialogue(w_config_dir, topic=args.topic)
             LOGGER.info(f"Memory repo: {result.repo_path}")
             LOGGER.info(f"Backup file: {result.backup_path}")
-        elif args.inspect_memory:
+        elif args.command == "memory" and args.memory_command == "inspect":
             print(dump_memory_inspection_yaml(inspect_memory(args.script)))  # noqa: T201
-        elif args.inspect_permissions:
+        elif args.command == "permissions":
             w_config_dir = _find_workspace_config_dir(Path.cwd())
             report = inspect_permission_boundary(w_config_dir)
             print(format_permission_report(report))  # noqa: T201
-        elif args.search_memory:
-            results = search_memory(args.search_memory)
+        elif args.command == "memory" and args.memory_command == "search":
+            results = search_memory(args.terms)
             if results is not None:
                 if not results:
-                    # search_memory has already logged that no matches were found
                     return
 
                 if args.format == "yaml":
                     print(yaml.safe_dump(results, sort_keys=False, default_flow_style=False))  # noqa: T201
                 else:
                     print(json.dumps(results, indent=2))  # noqa: T201
-        elif args.test_connect:
-            # List servers and their tools
+        elif args.command == "test" and args.test_command == "connect":
             session = session_manager.load_session(None)
             with session.dialogue(load=False, store=False) as dialogue:
                 async with Agent(config=session.config, dialogue=dialogue) as agent:
-                    await agent.orchestrate(args.test_connect)
+                    await agent.orchestrate(args.message)
         else:
             session = session_manager.load_session(args.script)
 
@@ -201,8 +217,8 @@ async def amain(parser, args):
             dialogue_store = session.config.dialogue.store if args.dialogue_store is None else args.dialogue_store
 
             query = (
-                args.query
-                if args.query
+                query
+                if query
                 else session.config.query
                 if session.config.query
                 else _get_editor_input(session.w_config_dir)
