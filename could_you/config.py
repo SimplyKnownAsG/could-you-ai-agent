@@ -265,13 +265,25 @@ def _copy_user_workspace_templates(source_dir: Path, dest_dir: Path, *, overwrit
 
         action = "Overwriting" if dest.exists() else "Writing"
         LOGGER.info(f"{action} file {dest} from user template {source}")
-        shutil.copy2(source, dest)
+        _write_path_from_path(source, dest)
 
 
 def _should_skip_workspace_template(rel_path: Path) -> bool:
     return (
         any(part == "conversations" for part in rel_path.parts) or rel_path.name in _PROTECTED_WORKSPACE_TEMPLATE_NAMES
     )
+
+
+def _write_text_to_dest(dest: Path, content: str) -> None:
+    if dest.exists():
+        mode = dest.stat().st_mode
+        dest.chmod(mode | stat.S_IWUSR)
+
+    dest.write_text(content)
+
+
+def _write_path_from_path(source: Path, dest: Path) -> None:
+    _write_text_to_dest(dest, source.read_text())
 
 
 def _copy_global_config(w_config_dir: Path, *, overwrite: bool = False):
@@ -300,7 +312,7 @@ def _copy_global_config(w_config_dir: Path, *, overwrite: bool = False):
         with resource.open("r") as f:
             action = "Overwriting" if dest.exists() else "Writing"
             LOGGER.info(f"{action} file {dest} from global {resource}")
-            dest.write_text(f.read())
+            _write_text_to_dest(dest, f.read())
 
 
 def _git_executable() -> str:

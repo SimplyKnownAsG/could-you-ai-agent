@@ -163,14 +163,18 @@ def test_init_rejects_non_directory_workspace_path(tmp_dir: Path):
         init()
 
 
+def _init_committed_workspace_repo(workspace_path: Path) -> None:
+    subprocess.run(["git", "-C", str(workspace_path), "init"], check=True)
+    subprocess.run(["git", "-C", str(workspace_path), "config", "user.name", "could-you"], check=True)
+    subprocess.run(["git", "-C", str(workspace_path), "config", "user.email", "could-you@localhost"], check=True)
+    subprocess.run(["git", "-C", str(workspace_path), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(workspace_path), "commit", "-m", "seed workspace"], check=True)
+
+
 def test_sync_workspace_overwrites_managed_files(tmp_workspace: Path):
     config_path = tmp_workspace / "config.yaml"
     config_path.write_text("llm:\n  provider: openai\n")
-    subprocess.run(["git", "-C", str(tmp_workspace), "init"], check=True)
-    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.name", "could-you"], check=True)
-    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.email", "could-you@localhost"], check=True)
-    subprocess.run(["git", "-C", str(tmp_workspace), "add", "."], check=True)
-    subprocess.run(["git", "-C", str(tmp_workspace), "commit", "-m", "seed workspace"], check=True)
+    _init_committed_workspace_repo(tmp_workspace)
 
     sync_workspace()
 
@@ -181,17 +185,31 @@ def test_sync_workspace_overwrites_managed_files(tmp_workspace: Path):
 def test_sync_workspace_overwrites_read_only_managed_files(tmp_workspace: Path):
     config_path = tmp_workspace / "config.yaml"
     config_path.write_text("llm:\n  provider: openai\n")
+    _init_committed_workspace_repo(tmp_workspace)
     config_path.chmod(config_path.stat().st_mode & ~stat.S_IWUSR)
-    subprocess.run(["git", "-C", str(tmp_workspace), "init"], check=True)
-    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.name", "could-you"], check=True)
-    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.email", "could-you@localhost"], check=True)
-    subprocess.run(["git", "-C", str(tmp_workspace), "add", "."], check=True)
-    subprocess.run(["git", "-C", str(tmp_workspace), "commit", "-m", "seed workspace"], check=True)
 
     sync_workspace()
 
     assert "COULD_YOU_DEFAULT_PROMPT" in config_path.read_text()
     assert config_path.stat().st_mode & stat.S_IWUSR
+
+
+def test_sync_workspace_reads_from_read_only_user_templates(tmp_workspace: Path, monkeypatch):
+    config_path = tmp_workspace / "config.yaml"
+    config_path.write_text("llm:\n  provider: openai\n")
+    _init_committed_workspace_repo(tmp_workspace)
+
+    user_workspace_templates = tmp_workspace.parent / "user-templates"
+    user_workspace_templates.mkdir()
+    user_prompt_path = user_workspace_templates / "custom.md"
+    user_prompt_path.write_text("USER_TEMPLATE_PROMPT\n")
+    user_prompt_path.chmod(user_prompt_path.stat().st_mode & ~stat.S_IWUSR)
+
+    monkeypatch.setattr("could_you.config._get_user_config_dir_path", lambda: user_workspace_templates)
+
+    sync_workspace()
+
+    assert "USER_TEMPLATE_PROMPT" in (tmp_workspace / "custom.md").read_text()
 
 
 def test_sync_workspace_skips_protected_files_from_user_templates(tmp_workspace: Path, monkeypatch):
