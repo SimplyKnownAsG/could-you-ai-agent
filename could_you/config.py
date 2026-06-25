@@ -96,6 +96,7 @@ def sync_workspace() -> Path:
 
     _ensure_workspace_git_repo(w_config_dir)
     _require_clean_git_worktree(w_config_dir)
+    _fix_permissions(w_config_dir)
     _copy_workspace_templates(w_config_dir, overwrite=True)
     _fix_permissions(w_config_dir)
     _commit_workspace_sync(w_config_dir)

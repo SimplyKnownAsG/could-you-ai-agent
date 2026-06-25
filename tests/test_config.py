@@ -1,4 +1,5 @@
 import os
+import stat
 import subprocess
 from pathlib import Path
 
@@ -175,6 +176,22 @@ def test_sync_workspace_overwrites_managed_files(tmp_workspace: Path):
 
     assert "COULD_YOU_DEFAULT_PROMPT" in config_path.read_text()
     assert _is_git_repo(tmp_workspace)
+
+
+def test_sync_workspace_overwrites_read_only_managed_files(tmp_workspace: Path):
+    config_path = tmp_workspace / "config.yaml"
+    config_path.write_text("llm:\n  provider: openai\n")
+    config_path.chmod(config_path.stat().st_mode & ~stat.S_IWUSR)
+    subprocess.run(["git", "-C", str(tmp_workspace), "init"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.name", "could-you"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.email", "could-you@localhost"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "commit", "-m", "seed workspace"], check=True)
+
+    sync_workspace()
+
+    assert "COULD_YOU_DEFAULT_PROMPT" in config_path.read_text()
+    assert config_path.stat().st_mode & stat.S_IWUSR
 
 
 def test_sync_workspace_skips_protected_files_from_user_templates(tmp_workspace: Path, monkeypatch):
