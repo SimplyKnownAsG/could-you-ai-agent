@@ -3,6 +3,9 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
+from could_you.config import InvalidConfigError
 from could_you.memory.search import _parse_git_grep_output, search_memory
 
 # A hardcoded sample of `git grep` output.
@@ -87,3 +90,11 @@ def test_search_memory_unit(tmp_path: Path):
     assert line_num == 1
     assert isinstance(content, dict)
     assert "This is a test message" in content.get("content", "")
+
+
+def test_search_memory_requires_git_repo(tmp_path: Path):
+    could_you_dir = tmp_path / ".could-you"
+    could_you_dir.mkdir()
+
+    with pytest.raises(InvalidConfigError, match="Run `could-you workspace sync` to initialize it"):
+        search_memory(["term"], cwd=str(could_you_dir))

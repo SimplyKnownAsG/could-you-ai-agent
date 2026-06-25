@@ -76,6 +76,7 @@ def init() -> Path:
     w_config_dir.mkdir()
     _copy_workspace_templates(w_config_dir, overwrite=False)
     _fix_permissions(w_config_dir)
+    _ensure_workspace_git_repo(w_config_dir)
 
     return w_config_dir
 
@@ -93,16 +94,11 @@ def sync_workspace() -> Path:
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
-    git_dir = w_config_dir / ".git"
-
-    if git_dir.exists():
-        _require_clean_git_worktree(w_config_dir)
-
+    _ensure_workspace_git_repo(w_config_dir)
+    _require_clean_git_worktree(w_config_dir)
     _copy_workspace_templates(w_config_dir, overwrite=True)
     _fix_permissions(w_config_dir)
-
-    if git_dir.exists():
-        _commit_workspace_sync(w_config_dir)
+    _commit_workspace_sync(w_config_dir)
 
     return w_config_dir
 
@@ -315,6 +311,59 @@ def _git_executable() -> str:
         raise InvalidConfigError(msg)
 
     return git_path
+
+
+def _is_git_repo(repo_path: Path) -> bool:
+    git_dir = repo_path / ".git"
+
+    if not git_dir.exists():
+        return False
+
+    result = subprocess.run(
+        [_git_executable(), "-C", str(repo_path), "rev-parse", "--is-inside-work-tree"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    return result.returncode == 0 and result.stdout.strip() == "true"
+
+
+def _ensure_workspace_git_repo(repo_path: Path) -> None:
+    if _is_git_repo(repo_path):
+        return
+
+    subprocess.run([_git_executable(), "-C", str(repo_path), "init"], check=True, capture_output=True, text=True)
+    _ensure_git_identity(repo_path)
+
+
+def _ensure_git_identity(repo_path: Path) -> None:
+    if not _git_config_exists(repo_path, "user.name"):
+        subprocess.run(
+            [_git_executable(), "-C", str(repo_path), "config", "user.name", "could-you"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    if not _git_config_exists(repo_path, "user.email"):
+        subprocess.run(
+            [_git_executable(), "-C", str(repo_path), "config", "user.email", "could-you@localhost"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+
+def _git_config_exists(repo_path: Path, key: str) -> bool:
+    result = subprocess.run(
+        [_git_executable(), "-C", str(repo_path), "config", "--get", key],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    return result.returncode == 0 and bool(result.stdout.strip())
 
 
 def _require_clean_git_worktree(repo_path: Path) -> None:

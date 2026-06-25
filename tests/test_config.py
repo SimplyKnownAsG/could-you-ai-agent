@@ -1,4 +1,5 @@
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ from could_you.config import (
     DialogueProps,
     InvalidConfigError,
     _find_workspace_config_dir,
+    _is_git_repo,
     init,
     load,
     sync_workspace,
@@ -134,8 +136,10 @@ def test_init(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001
 
     assert config_dir.exists()
     assert config_dir.is_dir()
+    assert _is_git_repo(config_dir)
 
     expected = {
+        ".git",
         "config.yaml",
         "SYSTEM_PROMPT.md",
         "script.compact-history.any-script.yaml",
@@ -161,13 +165,27 @@ def test_init_rejects_non_directory_workspace_path(tmp_dir: Path):
 def test_sync_workspace_overwrites_managed_files(tmp_workspace: Path):
     config_path = tmp_workspace / "config.yaml"
     config_path.write_text("llm:\n  provider: openai\n")
+    subprocess.run(["git", "-C", str(tmp_workspace), "init"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.name", "could-you"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.email", "could-you@localhost"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "commit", "-m", "seed workspace"], check=True)
 
     sync_workspace()
 
     assert "COULD_YOU_DEFAULT_PROMPT" in config_path.read_text()
+    assert _is_git_repo(tmp_workspace)
 
 
 def test_sync_workspace_skips_protected_files_from_user_templates(tmp_workspace: Path, monkeypatch):
+    (tmp_workspace / "MEMORY.md").write_text("WORKSPACE MEMORY")
+    (tmp_workspace / "TODO.md").write_text("WORKSPACE TODO")
+    subprocess.run(["git", "-C", str(tmp_workspace), "init"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.name", "could-you"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "config", "user.email", "could-you@localhost"], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(tmp_workspace), "commit", "-m", "seed workspace"], check=True)
+
     user_workspace_templates = tmp_workspace.parent / "user-templates"
     user_workspace_templates.mkdir()
     (user_workspace_templates / "MEMORY.md").write_text("USER TEMPLATE MEMORY")
@@ -177,8 +195,6 @@ def test_sync_workspace_skips_protected_files_from_user_templates(tmp_workspace:
     conversations_dir.mkdir(parents=True, exist_ok=True)
     (conversations_dir / "old.jsonl").write_text("archived")
 
-    (tmp_workspace / "MEMORY.md").write_text("WORKSPACE MEMORY")
-    (tmp_workspace / "TODO.md").write_text("WORKSPACE TODO")
     monkeypatch.setattr("could_you.config._get_user_config_dir_path", lambda: user_workspace_templates)
 
     sync_workspace()
@@ -194,6 +210,19 @@ def test_sync_workspace_requires_existing_directory(tmp_dir: Path, monkeypatch):
 
     with pytest.raises(InvalidConfigError, match="does not exist"):
         sync_workspace()
+
+
+def test_sync_workspace_creates_git_repo_for_legacy_workspace(tmp_dir: Path, monkeypatch):
+    workspace_root = tmp_dir
+    w_config_dir = workspace_root / ".could-you"
+    w_config_dir.mkdir()
+    (w_config_dir / "config.yaml").write_text("llm:\n  provider: openai\n")
+    monkeypatch.chdir(workspace_root)
+
+    with pytest.raises(InvalidConfigError, match="uncommitted changes"):
+        sync_workspace()
+
+    assert _is_git_repo(w_config_dir)
 
 
 def test_load_git_commit_script(tmp_cy_config_dir: Path, tmp_dir: Path):  # noqa: ARG001

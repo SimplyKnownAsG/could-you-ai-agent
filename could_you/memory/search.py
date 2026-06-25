@@ -1,7 +1,9 @@
 # This module will contain the core logic for the `cy --search-memory` command.
 import json
 import subprocess
+from pathlib import Path
 
+from ..config import InvalidConfigError
 from ..logging_config import LOGGER
 
 # The expected number of parts from splitting a `git grep` output line.
@@ -60,6 +62,13 @@ def search_memory(terms: list[str], cwd: str = ".could-you") -> dict | None:
         terms: A list of search terms.
         cwd: The working directory to run the git command from, defaults to ".could-you".
     """
+    cwd_path = Path(cwd)
+
+    if not (cwd_path / ".git").exists():
+        msg = f"{cwd_path} is not a git repository. Run `could-you workspace sync` to initialize it."
+        LOGGER.error(msg)
+        raise InvalidConfigError(msg)
+
     command = ["git", "grep", "-i", "--line-number", "--all-match"]
     for term in terms:
         command.extend(["-e", term])
