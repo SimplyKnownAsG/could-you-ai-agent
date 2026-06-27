@@ -54,11 +54,44 @@ def test_query_flag_populates_query(monkeypatch):
     assert args.query == "hello"
 
 
+def test_config_dump_defaults_to_json(monkeypatch):
+    parser = create_parser()
+    monkeypatch.setattr(sys, "argv", ["could-you", "config", "dump"])
+
+    args = parser.parse_args()
+
+    assert args.command == "config"
+    assert args.config_command == "dump"
+    assert args.config_format == "json"
+
+
+def test_config_dump_accepts_yaml_alias(monkeypatch):
+    parser = create_parser()
+    monkeypatch.setattr(sys, "argv", ["could-you", "c", "dump", "--yaml"])
+
+    args = parser.parse_args()
+
+    assert args.command == "config"
+    assert args.config_command == "dump"
+    assert args.config_format == "yaml"
+
+
+def test_config_dump_rejects_multiple_output_formats(monkeypatch):
+    parser = create_parser()
+    monkeypatch.setattr(sys, "argv", ["could-you", "config", "dump", "--json", "--yaml"])
+
+    with pytest.raises(SystemExit):
+        parser.parse_args()
+
+
 @pytest.mark.parametrize(
     ("argv", "command", "subcommand", "expected"),
     [
         (["could-you", "script", "git-commit"], "script", None, "git-commit"),
         (["could-you", "s", "git-commit"], "script", None, "git-commit"),
+        (["could-you", "config", "dump"], "config", "dump", "json"),
+        (["could-you", "config", "dump", "--yaml"], "config", "dump", "yaml"),
+        (["could-you", "c", "dump", "--json"], "config", "dump", "json"),
         (["could-you", "workspace", "init"], "workspace", "init", None),
         (["could-you", "workspace", "sync"], "workspace", "sync", None),
         (["could-you", "ws", "sync"], "workspace", "sync", None),
@@ -87,6 +120,9 @@ def test_subcommand_parsing(monkeypatch, argv, command, subcommand, expected):
 
     if command == "script":
         assert args.script_name == expected
+    elif command == "config":
+        assert args.config_command == subcommand
+        assert args.config_format == expected
     elif command == "workspace":
         assert args.workspace_command == subcommand
     elif command == "memory":

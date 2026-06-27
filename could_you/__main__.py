@@ -72,20 +72,20 @@ def create_parser():
         help="Override whether dialogue is stored after this run",
     )
     parser.add_argument(
-        "-C",
-        "--dump-config",
-        nargs="?",
-        const="json",
-        choices=["json", "yaml"],
-        default=None,
-        help="Print the effective configuration as JSON (default) or YAML, then exit",
-    )
-    parser.add_argument(
         "--query",
         dest="query",
         help="A question or request to process",
     )
     subparsers = parser.add_subparsers(dest="command")
+
+    config_parser = subparsers.add_parser("config", aliases=["c"], help="Configuration-related commands")
+    config_subparsers = config_parser.add_subparsers(dest="config_command")
+
+    config_dump_parser = config_subparsers.add_parser("dump", help="Print the effective configuration and exit")
+    config_dump_format_group = config_dump_parser.add_mutually_exclusive_group()
+    config_dump_format_group.add_argument("--json", dest="config_format", action="store_const", const="json")
+    config_dump_format_group.add_argument("--yaml", dest="config_format", action="store_const", const="yaml")
+    config_dump_parser.set_defaults(command="config", config_command="dump", config_format="json")
 
     script_parser = subparsers.add_parser(
         "script",
@@ -166,13 +166,12 @@ def create_parser():
 async def amain(parser, args):
     query = args.query
 
-    # Early config dump
-    if args.dump_config:
+    if args.command == "config" and args.config_command == "dump":
         config = load(_get_script_name(args))[0]
         converter = Converter(use_alias=True)
         config_dict = converter.unstructure(config)
 
-        if args.dump_config == "yaml":
+        if args.config_format == "yaml":
             print(yaml.safe_dump(config_dict, sort_keys=False, default_flow_style=False))  # noqa: T201
         else:
             print(json.dumps(config_dict, indent=2))  # noqa: T201
