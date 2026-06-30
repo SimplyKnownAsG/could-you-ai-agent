@@ -14,7 +14,7 @@ from .cy_error import CYError
 from .dialogue import Dialogue
 from .inspect_memory import dump_memory_inspection_yaml, inspect_memory
 from .logging_config import LOGGER, set_up_logging
-from .memory import backup_dialogue
+from .memory import archive_dialogue
 from .memory.search import search_memory
 from .permissions import format_permission_report, inspect_permission_boundary
 from .session import SessionManager
@@ -115,13 +115,13 @@ def create_parser():
     memory_parser = subparsers.add_parser("memory", aliases=["m"], help="Memory-related commands")
     memory_subparsers = memory_parser.add_subparsers(dest="memory_command")
 
-    memory_backup_parser = memory_subparsers.add_parser(
-        "backup", help="Back up dialogue to the private memory git repo"
+    memory_archive_parser = memory_subparsers.add_parser(
+        "archive", help="Archive dialogue to the private memory git repo"
     )
-    memory_backup_parser.add_argument(
-        "topic", nargs="?", default=None, help="Optional topic for the backup commit message"
+    memory_archive_parser.add_argument(
+        "topic", nargs="?", default=None, help="Optional topic for the archive commit message"
     )
-    memory_backup_parser.set_defaults(command="memory", memory_command="backup")
+    memory_archive_parser.set_defaults(command="memory", memory_command="archive")
 
     memory_inspect_parser = memory_subparsers.add_parser(
         "inspect",
@@ -187,11 +187,11 @@ async def amain(parser, args):
             session = session_manager.load_session(None)
             with session.dialogue(load=True, store=False) as dialogue:
                 dialogue.print(info=LOGGER.info, debug=LOGGER.debug)
-        elif args.command == "memory" and args.memory_command == "backup":
+        elif args.command == "memory" and args.memory_command == "archive":
             w_config_dir = _find_workspace_config_dir(Path.cwd())
-            result = backup_dialogue(w_config_dir, topic=args.topic)
+            result = archive_dialogue(w_config_dir, topic=args.topic)
             LOGGER.info(f"Memory repo: {result.repo_path}")
-            LOGGER.info(f"Backup file: {result.backup_path}")
+            LOGGER.info(f"Archive file: {result.archive_path}")
         elif args.command == "memory" and args.memory_command == "inspect":
             print(dump_memory_inspection_yaml(inspect_memory(_get_script_name(args))))  # noqa: T201
         elif args.command == "permissions":

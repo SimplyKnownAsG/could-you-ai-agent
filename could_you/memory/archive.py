@@ -11,37 +11,37 @@ from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
 
 
-class MemoryBackupError(CYError):
+class MemoryArchiveError(CYError):
     def __init__(self, message: str):
         super().__init__(message=message, retriable=False, fault_owner=FaultOwner.USER)
 
 
 @dataclass(frozen=True)
-class MemoryBackupResult:
+class MemoryArchiveResult:
     repo_path: Path
-    backup_path: Path
+    archive_path: Path
     metadata_path: Path
     commit_message: str
 
 
-def backup_dialogue(w_config_dir: Path, topic: str | None = None) -> MemoryBackupResult:
+def archive_dialogue(w_config_dir: Path, topic: str | None = None) -> MemoryArchiveResult:
     """Back up workspace dialogue to a private, user-owned git repository."""
     w_config_dir = w_config_dir.resolve()
     dialogue_path = w_config_dir / "dialogue.json"
 
     if not dialogue_path.is_file():
-        raise MemoryBackupError(f"No dialogue history found at {dialogue_path}")
+        raise MemoryArchiveError(f"No dialogue history found at {dialogue_path}")
 
     workspace_root = w_config_dir.parent.resolve()
     repo_path = _memory_repo_path(w_config_dir)
     workspace_key = _workspace_key(workspace_root)
     timestamp = _timestamp()
-    backup_dir = repo_path / "workspaces" / workspace_key / "conversations"
-    backup_dir.mkdir(parents=True, exist_ok=True)
+    archive_dir = repo_path / "workspaces" / workspace_key / "conversations"
+    archive_dir.mkdir(parents=True, exist_ok=True)
 
-    backup_path, metadata_path = _backup_paths(backup_dir, timestamp)
+    archive_path, metadata_path = _archive_paths(archive_dir, timestamp)
 
-    shutil.copy2(dialogue_path, backup_path)
+    shutil.copy2(dialogue_path, archive_path)
     metadata_path.write_text(
         json.dumps(
             {
@@ -59,15 +59,15 @@ def backup_dialogue(w_config_dir: Path, topic: str | None = None) -> MemoryBacku
     _ensure_git_identity(repo_path)
 
     commit_message = _commit_message(topic, timestamp)
-    _git(repo_path, "add", *_backup_commit_paths(repo_path, w_config_dir, backup_path, metadata_path))
+    _git(repo_path, "add", *_archive_commit_paths(repo_path, w_config_dir, archive_path, metadata_path))
     _git(repo_path, "commit", "-m", commit_message)
 
-    LOGGER.info(f"Backed up memory to {backup_path}")
-    LOGGER.info(f"Committed memory backup in {repo_path}")
+    LOGGER.info(f"Backed up memory to {archive_path}")
+    LOGGER.info(f"Committed memory archive in {repo_path}")
 
-    return MemoryBackupResult(
+    return MemoryArchiveResult(
         repo_path=repo_path,
-        backup_path=backup_path,
+        archive_path=archive_path,
         metadata_path=metadata_path,
         commit_message=commit_message,
     )
@@ -82,8 +82,8 @@ def _memory_repo_path(w_config_dir: Path) -> Path:
     return w_config_dir.resolve()
 
 
-def _backup_commit_paths(repo_path: Path, w_config_dir: Path, backup_path: Path, metadata_path: Path) -> list[str]:
-    paths = [backup_path, metadata_path]
+def _archive_commit_paths(repo_path: Path, w_config_dir: Path, archive_path: Path, metadata_path: Path) -> list[str]:
+    paths = [archive_path, metadata_path]
 
     for file_name in (
         "config.yaml",
@@ -112,16 +112,16 @@ def _timestamp() -> str:
     return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
-def _backup_paths(backup_dir: Path, timestamp: str) -> tuple[Path, Path]:
+def _archive_paths(archive_dir: Path, timestamp: str) -> tuple[Path, Path]:
     suffix = 0
 
     while True:
         infix = timestamp if suffix == 0 else f"{timestamp}.{suffix}"
-        backup_path = backup_dir / f"{infix}.dialogue.json"
-        metadata_path = backup_dir / f"{infix}.metadata.json"
+        archive_path = archive_dir / f"{infix}.dialogue.json"
+        metadata_path = archive_dir / f"{infix}.metadata.json"
 
-        if not backup_path.exists() and not metadata_path.exists():
-            return backup_path, metadata_path
+        if not archive_path.exists() and not metadata_path.exists():
+            return archive_path, metadata_path
 
         suffix += 1
 
@@ -150,7 +150,7 @@ def _git_config_exists(repo_path: Path, key: str) -> bool:
             text=True,
         )
     except FileNotFoundError as e:
-        raise MemoryBackupError("git is required to back up memories") from e
+        raise MemoryArchiveError("git is required to back up memories") from e
 
     return result.returncode == 0 and bool(result.stdout.strip())
 
@@ -159,14 +159,14 @@ def _commit_message(topic: str | None, timestamp: str) -> str:
     if topic:
         return f"memory: {topic}"
 
-    return f"memory: backup {timestamp}"
+    return f"memory: archive {timestamp}"
 
 
 def _git_executable() -> str:
     git_path = shutil.which("git")
 
     if not git_path:
-        raise MemoryBackupError("git is required to back up memories")
+        raise MemoryArchiveError("git is required to back up memories")
 
     return git_path
 
@@ -180,7 +180,7 @@ def _git(repo_path: Path, *args: str) -> None:
             text=True,
         )
     except FileNotFoundError as e:
-        raise MemoryBackupError("git is required to back up memories") from e
+        raise MemoryArchiveError("git is required to back up memories") from e
     except subprocess.CalledProcessError as e:
         detail = (e.stderr or e.stdout or str(e)).strip()
-        raise MemoryBackupError(f"git {' '.join(args)} failed: {detail}") from e
+        raise MemoryArchiveError(f"git {' '.join(args)} failed: {detail}") from e

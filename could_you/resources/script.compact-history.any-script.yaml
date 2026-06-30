@@ -9,7 +9,7 @@ tools:
       title:
         type: string
         description: >
-          Terse one-line title for the raw-history backup and compaction commits. This should name
+          Terse one-line title for the raw-history archive and compaction commits. This should name
           the actual topic or state of the conversation, especially if work is still in progress.
           No markdown, no quotes, under 80 characters.
         required: true

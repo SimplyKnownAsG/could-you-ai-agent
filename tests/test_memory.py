@@ -4,11 +4,11 @@ from pathlib import Path
 import pytest
 
 from could_you.config import MemoryProps
-from could_you.memory.backup import (
-    MemoryBackupError,
-    _backup_commit_paths,
-    _backup_paths,
-    backup_dialogue,
+from could_you.memory.archive import (
+    MemoryArchiveError,
+    _archive_commit_paths,
+    _archive_paths,
+    archive_dialogue,
 )
 from could_you.memory.tokens import (
     current_token_percent_used,
@@ -24,7 +24,7 @@ def test_backup_dialogue_copies_history_and_metadata(tmp_path: Path, monkeypatch
     memory_repo = tmp_path / "memories"
     w_config_dir.mkdir(parents=True)
     monkeypatch.setenv("COULD_YOU_MEMORY_REPO", str(memory_repo))
-    monkeypatch.setattr("could_you.memory.backup._timestamp", lambda: "20260516T123456Z")
+    monkeypatch.setattr("could_you.memory.archive._timestamp", lambda: "20260516T123456Z")
 
     git_calls = []
 
@@ -36,14 +36,14 @@ def test_backup_dialogue_copies_history_and_metadata(tmp_path: Path, monkeypatch
     def fake_git_config_exists(_repo_path: Path, _key: str) -> bool:
         return False
 
-    monkeypatch.setattr("could_you.memory.backup._git", fake_git)
-    monkeypatch.setattr("could_you.memory.backup._git_config_exists", fake_git_config_exists)
+    monkeypatch.setattr("could_you.memory.archive._git", fake_git)
+    monkeypatch.setattr("could_you.memory.archive._git_config_exists", fake_git_config_exists)
     (w_config_dir / "dialogue.json").write_text('[{"role":"user"}]\n')
 
-    result = backup_dialogue(w_config_dir, topic="private memory design")
+    result = archive_dialogue(w_config_dir, topic="private memory design")
 
     assert result.repo_path == memory_repo.resolve()
-    assert result.backup_path.read_text() == '[{"role":"user"}]\n'
+    assert result.archive_path.read_text() == '[{"role":"user"}]\n'
     assert result.commit_message == "memory: private memory design"
 
     metadata = json.loads(result.metadata_path.read_text())
@@ -58,7 +58,7 @@ def test_backup_dialogue_copies_history_and_metadata(tmp_path: Path, monkeypatch
         (memory_repo.resolve(), ("init",)),
         (memory_repo.resolve(), ("config", "user.name", "could-you")),
         (memory_repo.resolve(), ("config", "user.email", "could-you@localhost")),
-        (memory_repo.resolve(), ("add", str(result.backup_path), str(result.metadata_path))),
+        (memory_repo.resolve(), ("add", str(result.archive_path), str(result.metadata_path))),
         (memory_repo.resolve(), ("commit", "-m", "memory: private memory design")),
     ]
 
@@ -68,7 +68,7 @@ def test_backup_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkey
     w_config_dir = workspace_root / ".could-you"
     w_config_dir.mkdir(parents=True)
     monkeypatch.delenv("COULD_YOU_MEMORY_REPO", raising=False)
-    monkeypatch.setattr("could_you.memory.backup._timestamp", lambda: "20260516T123456Z")
+    monkeypatch.setattr("could_you.memory.archive._timestamp", lambda: "20260516T123456Z")
 
     def fake_git(_repo_path: Path, *_args: str) -> None:
         pass
@@ -76,14 +76,14 @@ def test_backup_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkey
     def fake_git_config_exists(_repo_path: Path, _key: str) -> bool:
         return True
 
-    monkeypatch.setattr("could_you.memory.backup._git", fake_git)
-    monkeypatch.setattr("could_you.memory.backup._git_config_exists", fake_git_config_exists)
+    monkeypatch.setattr("could_you.memory.archive._git", fake_git)
+    monkeypatch.setattr("could_you.memory.archive._git_config_exists", fake_git_config_exists)
     (w_config_dir / "dialogue.json").write_text('[{"role":"user"}]\n')
 
-    result = backup_dialogue(w_config_dir)
+    result = archive_dialogue(w_config_dir)
 
     assert result.repo_path == w_config_dir.resolve()
-    assert result.backup_path.is_file()
+    assert result.archive_path.is_file()
 
 
 def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_path: Path):
@@ -100,7 +100,7 @@ def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_pa
     (w_config_dir / "TODO.md").write_text("# TODO\n")
     (w_config_dir / "MEMORY.md").write_text("# Memory\n")
 
-    paths = _backup_commit_paths(w_config_dir, w_config_dir, backup_path, metadata_path)
+    paths = _archive_commit_paths(w_config_dir, w_config_dir, backup_path, metadata_path)
 
     assert paths == [
         str(backup_path),
@@ -118,7 +118,7 @@ def test_backup_paths_avoid_overwriting_existing_backup(tmp_path: Path):
     backup_dir.mkdir()
     (backup_dir / "20260516T123456Z.dialogue.json").write_text("[]")
 
-    backup_path, metadata_path = _backup_paths(backup_dir, "20260516T123456Z")
+    backup_path, metadata_path = _archive_paths(backup_dir, "20260516T123456Z")
 
     assert backup_path == backup_dir / "20260516T123456Z.1.dialogue.json"
     assert metadata_path == backup_dir / "20260516T123456Z.1.metadata.json"
@@ -128,8 +128,8 @@ def test_backup_dialogue_requires_history(tmp_path: Path):
     w_config_dir = tmp_path / ".could-you"
     w_config_dir.mkdir()
 
-    with pytest.raises(MemoryBackupError, match="No dialogue history found"):
-        backup_dialogue(w_config_dir)
+    with pytest.raises(MemoryArchiveError, match="No dialogue history found"):
+        archive_dialogue(w_config_dir)
 
 
 def test_current_token_percent_used_reads_latest_message_with_usage():

@@ -95,8 +95,8 @@ def test_config_dump_rejects_multiple_output_formats(monkeypatch):
         (["could-you", "workspace", "init"], "workspace", "init", None),
         (["could-you", "workspace", "sync"], "workspace", "sync", None),
         (["could-you", "ws", "sync"], "workspace", "sync", None),
-        (["could-you", "memory", "backup", "topic"], "memory", "backup", "topic"),
-        (["could-you", "m", "backup", "topic"], "memory", "backup", "topic"),
+        (["could-you", "memory", "archive", "topic"], "memory", "archive", "topic"),
+        (["could-you", "m", "archive", "topic"], "memory", "archive", "topic"),
         (["could-you", "memory", "inspect"], "memory", "inspect", None),
         (["could-you", "memory", "status"], "memory", "inspect", None),
         (["could-you", "memory", "search", "alpha", "beta"], "memory", "search", ["alpha", "beta"]),
@@ -127,7 +127,7 @@ def test_subcommand_parsing(monkeypatch, argv, command, subcommand, expected):
         assert args.workspace_command == subcommand
     elif command == "memory":
         assert args.memory_command == subcommand
-        if subcommand == "backup":
+        if subcommand == "archive":
             assert args.topic == expected
         elif subcommand == "search":
             assert args.terms == expected

@@ -22,7 +22,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
 - **Script mode**: Run scripts with their own config overlays using `script` / `s`.
 - **Dialogue**: Persisted per-workspace in `.could-you/dialogue.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
 - **Memory pressure warnings**: Configurable token-usage warning/rejection thresholds help trigger explicit compaction before context is exhausted.
-- **Private memory backups**: Copy dialogue into the private `.could-you/` git repo with `memory backup`.
+- **Private memory archives**: Copy dialogue into the private `.could-you/` git repo with `memory archive`.
 - **Permission inspection**: Print an observational OS-user/filesystem permission report with `permissions`.
 
 ---
@@ -80,7 +80,7 @@ From `could_you/__main__.py`:
   - `script SCRIPT` / `s SCRIPT` – Run a skill from the config directory. Statefulness is determined by the script's config.
   - `workspace init` / `ws init` – Initialize a `.could-you/` workspace in the current directory
   - `workspace sync` / `ws sync` – Sync managed workspace templates into `.could-you`, protecting local memory files and archived conversations
-  - `memory backup [TOPIC]` / `m backup [TOPIC]` – Back up `.could-you/dialogue.json` to the private memory git repo
+  - `memory archive [TOPIC]` / `m archive [TOPIC]` – Archive `.could-you/dialogue.json` to the private memory git repo
   - `memory inspect` / `memory status` / `m inspect` / `m status` – Print a deterministic memory inspection report
   - `memory search TERM [TERM ...]` / `m search TERM [TERM ...]` – Search durable memory
   - `dialogue print` – Print the dialogue for the current workspace
@@ -404,14 +404,14 @@ In both cases, the system prompt is resolved as described in **System Prompt & P
 
 ---
 
-## Private Memory Backups
+## Private Memory Archives
 
-Private memory backup is implemented in `could_you/memory.py`.
+Private memory archive is implemented in `could_you/memory.py`.
 
 Run:
 
 ```bash
-could-you memory backup "conversation about memory design"
+could-you memory archive "conversation about memory design"
 ```
 
 This copies `.could-you/dialogue.json` into a private git repository and commits it. By default, the repo is the workspace `.could-you/` directory:
@@ -426,7 +426,7 @@ Override the location with:
 export COULD_YOU_MEMORY_REPO=/path/to/private/memory/repo
 ```
 
-Backups are plain files under:
+Archives are plain files under:
 
 ```text
 workspaces/<workspace-name-and-hash>/conversations/<timestamp>.dialogue.json
@@ -435,7 +435,7 @@ workspaces/<workspace-name-and-hash>/conversations/<timestamp>.metadata.json
 
 No remote is configured or pushed by `could-you`; the user owns that repo.
 
-When the memory repo is `.could-you/`, the backup commit also stages existing explicit prompt and memory files:
+When the memory repo is `.could-you/`, the archive commit also stages existing explicit prompt and memory files:
 
 ```text
 config.yaml / config.yml / config.json
@@ -452,7 +452,7 @@ The default resources include an optional script-mode memory compaction workflow
 could-you script compact-history
 ```
 
-The script loads `.could-you/dialogue.json`, generates a durable memory update, calls `could-you --backup-memory`, replaces `MEMORY.md`, removes the live dialogue history, and commits the updated private memory state.
+The script loads `.could-you/dialogue.json`, generates a durable memory update, calls `could-you memory archive`, replaces `MEMORY.md`, removes the live dialogue history, and commits the updated private memory state.
 
 This is intended as a starter template. Users should review and customize it before relying on it.
 
@@ -551,7 +551,7 @@ OpenClaw is a broad personal-assistant platform: a long-running gateway, many me
 - MCP server composition,
 - explicit workspace configuration,
 - private project-local state in `.could-you/`,
-- user-owned git-backed memory backups,
+- user-owned git-backed memory archives,
 - scriptable one-off workflows,
 - inspectable permission boundaries.
 
@@ -637,7 +637,7 @@ could_you/
 ├── logging_config.py    # Logging setup
 ├── mcp_server.py        # MCP server connection & tool wrappers
 ├── message.py           # Message/content data structures
-├── memory.py            # Private dialogue backup helpers
+├── memory.py            # Private dialogue archive helpers
 ├── dialogue.py          # Live dialogue management
 ├── prompt.py            # System prompt expansion (patterns + file loading)
 ├── resources/           # Default config templates
