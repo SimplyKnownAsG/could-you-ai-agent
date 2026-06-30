@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -7,7 +6,7 @@ from could_you.config import MemoryProps
 from could_you.memory.archive import (
     MemoryArchiveError,
     _archive_commit_paths,
-    _archive_paths,
+    _archive_path,
     archive_dialogue,
 )
 from could_you.memory.tokens import (
@@ -18,7 +17,7 @@ from could_you.memory.tokens import (
 from could_you.message import Message, TextContent, TokenUsage
 
 
-def test_backup_dialogue_copies_history_and_metadata(tmp_path: Path, monkeypatch):
+def test_archive_dialogue_copies_history(tmp_path: Path, monkeypatch):
     workspace_root = tmp_path / "project"
     w_config_dir = workspace_root / ".could-you"
     memory_repo = tmp_path / "memories"
@@ -38,32 +37,24 @@ def test_backup_dialogue_copies_history_and_metadata(tmp_path: Path, monkeypatch
 
     monkeypatch.setattr("could_you.memory.archive._git", fake_git)
     monkeypatch.setattr("could_you.memory.archive._git_config_exists", fake_git_config_exists)
-    (w_config_dir / "dialogue.json").write_text('[{"role":"user"}]\n')
+    (w_config_dir / "dialogue.jsonl").write_text('{"role":"user"}\n')
 
     result = archive_dialogue(w_config_dir, topic="private memory design")
 
     assert result.repo_path == memory_repo.resolve()
-    assert result.archive_path.read_text() == '[{"role":"user"}]\n'
+    assert result.archive_path.read_text() == '{"role":"user"}\n'
     assert result.commit_message == "memory: private memory design"
-
-    metadata = json.loads(result.metadata_path.read_text())
-    assert metadata == {
-        "timestamp": "20260516T123456Z",
-        "topic": "private memory design",
-        "workspace": str(workspace_root.resolve()),
-        "source": str(w_config_dir / "dialogue.json"),
-    }
 
     assert git_calls == [
         (memory_repo.resolve(), ("init",)),
         (memory_repo.resolve(), ("config", "user.name", "could-you")),
         (memory_repo.resolve(), ("config", "user.email", "could-you@localhost")),
-        (memory_repo.resolve(), ("add", str(result.archive_path), str(result.metadata_path))),
+        (memory_repo.resolve(), ("add", str(result.archive_path))),
         (memory_repo.resolve(), ("commit", "-m", "memory: private memory design")),
     ]
 
 
-def test_backup_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkeypatch):
+def test_archive_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkeypatch):
     workspace_root = tmp_path / "project"
     w_config_dir = workspace_root / ".could-you"
     w_config_dir.mkdir(parents=True)
@@ -78,7 +69,7 @@ def test_backup_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkey
 
     monkeypatch.setattr("could_you.memory.archive._git", fake_git)
     monkeypatch.setattr("could_you.memory.archive._git_config_exists", fake_git_config_exists)
-    (w_config_dir / "dialogue.json").write_text('[{"role":"user"}]\n')
+    (w_config_dir / "dialogue.jsonl").write_text('{"role":"user"}\n')
 
     result = archive_dialogue(w_config_dir)
 
@@ -86,25 +77,22 @@ def test_backup_dialogue_defaults_to_workspace_config_dir(tmp_path: Path, monkey
     assert result.archive_path.is_file()
 
 
-def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_path: Path):
+def test_archive_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_path: Path):
     w_config_dir = tmp_path / ".could-you"
     w_config_dir.mkdir()
-    backup_path = w_config_dir / "workspaces" / "project-123" / "conversations" / "backup.dialogue.json"
-    metadata_path = backup_path.with_name("backup.metadata.json")
+    backup_path = w_config_dir / "workspaces" / "project-123" / "conversations" / "backup.jsonl"
     backup_path.parent.mkdir(parents=True)
     backup_path.write_text("[]")
-    metadata_path.write_text("{}")
     (w_config_dir / "config.yaml").write_text("systemPrompt: hi\n")
     (w_config_dir / "SYSTEM_PROMPT.md").write_text("# System\n")
     (w_config_dir / "FORMATIVE.md").write_text("# Formative\n")
     (w_config_dir / "TODO.md").write_text("# TODO\n")
     (w_config_dir / "MEMORY.md").write_text("# Memory\n")
 
-    paths = _archive_commit_paths(w_config_dir, w_config_dir, backup_path, metadata_path)
+    paths = _archive_commit_paths(w_config_dir, w_config_dir, backup_path)
 
     assert paths == [
         str(backup_path),
-        str(metadata_path),
         str(w_config_dir / "config.yaml"),
         str(w_config_dir / "SYSTEM_PROMPT.md"),
         str(w_config_dir / "FORMATIVE.md"),
@@ -113,18 +101,17 @@ def test_backup_commit_paths_include_prompt_and_memory_files_in_same_repo(tmp_pa
     ]
 
 
-def test_backup_paths_avoid_overwriting_existing_backup(tmp_path: Path):
+def test_archive_paths_avoid_overwriting_existing_archive(tmp_path: Path):
     backup_dir = tmp_path / "conversations"
     backup_dir.mkdir()
-    (backup_dir / "20260516T123456Z.dialogue.json").write_text("[]")
+    (backup_dir / "20260516T123456Z.jsonl").write_text("[]")
 
-    backup_path, metadata_path = _archive_paths(backup_dir, "20260516T123456Z")
+    backup_path = _archive_path(backup_dir, "20260516T123456Z")
 
-    assert backup_path == backup_dir / "20260516T123456Z.1.dialogue.json"
-    assert metadata_path == backup_dir / "20260516T123456Z.1.metadata.json"
+    assert backup_path == backup_dir / "20260516T123456Z.1.jsonl"
 
 
-def test_backup_dialogue_requires_history(tmp_path: Path):
+def test_archive_dialogue_requires_history(tmp_path: Path):
     w_config_dir = tmp_path / ".could-you"
     w_config_dir.mkdir()
 

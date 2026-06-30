@@ -1,5 +1,4 @@
 import hashlib
-import json
 import os
 import shutil
 import subprocess
@@ -20,14 +19,13 @@ class MemoryArchiveError(CYError):
 class MemoryArchiveResult:
     repo_path: Path
     archive_path: Path
-    metadata_path: Path
     commit_message: str
 
 
 def archive_dialogue(w_config_dir: Path, topic: str | None = None) -> MemoryArchiveResult:
-    """Back up workspace dialogue to a private, user-owned git repository."""
+    """Archive workspace dialogue to a private, user-owned git repository."""
     w_config_dir = w_config_dir.resolve()
-    dialogue_path = w_config_dir / "dialogue.json"
+    dialogue_path = w_config_dir / "dialogue.jsonl"
 
     if not dialogue_path.is_file():
         raise MemoryArchiveError(f"No dialogue history found at {dialogue_path}")
@@ -39,36 +37,23 @@ def archive_dialogue(w_config_dir: Path, topic: str | None = None) -> MemoryArch
     archive_dir = repo_path / "workspaces" / workspace_key / "conversations"
     archive_dir.mkdir(parents=True, exist_ok=True)
 
-    archive_path, metadata_path = _archive_paths(archive_dir, timestamp)
+    archive_path = _archive_path(archive_dir, timestamp)
 
     shutil.copy2(dialogue_path, archive_path)
-    metadata_path.write_text(
-        json.dumps(
-            {
-                "timestamp": timestamp,
-                "topic": topic,
-                "workspace": str(workspace_root),
-                "source": str(dialogue_path),
-            },
-            indent=2,
-        )
-        + "\n"
-    )
 
     _ensure_git_repo(repo_path)
     _ensure_git_identity(repo_path)
 
     commit_message = _commit_message(topic, timestamp)
-    _git(repo_path, "add", *_archive_commit_paths(repo_path, w_config_dir, archive_path, metadata_path))
+    _git(repo_path, "add", *_archive_commit_paths(repo_path, w_config_dir, archive_path))
     _git(repo_path, "commit", "-m", commit_message)
 
-    LOGGER.info(f"Backed up memory to {archive_path}")
+    LOGGER.info(f"Archived memory to {archive_path}")
     LOGGER.info(f"Committed memory archive in {repo_path}")
 
     return MemoryArchiveResult(
         repo_path=repo_path,
         archive_path=archive_path,
-        metadata_path=metadata_path,
         commit_message=commit_message,
     )
 
@@ -82,8 +67,8 @@ def _memory_repo_path(w_config_dir: Path) -> Path:
     return w_config_dir.resolve()
 
 
-def _archive_commit_paths(repo_path: Path, w_config_dir: Path, archive_path: Path, metadata_path: Path) -> list[str]:
-    paths = [archive_path, metadata_path]
+def _archive_commit_paths(repo_path: Path, w_config_dir: Path, archive_path: Path) -> list[str]:
+    paths = [archive_path]
 
     for file_name in (
         "config.yaml",
@@ -112,16 +97,15 @@ def _timestamp() -> str:
     return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
-def _archive_paths(archive_dir: Path, timestamp: str) -> tuple[Path, Path]:
+def _archive_path(archive_dir: Path, timestamp: str) -> Path:
     suffix = 0
 
     while True:
         infix = timestamp if suffix == 0 else f"{timestamp}.{suffix}"
-        archive_path = archive_dir / f"{infix}.dialogue.json"
-        metadata_path = archive_dir / f"{infix}.metadata.json"
+        archive_path = archive_dir / f"{infix}.jsonl"
 
-        if not archive_path.exists() and not metadata_path.exists():
-            return archive_path, metadata_path
+        if not archive_path.exists():
+            return archive_path
 
         suffix += 1
 
@@ -150,7 +134,7 @@ def _git_config_exists(repo_path: Path, key: str) -> bool:
             text=True,
         )
     except FileNotFoundError as e:
-        raise MemoryArchiveError("git is required to back up memories") from e
+        raise MemoryArchiveError("git is required to archive memories") from e
 
     return result.returncode == 0 and bool(result.stdout.strip())
 
@@ -166,7 +150,7 @@ def _git_executable() -> str:
     git_path = shutil.which("git")
 
     if not git_path:
-        raise MemoryArchiveError("git is required to back up memories")
+        raise MemoryArchiveError("git is required to archive memories")
 
     return git_path
 
@@ -180,7 +164,7 @@ def _git(repo_path: Path, *args: str) -> None:
             text=True,
         )
     except FileNotFoundError as e:
-        raise MemoryArchiveError("git is required to back up memories") from e
+        raise MemoryArchiveError("git is required to archive memories") from e
     except subprocess.CalledProcessError as e:
         detail = (e.stderr or e.stdout or str(e)).strip()
         raise MemoryArchiveError(f"git {' '.join(args)} failed: {detail}") from e

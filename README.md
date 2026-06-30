@@ -20,7 +20,7 @@ The project name is `could-you`, and the primary CLI entry point is typically in
   - Ollama via its OpenAI-compatible API
 - **MCP server integration**: Spawns and manages MCP servers via stdio and exposes their tools to the LLM.
 - **Script mode**: Run scripts with their own config overlays using `script` / `s`.
-- **Dialogue**: Persisted per-workspace in `.could-you/dialogue.json` (opt-out with `--no-history`), including provider token usage on assistant messages when available.
+- **Dialogue**: Persisted per-workspace in `.could-you/dialogue.jsonl`, including provider token usage on assistant messages when available.
 - **Memory pressure warnings**: Configurable token-usage warning/rejection thresholds help trigger explicit compaction before context is exhausted.
 - **Private memory archives**: Copy dialogue into the private `.could-you/` git repo with `memory archive`.
 - **Permission inspection**: Print an observational OS-user/filesystem permission report with `permissions`.
@@ -80,7 +80,7 @@ From `could_you/__main__.py`:
   - `script SCRIPT` / `s SCRIPT` – Run a skill from the config directory. Statefulness is determined by the script's config.
   - `workspace init` / `ws init` – Initialize a `.could-you/` workspace in the current directory
   - `workspace sync` / `ws sync` – Sync managed workspace templates into `.could-you`, protecting local memory files and archived conversations
-  - `memory archive [TOPIC]` / `m archive [TOPIC]` – Archive `.could-you/dialogue.json` to the private memory git repo
+  - `memory archive [TOPIC]` / `m archive [TOPIC]` – Archive `.could-you/dialogue.jsonl` to the private memory git repo
   - `memory inspect` / `memory status` / `m inspect` / `m status` – Print a deterministic memory inspection report
   - `memory search TERM [TERM ...]` / `m search TERM [TERM ...]` – Search durable memory
   - `dialogue print` – Print the dialogue for the current workspace
@@ -104,7 +104,7 @@ project-root/
   .could-you/
     config.json (or .yaml / .yml)
     script.<name>.json (or .yaml / .yml)
-    dialogue.json        # created automatically as you interact
+    dialogue.jsonl       # created automatically as you interact
   src/
   README.md
 ```
@@ -406,7 +406,7 @@ In both cases, the system prompt is resolved as described in **System Prompt & P
 
 ## Private Memory Archives
 
-Private memory archive is implemented in `could_you/memory.py`.
+Private memory archive is implemented in `could_you/memory/archive.py`.
 
 Run:
 
@@ -414,7 +414,7 @@ Run:
 could-you memory archive "conversation about memory design"
 ```
 
-This copies `.could-you/dialogue.json` into a private git repository and commits it. By default, the repo is the workspace `.could-you/` directory:
+This copies `.could-you/dialogue.jsonl` into a private git repository and commits it. By default, the repo is the workspace `.could-you/` directory:
 
 ```text
 .could-you/
@@ -429,8 +429,7 @@ export COULD_YOU_MEMORY_REPO=/path/to/private/memory/repo
 Archives are plain files under:
 
 ```text
-workspaces/<workspace-name-and-hash>/conversations/<timestamp>.dialogue.json
-workspaces/<workspace-name-and-hash>/conversations/<timestamp>.metadata.json
+workspaces/<workspace-name-and-hash>/conversations/<timestamp>.jsonl
 ```
 
 No remote is configured or pushed by `could-you`; the user owns that repo.
@@ -452,7 +451,7 @@ The default resources include an optional script-mode memory compaction workflow
 could-you script compact-history
 ```
 
-The script loads `.could-you/dialogue.json`, generates a durable memory update, calls `could-you memory archive`, replaces `MEMORY.md`, removes the live dialogue history, and commits the updated private memory state.
+The script loads `.could-you/dialogue.jsonl`, generates a durable memory update, calls `could-you memory archive`, replaces `MEMORY.md`, removes the live dialogue history, and commits the updated private memory state.
 
 This is intended as a starter template. Users should review and customize it before relying on it.
 
@@ -577,7 +576,7 @@ The goal is not to replace every specialized coding assistant. The goal is to ma
 
 `Dialogue` (`could_you/dialogue.py`) manages reading and writing the live dialogue for a workspace:
 
-- File: `.could-you/dialogue.json` in the discovered workspace.
+- File: `.could-you/dialogue.jsonl` in the discovered workspace.
 - Automatically loaded and saved when used as a context manager.
 - You can print the dialogue with:
 
@@ -603,15 +602,13 @@ Each message also has a `type` field:
 - `"tool_call"` – assistant turns that request tools.
 - `"tool_result"` – messages containing tool output.
 
-Example `dialogue.json` snippet:
+Example `dialogue.jsonl` snippet:
 
-```json
-[
-  { "role": "user", "type": "normal", "content": [{ "type": "text", "text": "What files are here?" }] },
-  { "role": "assistant", "type": "tool_call", "content": [{ "toolUse": { "toolUseId": "1", "name": "filesystem.read_directory", "input": { "path": "." } } }] },
-  { "role": "tool", "type": "tool_result", "content": [{ "toolResult": { "status": "success", "toolUseId": "1", "content": [{ "text": "main.py\nREADME.md" }] } }] },
-  { "role": "assistant", "type": "normal", "content": [{ "type": "text", "text": "You have main.py and README.md in this directory." }] }
-]
+```jsonl
+{"role": "user", "type": "normal", "content": [{ "type": "text", "text": "What files are here?" }] }
+{"role": "assistant", "type": "tool_call", "content": [{ "toolUse": { "toolUseId": "1", "name": "filesystem.read_directory", "input": { "path": "." } } }] }
+{"role": "tool", "type": "tool_result", "content": [{ "toolResult": { "status": "success", "toolUseId": "1", "content": [{ "text": "main.py\nREADME.md" }] } }] }
+{"role": "assistant", "type": "normal", "content": [{ "type": "text", "text": "You have main.py and README.md in this directory." }] }
 ```
 
 ---
@@ -637,7 +634,7 @@ could_you/
 ├── logging_config.py    # Logging setup
 ├── mcp_server.py        # MCP server connection & tool wrappers
 ├── message.py           # Message/content data structures
-├── memory.py            # Private dialogue archive helpers
+├── memory/              # Private dialogue archive helpers
 ├── dialogue.py          # Live dialogue management
 ├── prompt.py            # System prompt expansion (patterns + file loading)
 ├── resources/           # Default config templates
