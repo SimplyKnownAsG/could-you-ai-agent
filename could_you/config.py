@@ -239,10 +239,10 @@ _PROTECTED_WORKSPACE_TEMPLATE_NAMES = {
 def _copy_workspace_templates(w_config_dir: Path, *, overwrite: bool) -> None:
     user_config_dir = _get_user_config_dir_path()
 
-    if user_config_dir.exists() and user_config_dir.is_dir():
-        _copy_user_workspace_templates(user_config_dir, w_config_dir, overwrite=overwrite)
-
     _copy_global_config(w_config_dir, overwrite=overwrite)
+
+    if user_config_dir.exists() and user_config_dir.is_dir():
+        _copy_user_workspace_templates(user_config_dir, w_config_dir, overwrite=True)
 
 
 def _copy_user_workspace_templates(source_dir: Path, dest_dir: Path, *, overwrite: bool) -> None:

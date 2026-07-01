@@ -294,6 +294,21 @@ def test_load_nonexistent_script_raises(tmp_workspace: Path):
         load(script_name="definitely-does-not-exist")
 
 
+def test_sync_workspace_prioritizes_user_config(tmp_workspace: Path, monkeypatch):
+    (tmp_workspace / "config.yaml").write_text("llm:\n  provider: default\n")
+    _init_committed_workspace_repo(tmp_workspace)
+
+    user_workspace_templates = tmp_workspace.parent / "user-templates"
+    user_workspace_templates.mkdir()
+    (user_workspace_templates / "config.yaml").write_text("llm:\n  provider: user_provider\n")
+
+    monkeypatch.setattr("could_you.config._get_user_config_dir_path", lambda: user_workspace_templates)
+
+    sync_workspace()
+
+    assert "user_provider" in (tmp_workspace / "config.yaml").read_text()
+
+
 def test_load_sets_workspace_env_and_chdir(tmp_path: Path, tmp_dir: Path, monkeypatch):  # noqa: ARG001
     """Ensure load() infers workspace root, sets COULD_YOU_WORKSPACE, and chdirs."""
     project_root = tmp_path / "project"
