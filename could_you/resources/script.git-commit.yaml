@@ -1,3 +1,7 @@
+dialogue:
+  store: true
+  load: true
+
 query: |
   Run as a script to format the current staged changes as a Conventional Commit message.
 
