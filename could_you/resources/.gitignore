@@ -1,0 +1,11 @@
+# could-you: files to ignore from the workspace git repo.
+
+# Live dialogue
+query.md
+dialogue.json
+dialogue.jsonl
+dialogue*.jsonl
+
+## Temporary files
+*.tmp
+.*.tmp

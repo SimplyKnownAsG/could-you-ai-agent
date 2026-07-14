@@ -296,10 +296,10 @@ def _copy_global_config(w_config_dir: Path, *, overwrite: bool = False):
         if not resource.is_file():
             continue
 
-        if resource.suffix not in (".json", ".yaml", ".yml", ".md"):
+        if resource.name != ".gitignore" and resource.suffix not in (".json", ".yaml", ".yml", ".md"):
             continue
 
-        dest = w_config_dir / os.path.basename(str(resource))
+        dest = w_config_dir / resource.name
 
         if _should_skip_workspace_template(Path(dest.name)):
             LOGGER.info(f"Skipping protected packaged workspace template {resource}")
