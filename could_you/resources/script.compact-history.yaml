@@ -57,6 +57,8 @@ query: |
   Constraints:
   - Do not ask the user for input.
   - You must update both `TODO.md` and `MEMORY.md` before calling `compact_history`.
+  - Within this turn, you DO NOT have access to directories outside of the `.could-you/` folder. The fielsystem MCP
+    server is rooted in `.could-you`.
   - The commit `title` must be a single, terse line under 80 characters.
   - The summary should be concise but preserve important decisions and implementation facts.
 
