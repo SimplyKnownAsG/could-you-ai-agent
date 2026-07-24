@@ -172,7 +172,7 @@ def _init_committed_workspace_repo(workspace_path: Path) -> None:
     subprocess.run(["git", "-C", str(workspace_path), "commit", "-m", "seed workspace"], check=True)
 
 
-def test_sync_workspace_overwrites_managed_files(tmp_workspace: Path):
+def test_sync_workspace_overwrites_managed_files(tmp_cy_config_dir: Path, tmp_workspace: Path):  # noqa: ARG001
     config_path = tmp_workspace / "config.yaml"
     config_path.write_text("llm:\n  provider: openai\n")
     _init_committed_workspace_repo(tmp_workspace)
@@ -183,7 +183,7 @@ def test_sync_workspace_overwrites_managed_files(tmp_workspace: Path):
     assert _is_git_repo(tmp_workspace)
 
 
-def test_sync_workspace_overwrites_read_only_managed_files(tmp_workspace: Path):
+def test_sync_workspace_overwrites_read_only_managed_files(tmp_cy_config_dir: Path, tmp_workspace: Path):  # noqa: ARG001
     config_path = tmp_workspace / "config.yaml"
     config_path.write_text("llm:\n  provider: openai\n")
     _init_committed_workspace_repo(tmp_workspace)

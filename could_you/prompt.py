@@ -46,13 +46,21 @@ class PromptExpansionResult:
     metadata: PromptMetadata = field(factory=PromptMetadata)
 
 
-def enrich_raw_prompt(prompt: str) -> PromptExpansionResult:
+def enrich_raw_prompt(prompt: str, workspace_root: Path | None = None) -> PromptExpansionResult:
     """
     Public entrypoint: applies all prompt enrichments to the raw prompt string.
     Add additional prompt-enriching logic here as needed.
+
+    Args:
+        prompt: The raw prompt string to enrich.
+        workspace_root: The workspace root directory to use as the base for
+            COULD_YOU_LOAD_FILE glob patterns. Defaults to the current working
+            directory when not provided. Always pass this explicitly when the
+            workspace root is known so that globs work correctly even when
+            could-you is invoked from a sub-directory of the workspace.
     """
     prompt = _expand_cy_default_pattern(prompt)
-    return _expand_cy_load_file(prompt)
+    return _expand_cy_load_file(prompt, workspace_root=workspace_root)
 
 
 def _expand_cy_default_pattern(prompt: str) -> str:
@@ -73,16 +81,17 @@ def _default_agent_name() -> str:
     return f"{user}-borg"
 
 
-def _expand_cy_load_file(prompt: str) -> PromptExpansionResult:
+def _expand_cy_load_file(prompt: str, workspace_root: Path | None = None) -> PromptExpansionResult:
     """
     Replace all COULD_YOU_LOAD_FILE(pattern) in the prompt with the actual contents of all files matching the glob pattern.
     """
-    cwd = str(Path.cwd().resolve())
+    root = Path(workspace_root).resolve() if workspace_root is not None else Path.cwd().resolve()
+    cwd = str(root)
     loaded_files: list[LoadedFileMetadata] = []
 
     def _replace(match):
         rel_pattern = match.group(1).strip()
-        expanded_paths = [Path(p) for p in sorted(Path().glob(rel_pattern))]
+        expanded_paths = [Path(p) for p in sorted(root.glob(rel_pattern))]
         result = ""
 
         for file_path in expanded_paths:

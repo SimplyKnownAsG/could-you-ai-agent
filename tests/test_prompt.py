@@ -112,6 +112,30 @@ def test_enrich_raw_prompt_excludes_outside_paths(tmp_dir: Path):
         ]
 
 
+def test_enrich_raw_prompt_uses_workspace_root_not_cwd(tmp_path: Path):
+    """Globs must resolve relative to workspace_root even when cwd is a sub-directory."""
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    w_config_dir = workspace / ".could-you"
+    w_config_dir.mkdir()
+    memory_path = w_config_dir / "MEMORY.md"
+    memory_path.write_text("MEMORY CONTENT")
+
+    sub_dir = workspace / "some-folder"
+    sub_dir.mkdir()
+
+    # Simulate being invoked from within a sub-directory of the workspace.
+    with DirChanger(sub_dir):
+        result = prompt.enrich_raw_prompt(
+            "COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)",
+            workspace_root=workspace,
+        )
+
+    assert "MEMORY CONTENT" in result.text
+    assert str(memory_path) in result.text
+    assert result.metadata.loaded_file_count == 1
+
+
 def test_default_agent_name_uses_current_user(monkeypatch):
     monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
 
