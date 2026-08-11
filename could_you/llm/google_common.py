@@ -275,7 +275,7 @@ class BaseGoogleLLM(BaseLLM):
                 types.FunctionDeclaration(
                     name=tool.name,
                     description=str(tool.description),
-                    parameters=types.Schema(**self._sanitize_schema(tool.inputSchema)),
+                    parameters=types.Schema(**self._sanitize_schema(tool.input_schema)),
                 )
             )
 

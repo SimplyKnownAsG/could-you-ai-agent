@@ -23,7 +23,7 @@ class Boto3LLM(BaseLLM):
                     "toolSpec": {
                         "name": tool.name,
                         "description": tool.description,
-                        "inputSchema": {"json": tool.inputSchema},
+                        "inputSchema": {"json": tool.input_schema},
                     }
                 }
             )

@@ -15,13 +15,13 @@ def test_mcp_tool_wrapper():
     mock_tool = MagicMock()
     mock_tool.name = "test_tool"
     mock_tool.description = "A test tool"
-    mock_tool.inputSchema = {"type": "object"}
+    mock_tool.input_schema = {"type": "object"}
 
     # Test enabled tool
     enabled_tool = MCPTool(server, mock_tool, enabled=True)
     assert enabled_tool.name == "test_tool"
     assert enabled_tool.description == "A test tool"
-    assert enabled_tool.inputSchema == {"type": "object"}
+    assert enabled_tool.input_schema == {"type": "object"}
     assert enabled_tool.enabled is True
 
     # Test disabled tool

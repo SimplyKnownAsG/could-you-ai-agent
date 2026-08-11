@@ -138,7 +138,7 @@ class OpenAILLM(BaseLLM):
                     "function": {
                         "name": tool.name,
                         "description": str(tool.description),
-                        "parameters": tool.inputSchema,
+                        "parameters": tool.input_schema,
                     },
                 }
             )
