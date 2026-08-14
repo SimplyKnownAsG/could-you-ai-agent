@@ -57,19 +57,31 @@ def create_parser():
     log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
     parser.add_argument(
         "-L",
+        "--no-dialogue-load",
+        dest="dialogue_load",
+        action="store_false",
+        default=None,
+        help="Disable loading existing dialogue for this run",
+    )
+    parser.add_argument(
         "--dialogue-load",
         dest="dialogue_load",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help="Override whether existing dialogue is loaded for this run",
+        action="store_true",
+        help="Enable loading existing dialogue for this run",
     )
     parser.add_argument(
         "-S",
+        "--no-dialogue-store",
+        dest="dialogue_store",
+        action="store_false",
+        default=None,
+        help="Disable storing dialogue after this run",
+    )
+    parser.add_argument(
         "--dialogue-store",
         dest="dialogue_store",
-        action=argparse.BooleanOptionalAction,
-        default=None,
-        help="Override whether dialogue is stored after this run",
+        action="store_true",
+        help="Enable storing dialogue after this run",
     )
     parser.add_argument(
         "--query",
