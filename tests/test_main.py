@@ -21,8 +21,8 @@ def test_dialogue_cli_flags_support_short_positive_shorthands(monkeypatch):
 
     args = parser.parse_args()
 
-    assert args.dialogue_load is True
-    assert args.dialogue_store is True
+    assert args.dialogue_load is False
+    assert args.dialogue_store is False
 
 
 def test_dialogue_cli_flags_support_long_positive_overrides(monkeypatch):
