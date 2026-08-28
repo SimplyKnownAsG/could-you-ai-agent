@@ -1,8 +1,11 @@
+import json
 import sys
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
-from could_you.__main__ import create_parser
+from could_you.__main__ import MARKER, _get_editor_input, create_parser
 
 
 def test_dialogue_cli_flags_default_to_none(monkeypatch):
@@ -137,3 +140,56 @@ def test_subcommand_parsing(monkeypatch, argv, command, subcommand, expected):
         assert args.test_command == subcommand
         if subcommand == "connect":
             assert args.message == expected
+
+
+def _write_dialogue(w_config_dir: Path, messages: list[dict]) -> None:
+    dialogue_path = w_config_dir / "dialogue.jsonl"
+    with dialogue_path.open("w") as f:
+        for msg in messages:
+            f.write(json.dumps(msg) + "\n")
+
+
+def test_get_editor_input_with_dialogue_load_true_shows_prior_dialogue(tmp_workspace, monkeypatch):
+    """When dialogue_load=True (default), prior conversation should appear in query.md."""
+    _write_dialogue(
+        tmp_workspace,
+        [
+            {"role": "user", "type": "normal", "content": [{"type": "text", "text": "hello from prior run"}]},
+        ],
+    )
+
+    captured_content = []
+
+    def fake_editor_call(cmd):
+        query_md = Path(cmd[1])
+        captured_content.append(query_md.read_text())
+
+    with patch("subprocess.call", side_effect=fake_editor_call):
+        _get_editor_input(tmp_workspace)
+
+    assert len(captured_content) == 1
+    assert "hello from prior run" in captured_content[0]
+
+
+def test_get_editor_input_with_dialogue_load_false_omits_prior_dialogue(tmp_workspace, monkeypatch):
+    """When dialogue_load=False (-S flag), prior conversation should NOT appear in query.md."""
+    _write_dialogue(
+        tmp_workspace,
+        [
+            {"role": "user", "type": "normal", "content": [{"type": "text", "text": "hello from prior run"}]},
+        ],
+    )
+
+    captured_content = []
+
+    def fake_editor_call(cmd):
+        query_md = Path(cmd[1])
+        captured_content.append(query_md.read_text())
+
+    with patch("subprocess.call", side_effect=fake_editor_call):
+        _get_editor_input(tmp_workspace, dialogue_load=False)
+
+    assert len(captured_content) == 1
+    assert "hello from prior run" not in captured_content[0], (
+        "Prior dialogue should not be shown when dialogue_load=False (-S flag)"
+    )

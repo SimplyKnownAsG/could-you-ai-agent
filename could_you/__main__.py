@@ -236,7 +236,7 @@ async def amain(parser, args):
                 if query
                 else session.config.query
                 if session.config.query
-                else _get_editor_input(session.w_config_dir)
+                else _get_editor_input(session.w_config_dir, dialogue_load=dialogue_load)
             )
 
             if not query:
@@ -260,7 +260,7 @@ def _get_script_name(args):
     return None
 
 
-def _get_editor_input(w_config_dir: Path):
+def _get_editor_input(w_config_dir: Path, dialogue_load: bool = True):
     """Open a temporary file in the user's preferred editor and return the content."""
     query_md_path = w_config_dir / "query.md"
     existing_query = _load_query(query_md_path)
@@ -268,7 +268,7 @@ def _get_editor_input(w_config_dir: Path):
     with query_md_path.open("w") as tf:
         tf.write("# Previous dialogue\n\n")
         # Write dialogue history to the file
-        with Dialogue(w_config_dir, load=True, store=False) as dialogue:
+        with Dialogue(w_config_dir, load=dialogue_load, store=False) as dialogue:
 
             def printer(msg):
                 print(msg, file=tf)
