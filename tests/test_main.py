@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from could_you.__main__ import MARKER, _get_editor_input, create_parser
+from could_you.__main__ import _get_editor_input, create_parser
 
 
 def test_dialogue_cli_flags_default_to_none(monkeypatch):
@@ -149,7 +149,7 @@ def _write_dialogue(w_config_dir: Path, messages: list[dict]) -> None:
             f.write(json.dumps(msg) + "\n")
 
 
-def test_get_editor_input_with_dialogue_load_true_shows_prior_dialogue(tmp_workspace, monkeypatch):
+def test_get_editor_input_with_dialogue_load_true_shows_prior_dialogue(tmp_workspace):
     """When dialogue_load=True (default), prior conversation should appear in query.md."""
     _write_dialogue(
         tmp_workspace,
@@ -171,7 +171,7 @@ def test_get_editor_input_with_dialogue_load_true_shows_prior_dialogue(tmp_works
     assert "hello from prior run" in captured_content[0]
 
 
-def test_get_editor_input_with_dialogue_load_false_omits_prior_dialogue(tmp_workspace, monkeypatch):
+def test_get_editor_input_with_dialogue_load_false_omits_prior_dialogue(tmp_workspace):
     """When dialogue_load=False (-S flag), prior conversation should NOT appear in query.md."""
     _write_dialogue(
         tmp_workspace,

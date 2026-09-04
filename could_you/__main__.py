@@ -260,7 +260,7 @@ def _get_script_name(args):
     return None
 
 
-def _get_editor_input(w_config_dir: Path, dialogue_load: bool = True):
+def _get_editor_input(w_config_dir: Path, *, dialogue_load: bool = True):
     """Open a temporary file in the user's preferred editor and return the content."""
     query_md_path = w_config_dir / "query.md"
     existing_query = _load_query(query_md_path)
