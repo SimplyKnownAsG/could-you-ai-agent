@@ -27,15 +27,13 @@ COULD_YOU_LOAD_FILE(.could-you/TODO.md)
 
 COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)
 
-> NOTE for {agent_name}
+> NOTE
 >
-> The Markdown files expanded below may not be formatted for your use. They may
-> be out of date, and they may be completely incorrect.This default
-> configuration automatically loads markdown files in the workspace root so
-> fresh projects provide useful context. After you have intentional `.could-you`
-> memory files, consider removing `COULD_YOU_LOAD_FILE(*.md)` from
-> `.could-you/config.yaml` and loading only the files you explicitly want in the
-> prompt.
+> The Markdown files expanded below are loaded fresh each turn. If a file was
+> modified during this turn, the version below reflects the state before that
+> modification. After you have intentional `.could-you` memory files, consider
+> removing `COULD_YOU_LOAD_FILE(*.md)` from `.could-you/config.yaml` and
+> loading only the files you explicitly want in the prompt.
 
 COULD_YOU_LOAD_FILE(*.md)
 """
@@ -70,7 +68,7 @@ def _expand_cy_default_pattern(prompt: str) -> str:
 
 
 def _default_prompt() -> str:
-    return DEFAULT_PROMPT_TEMPLATE.format(agent_name=_default_agent_name())
+    return DEFAULT_PROMPT_TEMPLATE
 
 
 def _expand_cy_agent_name_pattern(prompt: str) -> str:
