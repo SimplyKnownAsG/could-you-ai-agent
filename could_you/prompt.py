@@ -14,9 +14,10 @@ from .metadata import LoadedFileMetadata, PromptMetadata
 # Pattern to match COULD_YOU_LOAD_FILE(relative/path.md or glob)
 COULD_YOU_LOAD_FILE_PATTERN = re.compile(r"^COULD_YOU_LOAD_FILE\((.+)\)$", re.MULTILINE)
 COULD_YOU_DEFAULT_PROMPT_PATTERN = re.compile(r"^COULD_YOU_DEFAULT_PROMPT(\(\))?$", re.MULTILINE)
+COULD_YOU_AGENT_NAME_PATTERN = re.compile(r"^COULD_YOU_AGENT_NAME$", re.MULTILINE)
 
 DEFAULT_PROMPT_TEMPLATE = """
-Your name is {agent_name}.
+COULD_YOU_AGENT_NAME
 
 COULD_YOU_LOAD_FILE(.could-you/SYSTEM_PROMPT.md)
 
@@ -60,6 +61,7 @@ def enrich_raw_prompt(prompt: str, workspace_root: Path | None = None) -> Prompt
             could-you is invoked from a sub-directory of the workspace.
     """
     prompt = _expand_cy_default_pattern(prompt)
+    prompt = _expand_cy_agent_name_pattern(prompt)
     return _expand_cy_load_file(prompt, workspace_root=workspace_root)
 
 
@@ -69,6 +71,14 @@ def _expand_cy_default_pattern(prompt: str) -> str:
 
 def _default_prompt() -> str:
     return DEFAULT_PROMPT_TEMPLATE.format(agent_name=_default_agent_name())
+
+
+def _expand_cy_agent_name_pattern(prompt: str) -> str:
+    return COULD_YOU_AGENT_NAME_PATTERN.sub(_agent_name_sentence(), prompt)
+
+
+def _agent_name_sentence() -> str:
+    return f"Your name is {_default_agent_name()}."
 
 
 def _default_agent_name() -> str:

@@ -2,7 +2,7 @@ import textwrap
 from pathlib import Path
 
 from could_you import prompt
-from could_you.prompt import _default_agent_name
+from could_you.prompt import _agent_name_sentence, _default_agent_name
 
 from .dir_changer import DirChanger
 
@@ -140,6 +140,44 @@ def test_default_agent_name_uses_current_user(monkeypatch):
     monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
 
     assert _default_agent_name() == "alice-borg"
+
+
+def test_agent_name_sentence(monkeypatch):
+    monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
+
+    assert _agent_name_sentence() == "Your name is alice-borg."
+
+
+def test_could_you_agent_name_expands(monkeypatch):
+    monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
+
+    result = prompt.enrich_raw_prompt("COULD_YOU_AGENT_NAME")
+
+    assert result.text == "Your name is alice-borg."
+
+
+def test_could_you_agent_name_not_match_with_whitespace(monkeypatch):
+    monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
+
+    for p in [" COULD_YOU_AGENT_NAME", "COULD_YOU_AGENT_NAME "]:
+        result = prompt.enrich_raw_prompt(p)
+        assert result.text == p
+
+
+def test_could_you_agent_name_in_multiline(monkeypatch):
+    monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
+
+    p = textwrap.dedent("""
+    BEFORE
+    COULD_YOU_AGENT_NAME
+    AFTER
+    """)
+    result = prompt.enrich_raw_prompt(p)
+
+    assert "BEFORE" in result.text
+    assert "Your name is alice-borg." in result.text
+    assert "COULD_YOU_AGENT_NAME" not in result.text
+    assert "AFTER" in result.text
 
 
 def test_default_agent_name_falls_back_to_user_borg(monkeypatch):
