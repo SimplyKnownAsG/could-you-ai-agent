@@ -19,21 +19,39 @@ COULD_YOU_AGENT_NAME_PATTERN = re.compile(r"^COULD_YOU_AGENT_NAME$", re.MULTILIN
 DEFAULT_PROMPT_TEMPLATE = """
 COULD_YOU_AGENT_NAME
 
-COULD_YOU_LOAD_FILE(.could-you/SYSTEM_PROMPT.md)
+> NOTE
+>
+> The following files are loaded fresh each turn from the workspace's
+> `.could-you/` directory and wrapped in `<could-you-prompt-expanded-file>`
+> tags. Each file serves a specific purpose:
+>
+> - `FORMATIVE.md` — stable, high-confidence memories that shape how I interact with this user specifically; changes slowly
+> - `SYSTEM_PROMPT.md` — standing identity, behaviour, and operating rules
+> - `MEMORY.md` — durable but fluid continuity: project state, decisions, implementation facts, and continuation points
+> - `TODO.md` — active open loops, next actions, and current highest priority
+>
+> If a file was modified during this turn, the expanded content below
+> reflects the state before that modification.
 
 COULD_YOU_LOAD_FILE(.could-you/FORMATIVE.md)
 
-COULD_YOU_LOAD_FILE(.could-you/TODO.md)
+COULD_YOU_LOAD_FILE(.could-you/SYSTEM_PROMPT.md)
 
 COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)
 
-> NOTE
+COULD_YOU_LOAD_FILE(.could-you/TODO.md)
+
+
+> WARNING
 >
-> The Markdown files expanded below are loaded fresh each turn. If a file was
-> modified during this turn, the version below reflects the state before that
-> modification. After you have intentional `.could-you` memory files, consider
-> removing `COULD_YOU_LOAD_FILE(*.md)` from `.could-you/config.yaml` and
-> loading only the files you explicitly want in the prompt.
+> This is the default template which auto-loads markdown files in the
+> could-you workspace root. The user may not have configured this
+> intentionally. The following markdown files are also wrapped in
+> `<could-you-prompt-expanded-file>` tags but may not have been
+> intentionally included in the system prompt. After you have intentional
+> `.could-you` memory files (above this WARNING), consider asking the user
+> to remove `COULD_YOU_LOAD_FILE(*.md)` from `.could-you/config.yaml` if
+> they appear to be unmaintained.
 
 COULD_YOU_LOAD_FILE(*.md)
 """

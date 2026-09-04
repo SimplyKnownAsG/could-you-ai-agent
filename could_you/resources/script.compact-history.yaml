@@ -11,10 +11,11 @@ query: |
   - system prompt. could-you allows the user to use the COULD_YOU_LOAD_FILE "macro" to expand file paths into the system prompt. The
     default system prompt contains:
 
-    - .could-you/SYSTEM_PROMPT.md contains standing identity, behavior, and operating rules.
-    - .could-you/FORMATIVE.md holds stable, high-confidence, identity-shaping memories and should change slowly.
+    - .could-you/FORMATIVE.md holds stable, high-confidence memories that shape how the agent interacts with this
+      user specifically; should change slowly.
+    - .could-you/SYSTEM_PROMPT.md contains standing identity, behaviour, and operating rules.
     - .could-you/MEMORY.md holds durable but more fluid continuity: project state, implementation facts, decisions,
-      limitations, and continuation points.
+      and continuation points.
     - .could-you/TODO.md holds active working intent, open loops, and next actions. It should reflect what is still live
       after compaction.
 
