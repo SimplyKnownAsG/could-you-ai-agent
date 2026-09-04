@@ -4,6 +4,7 @@ Utilities for processing and expanding prompt text, including COULD_YOU_LOAD_FIL
 
 import getpass
 import re
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from attrs import define, field
@@ -15,9 +16,12 @@ from .metadata import LoadedFileMetadata, PromptMetadata
 COULD_YOU_LOAD_FILE_PATTERN = re.compile(r"^COULD_YOU_LOAD_FILE\((.+)\)$", re.MULTILINE)
 COULD_YOU_DEFAULT_PROMPT_PATTERN = re.compile(r"^COULD_YOU_DEFAULT_PROMPT(\(\))?$", re.MULTILINE)
 COULD_YOU_AGENT_NAME_PATTERN = re.compile(r"^COULD_YOU_AGENT_NAME$", re.MULTILINE)
+COULD_YOU_DATE_PATTERN = re.compile(r"^COULD_YOU_DATE$", re.MULTILINE)
 
 DEFAULT_PROMPT_TEMPLATE = """
 COULD_YOU_AGENT_NAME
+
+COULD_YOU_DATE
 
 > NOTE
 >
@@ -78,6 +82,7 @@ def enrich_raw_prompt(prompt: str, workspace_root: Path | None = None) -> Prompt
     """
     prompt = _expand_cy_default_pattern(prompt)
     prompt = _expand_cy_agent_name_pattern(prompt)
+    prompt = _expand_cy_date_pattern(prompt)
     return _expand_cy_load_file(prompt, workspace_root=workspace_root)
 
 
@@ -97,6 +102,10 @@ def _agent_name_sentence() -> str:
     return f"Your name is {_default_agent_name()}."
 
 
+def _expand_cy_date_pattern(prompt: str) -> str:
+    return COULD_YOU_DATE_PATTERN.sub(_date_sentence(), prompt)
+
+
 def _default_agent_name() -> str:
     try:
         user = getpass.getuser()
@@ -105,6 +114,16 @@ def _default_agent_name() -> str:
 
     user = user.strip() or "usr"
     return f"{user}-borg"
+
+
+def _date_sentence(now: datetime | None = None) -> str:
+    if now is None:
+        now = datetime.now().astimezone()
+    tz_name = now.strftime("%Z")
+    datetime_str = now.strftime("%Y-%m-%dT%H:%M")
+    monday = now.date() - timedelta(days=now.weekday())
+    week_of = f"{monday.strftime('%A, %B')} {monday.day}"
+    return f"The current time is {datetime_str} {tz_name}, the week of {week_of}."
 
 
 def _expand_cy_load_file(prompt: str, workspace_root: Path | None = None) -> PromptExpansionResult:

@@ -1,8 +1,9 @@
 import textwrap
+from datetime import UTC, datetime
 from pathlib import Path
 
 from could_you import prompt
-from could_you.prompt import _agent_name_sentence, _default_agent_name
+from could_you.prompt import _agent_name_sentence, _date_sentence, _default_agent_name
 
 from .dir_changer import DirChanger
 
@@ -134,6 +135,55 @@ def test_enrich_raw_prompt_uses_workspace_root_not_cwd(tmp_path: Path):
     assert "MEMORY CONTENT" in result.text
     assert str(memory_path) in result.text
     assert result.metadata.loaded_file_count == 1
+
+
+def test_date_sentence_format():
+    # Wednesday 2026-09-04T11:49 — week starts Monday 2026-08-31
+    now = datetime(2026, 9, 4, 11, 49, tzinfo=UTC)
+    result = _date_sentence(now)
+    assert result.startswith("The current time is 2026-09-04T11:49")
+    assert "the week of Monday, August 31" in result
+    assert result.endswith(".")
+
+
+def test_date_sentence_monday_is_own_week():
+    # Monday itself should be the week-of date
+    now = datetime(2026, 8, 31, 9, 0, tzinfo=UTC)
+    result = _date_sentence(now)
+    assert "the week of Monday, August 31" in result
+
+
+def test_date_sentence_sunday_uses_previous_monday():
+    # Sunday 2026-09-06 — week started Monday 2026-08-31
+    now = datetime(2026, 9, 6, 23, 59, tzinfo=UTC)
+    result = _date_sentence(now)
+    assert "the week of Monday, August 31" in result
+
+
+def test_could_you_date_expands():
+    result = prompt.enrich_raw_prompt("COULD_YOU_DATE")
+    assert "The current time is" in result.text
+    assert "the week of" in result.text
+    assert "COULD_YOU_DATE" not in result.text
+
+
+def test_could_you_date_not_match_with_whitespace():
+    for p in [" COULD_YOU_DATE", "COULD_YOU_DATE "]:
+        result = prompt.enrich_raw_prompt(p)
+        assert result.text == p
+
+
+def test_could_you_date_in_multiline():
+    p = textwrap.dedent("""
+    BEFORE
+    COULD_YOU_DATE
+    AFTER
+    """)
+    result = prompt.enrich_raw_prompt(p)
+    assert "BEFORE" in result.text
+    assert "The current time is" in result.text
+    assert "COULD_YOU_DATE" not in result.text
+    assert "AFTER" in result.text
 
 
 def test_default_agent_name_uses_current_user(monkeypatch):
