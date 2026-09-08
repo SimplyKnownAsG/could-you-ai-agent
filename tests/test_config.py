@@ -92,6 +92,91 @@ def test_load_workspace_yaml_config(tmp_workspace: Path):
     assert config.llm.args["modelId"] == "us.anthropic.claude-sonnet-4-20250514-v1:0"
 
 
+def test_mcp_env_and_args_expand_workspace(tmp_workspace: Path, monkeypatch):
+    monkeypatch.chdir(tmp_workspace)
+    w_config_dir = init()
+
+    cfg_path = w_config_dir / "config.yaml"
+    cfg_path.write_text(
+        """
+llm:
+  provider: openai
+  args:
+    model: gpt-4o-mini
+mcpServers:
+  fs:
+    command: echo
+    args:
+      - "$COULD_YOU_WORKSPACE/foo"
+    env:
+      FOO: "$COULD_YOU_WORKSPACE/bar"
+""",
+        encoding="utf-8",
+    )
+
+    cfg, wdir = load()
+
+    assert wdir == w_config_dir
+    # $COULD_YOU_WORKSPACE expands to parent of .could-you
+    expected_root = str(w_config_dir.parent)
+    assert cfg.mcp_servers["fs"].args == [f"{expected_root}/foo"]
+    assert cfg.mcp_servers["fs"].env["FOO"] == f"{expected_root}/bar"
+
+
+def test_mcp_env_and_args_expand_user_and_env(tmp_workspace: Path, monkeypatch):
+    # Simulate a home directory inside the temp path
+    home_dir = tmp_workspace / "home" / "user"
+    home_dir.mkdir(parents=True)
+
+    monkeypatch.setenv("HOME", str(home_dir))
+    monkeypatch.setenv("PIPER_SUBDIR", "models/piper-voices")
+
+    monkeypatch.chdir(tmp_workspace)
+    w_config_dir = init()
+
+    cfg_path = w_config_dir / "config.yaml"
+    cfg_path.write_text(
+        """
+llm:
+  provider: openai
+  args:
+    model: gpt-4o-mini
+mcpServers:
+  fs:
+    command: echo
+    args:
+      - "~/foo"
+      - "$HOME/bar"
+      - "$PIPER_SUBDIR/model.onnx"
+      - "$COULD_YOU_WORKSPACE/baz"
+    env:
+      HOME_PATH: "$HOME/qux"
+      TILDE_PATH: "~/quux"
+      MODEL_PATH: "$PIPER_SUBDIR/model.onnx"
+""",
+        encoding="utf-8",
+    )
+
+    cfg, _wdir = load()
+
+    expected_root = str(w_config_dir.parent)
+    expected_home = str(home_dir)
+
+    # Args should have both workspace and HOME / env-var expansion applied
+    args = cfg.mcp_servers["fs"].args
+    assert args[0] == f"{expected_home}/foo"
+    assert args[1] == f"{expected_home}/bar"
+    # Non-$HOME env vars are expanded but not made absolute by os.path.expandvars,
+    # so we only expect a relative path here.
+    assert args[2] == "models/piper-voices/model.onnx"
+    assert args[3] == f"{expected_root}/baz"
+
+    env = cfg.mcp_servers["fs"].env
+    assert env["HOME_PATH"] == f"{expected_home}/qux"
+    assert env["TILDE_PATH"] == f"{expected_home}/quux"
+    assert env["MODEL_PATH"] == "models/piper-voices/model.onnx"
+
+
 @pytest.mark.parametrize("ext", ["json", "yaml", "yml"])
 def test_empty_fails(tmp_workspace: Path, ext: str):
     w_config_path = tmp_workspace / f"config.{ext}"

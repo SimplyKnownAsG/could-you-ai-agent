@@ -160,10 +160,22 @@ def _validate_config(config: Config, w_config_dir: Path):
     os.chdir(could_you_workspace)
 
     for mcp_props in config.mcp_servers.values():
-        mcp_props.args = [arg.replace("$COULD_YOU_WORKSPACE", could_you_workspace) for arg in mcp_props.args]
-        mcp_props.env = {
-            k: v.replace("$COULD_YOU_WORKSPACE", could_you_workspace) for k, v in (mcp_props.env or {}).items()
-        }
+        expanded_args: list[str] = []
+        for arg in mcp_props.args:
+            # First expand the workspace placeholder, then apply standard
+            # environment-variable and user (~) expansion so configs can use
+            # $HOME, $FOO, or ~/relative paths in MCP args.
+            replaced = arg.replace("$COULD_YOU_WORKSPACE", could_you_workspace)
+            expanded = os.path.expanduser(os.path.expandvars(replaced))
+            expanded_args.append(expanded)
+        mcp_props.args = expanded_args
+
+        expanded_env: dict[str, str] = {}
+        for k, v in (mcp_props.env or {}).items():
+            replaced = v.replace("$COULD_YOU_WORKSPACE", could_you_workspace)
+            expanded = os.path.expanduser(os.path.expandvars(replaced))
+            expanded_env[k] = expanded
+        mcp_props.env = expanded_env
 
     # Apply environment variables
     for key, value in (config.env or {}).items():

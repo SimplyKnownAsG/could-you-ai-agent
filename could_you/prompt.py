@@ -45,7 +45,6 @@ COULD_YOU_LOAD_FILE(.could-you/MEMORY.md)
 
 COULD_YOU_LOAD_FILE(.could-you/TODO.md)
 
-
 > WARNING
 >
 > This is the default template which auto-loads markdown files in the
