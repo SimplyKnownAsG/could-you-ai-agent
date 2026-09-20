@@ -1,3 +1,4 @@
+import os
 from contextlib import AsyncExitStack
 from typing import Any
 
@@ -35,7 +36,8 @@ class MCPServer:
 
     async def connect(self, *, exit_stack: AsyncExitStack) -> bool:
         if self.props.enabled:
-            server_params = StdioServerParameters(command=self.props.command, args=self.props.args, env=self.props.env)
+            merged_env = {**os.environ, **self.props.env}
+            server_params = StdioServerParameters(command=self.props.command, args=self.props.args, env=merged_env)
             the_client = await exit_stack.enter_async_context(stdio_client(server_params))
             stdio, write = the_client
             self.session = await exit_stack.enter_async_context(ClientSession(stdio, write))

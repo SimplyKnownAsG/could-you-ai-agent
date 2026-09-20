@@ -223,6 +223,56 @@ async def test_connect_enabled_server_no_disabled_tools():
 
 
 @pytest.mark.asyncio
+async def test_connect_merges_os_environ_into_server_env():
+    """Test that os.environ is merged with per-server env, with per-server values winning."""
+    mock_tool = MagicMock()
+    mock_tool.name = "some_tool"
+
+    server = MCPServer(
+        name="test-server",
+        props=structure(
+            dict(command="test-command", args=[], env={"SERVER_VAR": "from_server", "OVERRIDE_VAR": "server_wins"}),
+            MCPServerProps,
+        ),
+    )
+
+    exit_stack = AsyncExitStack()
+    mock_session = AsyncMock()
+    mock_list_tools_response = MagicMock()
+    mock_list_tools_response.tools = [mock_tool]
+    mock_session.list_tools.return_value = mock_list_tools_response
+
+    captured_params = {}
+
+    def fake_stdio_client(params):
+        captured_params["params"] = params
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(return_value=(MagicMock(), MagicMock()))
+        cm.__aexit__ = AsyncMock(return_value=False)
+        return cm
+
+    with (
+        patch("could_you.mcp_server.stdio_client", side_effect=fake_stdio_client),
+        patch("could_you.mcp_server.os.environ", {"COULD_YOU_WORKSPACE": "/ws", "OVERRIDE_VAR": "os_loses"}),
+    ):
+        exit_stack.enter_async_context = AsyncMock(
+            side_effect=[
+                (MagicMock(), MagicMock()),
+                mock_session,
+            ]
+        )
+        await server.connect(exit_stack=exit_stack)
+
+    merged = captured_params["params"].env
+    # os.environ key present
+    assert merged["COULD_YOU_WORKSPACE"] == "/ws"
+    # per-server key present
+    assert merged["SERVER_VAR"] == "from_server"
+    # per-server value wins over os.environ
+    assert merged["OVERRIDE_VAR"] == "server_wins"
+
+
+@pytest.mark.asyncio
 async def test_call_tool():
     """Test that call_tool delegates to the session."""
     server = MCPServer(name="test-server", props=MCPServerProps(command="test-command", args=["arg1"]))
