@@ -144,7 +144,6 @@ def _validate_config(config: Config, w_config_dir: Path):
         msg = 'Must specify "llm" in config'
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
-
     if config.llm.token_limit is None:
         config.llm.token_limit = infer_token_limit(config.llm.args)
 
@@ -181,6 +180,13 @@ def _validate_config(config: Config, w_config_dir: Path):
     for key, value in (config.env or {}).items():
         if value is not None:
             os.environ[key] = value
+
+    # Query may contain COULD_YOU_EXPAND_ENV(NAME) directives. Expand them
+    # after COULD_YOU_WORKSPACE and config.env have been applied to the
+    # process environment, so a query can reference either safely.
+    if config.query is not None:
+        query_expansion = enrich_raw_prompt(config.query, workspace_root=w_config_dir.parent)
+        config.query = query_expansion.text
 
 
 def _get_user_config_dir_path():

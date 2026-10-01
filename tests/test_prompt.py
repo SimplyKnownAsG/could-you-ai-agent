@@ -272,3 +272,89 @@ def test_enrich_raw_prompt_no_directories(tmp_dir: Path):
     assert result.metadata.loaded_files == [
         prompt.LoadedFileMetadata(directive="*.md", path=str((tmp_dir / "foo.md").absolute()), bytes=11)
     ]
+
+
+# ---------------------------------------------------------------------------
+# COULD_YOU_EXPAND_ENV
+# ---------------------------------------------------------------------------
+
+
+def test_could_you_expand_env_substitutes_value(monkeypatch):
+    monkeypatch.setenv("COULD_YOU_INCIDENT_DIR", "/tmp/incidents/20260101T000000Z")
+
+    result = prompt.enrich_raw_prompt("COULD_YOU_EXPAND_ENV(COULD_YOU_INCIDENT_DIR)")
+
+    assert result.text == "/tmp/incidents/20260101T000000Z"
+
+
+def test_could_you_expand_env_in_multiline(monkeypatch):
+    monkeypatch.setenv("MY_VAR", "VALUE")
+
+    p = textwrap.dedent("""
+    BEFORE
+    COULD_YOU_EXPAND_ENV(MY_VAR)
+    AFTER
+    """)
+    result = prompt.enrich_raw_prompt(p)
+
+    assert "BEFORE" in result.text
+    assert "VALUE" in result.text
+    assert "COULD_YOU_EXPAND_ENV" not in result.text
+    assert "AFTER" in result.text
+
+
+def test_could_you_expand_env_requires_own_line(monkeypatch):
+    """Directive must occupy its own line, matching the other prompt directives."""
+    monkeypatch.setenv("MY_VAR", "VALUE")
+
+    for p in ["prefix COULD_YOU_EXPAND_ENV(MY_VAR)", "COULD_YOU_EXPAND_ENV(MY_VAR) suffix"]:
+        result = prompt.enrich_raw_prompt(p)
+        assert result.text == p
+
+
+def test_could_you_expand_env_substitutes_marker_when_undefined(monkeypatch):
+    """An unset variable yields a visible marker and a logged warning, not a raise.
+
+    The marker makes the missing expansion visible both in logs and to the
+    model that receives the prompt.
+    """
+    monkeypatch.delenv("DEFINITELY_NOT_SET_12345", raising=False)
+
+    result = prompt.enrich_raw_prompt("COULD_YOU_EXPAND_ENV(DEFINITELY_NOT_SET_12345)")
+
+    assert result.text == "<COULD_YOU_EXPAND_ENV: DEFINITELY_NOT_SET_12345 not set>"
+
+
+def test_could_you_expand_env_substitutes_marker_when_empty(monkeypatch):
+    """An empty-string variable is treated the same as unset."""
+    monkeypatch.setenv("EMPTY_VAR", "")
+
+    result = prompt.enrich_raw_prompt("COULD_YOU_EXPAND_ENV(EMPTY_VAR)")
+
+    assert result.text == "<COULD_YOU_EXPAND_ENV: EMPTY_VAR not set>"
+
+
+def test_could_you_expand_env_rejects_malformed_name(monkeypatch):
+    """A directive argument that doesn't match the env-var-name shape is left
+    as-is, like any non-matching text. We confirm the pattern is strict."""
+    monkeypatch.setenv("GOOD_NAME", "ok")
+
+    # Numeric prefix is not a valid env var name — directive should not match.
+    p = "COULD_YOU_EXPAND_ENV(1BAD)"
+    result = prompt.enrich_raw_prompt(p)
+    assert result.text == p
+
+
+def test_could_you_expand_env_multiple_in_prompt(monkeypatch):
+    monkeypatch.setenv("A", "alpha")
+    monkeypatch.setenv("B", "beta")
+
+    p = textwrap.dedent("""
+    COULD_YOU_EXPAND_ENV(A)
+    COULD_YOU_EXPAND_ENV(B)
+    """)
+    result = prompt.enrich_raw_prompt(p)
+
+    assert "alpha" in result.text
+    assert "beta" in result.text
+    assert "COULD_YOU_EXPAND_ENV" not in result.text
