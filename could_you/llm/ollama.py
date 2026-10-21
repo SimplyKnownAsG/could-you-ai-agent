@@ -10,4 +10,4 @@ class OllamaLLM(OpenAILLM):
     """
 
     def _init_client(self):
-        return openai.OpenAI(**self.config.llm.init)
+        return openai.OpenAI(**{"base_url": "http://localhost:11434/v1", "api_key": "ollama", **self.config.llm.init})
