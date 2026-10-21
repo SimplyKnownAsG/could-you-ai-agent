@@ -1,5 +1,6 @@
 from .base_llm import BaseLLM
 from .boto3 import Boto3LLM
+from .fast_flow_lm import FastFlowLM
 from .google import GoogleLLM
 from .ollama import OllamaLLM
 from .openai import OpenAILLM
@@ -13,6 +14,7 @@ def create_llm(config, dialogue, tools) -> BaseLLM:
     providers = {
         "boto3": Boto3LLM,
         "ollama": OllamaLLM,
+        "flm": FastFlowLM,
         "openai": OpenAILLM,
         "vertex": VertexLLM,
         "google": GoogleLLM,
