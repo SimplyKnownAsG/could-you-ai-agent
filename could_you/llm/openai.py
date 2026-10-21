@@ -40,7 +40,7 @@ class OpenAILLM(BaseLLM):
             msg = choice.message
             if msg.content:
                 content.append(TextContent(text=msg.content, type="text"))
-            elif msg.tool_calls:
+            if msg.tool_calls:
                 for tool_call in msg.tool_calls:
                     tool_use_id = tool_call.id
                     name = tool_call.function.name
@@ -48,7 +48,7 @@ class OpenAILLM(BaseLLM):
                     content.append(
                         ToolUseContent(tool_use=ToolUse(tool_use_id=tool_use_id, name=name, input=tool_input))
                     )
-            else:
+            if not msg.content and not msg.tool_calls:
                 raise CYError(
                     message=f"Cannot handle response, sry... {response}",
                     retriable=False,
