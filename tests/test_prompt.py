@@ -160,32 +160,6 @@ def test_date_sentence_sunday_uses_previous_monday():
     assert "the week of Monday, August 31" in result
 
 
-def test_could_you_date_expands():
-    result = prompt.enrich_raw_prompt("COULD_YOU_DATE")
-    assert "The current time is" in result.text
-    assert "the week of" in result.text
-    assert "COULD_YOU_DATE" not in result.text
-
-
-def test_could_you_date_not_match_with_whitespace():
-    for p in [" COULD_YOU_DATE", "COULD_YOU_DATE "]:
-        result = prompt.enrich_raw_prompt(p)
-        assert result.text == p
-
-
-def test_could_you_date_in_multiline():
-    p = textwrap.dedent("""
-    BEFORE
-    COULD_YOU_DATE
-    AFTER
-    """)
-    result = prompt.enrich_raw_prompt(p)
-    assert "BEFORE" in result.text
-    assert "The current time is" in result.text
-    assert "COULD_YOU_DATE" not in result.text
-    assert "AFTER" in result.text
-
-
 def test_default_agent_name_uses_current_user(monkeypatch):
     monkeypatch.setattr("could_you.prompt.getpass.getuser", lambda: "alice")
 

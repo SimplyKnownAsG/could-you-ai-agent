@@ -17,7 +17,6 @@ from .metadata import LoadedFileMetadata, PromptMetadata
 COULD_YOU_LOAD_FILE_PATTERN = re.compile(r"^COULD_YOU_LOAD_FILE\((.+)\)$", re.MULTILINE)
 COULD_YOU_DEFAULT_PROMPT_PATTERN = re.compile(r"^COULD_YOU_DEFAULT_PROMPT(\(\))?$", re.MULTILINE)
 COULD_YOU_AGENT_NAME_PATTERN = re.compile(r"^COULD_YOU_AGENT_NAME$", re.MULTILINE)
-COULD_YOU_DATE_PATTERN = re.compile(r"^COULD_YOU_DATE$", re.MULTILINE)
 # Pattern to match COULD_YOU_EXPAND_ENV(NAME) on its own line.
 # NAME must match the usual env-var shape: start with letter or underscore,
 # followed by letters, digits, or underscores. Line-anchored like the other
@@ -26,8 +25,6 @@ COULD_YOU_EXPAND_ENV_PATTERN = re.compile(r"^COULD_YOU_EXPAND_ENV\(([A-Za-z_][A-
 
 DEFAULT_PROMPT_TEMPLATE = """
 COULD_YOU_AGENT_NAME
-
-COULD_YOU_DATE
 
 > NOTE
 >
@@ -87,7 +84,6 @@ def enrich_raw_prompt(prompt: str, workspace_root: Path | None = None) -> Prompt
     """
     prompt = _expand_cy_default_pattern(prompt)
     prompt = _expand_cy_agent_name_pattern(prompt)
-    prompt = _expand_cy_date_pattern(prompt)
     prompt = _expand_cy_expand_env_pattern(prompt)
     return _expand_cy_load_file(prompt, workspace_root=workspace_root)
 
@@ -106,10 +102,6 @@ def _expand_cy_agent_name_pattern(prompt: str) -> str:
 
 def _agent_name_sentence() -> str:
     return f"Your name is {_default_agent_name()}."
-
-
-def _expand_cy_date_pattern(prompt: str) -> str:
-    return COULD_YOU_DATE_PATTERN.sub(_date_sentence(), prompt)
 
 
 def _expand_cy_expand_env_pattern(prompt: str) -> str:
