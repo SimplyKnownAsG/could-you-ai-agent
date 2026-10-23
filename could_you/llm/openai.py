@@ -3,6 +3,7 @@ import json
 import openai
 from openai.types.chat import ChatCompletionToolParam
 
+from .. import tag
 from ..cy_error import CYError, FaultOwner
 from ..logging_config import LOGGER
 from ..message import Message, MessageMetadata, MessageType, TextContent, ToolResultContent, ToolUse, ToolUseContent
@@ -36,6 +37,7 @@ class OpenAILLM(BaseLLM):
 
     def _transform_response(self, response) -> Message:
         content = []
+
         for choice in response.choices:
             msg = choice.message
             if msg.content:
@@ -92,7 +94,16 @@ class OpenAILLM(BaseLLM):
         for msg in self.dialogue.messages:
             for content in msg.content:
                 if isinstance(content, TextContent):
-                    openai_msgs.append({"role": msg.role, "content": content.text})
+                    # OpenAI only allows 1 system message as the first message. We use them
+                    # to provide the LLM additional information (e.g. the date).
+                    role = msg.role
+                    text = content.text
+
+                    if msg.role == "system":
+                        role = "user"
+                        text = tag.system_message(text)
+
+                    openai_msgs.append({"role": role, "content": text})
                 elif isinstance(content, ToolUseContent):
                     tool_call = dict(
                         id=content.tool_use.tool_use_id,

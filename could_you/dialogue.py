@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import IO, Any
 
@@ -7,7 +8,7 @@ from cattrs import Converter
 
 from .config import DialogueProps
 from .logging_config import LOGGER
-from .message import Message
+from .message import Message, MessageType, TextContent
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
@@ -37,9 +38,7 @@ class Dialogue:
         if self.load:
             if self.path.exists():
                 with open(self.path) as f:
-                    for line in f:
-                        if line.strip():
-                            self.messages.append(converter.structure(json.loads(line), Message))
+                    self.messages = [converter.structure(json.loads(line), Message) for line in f if line.strip()]
                 LOGGER.debug("Dialogue loaded from %s", self.path)
             else:
                 LOGGER.debug("Dialogue file could not be found at %s", self.path)
@@ -60,9 +59,26 @@ class Dialogue:
             LOGGER.debug("Dialogue storage disabled, not writing dialogue")
 
     def add(self, message: Message):
+        if message.role == "user":
+            now = datetime.now().astimezone()
+            tz_name = now.strftime("%Z")
+            datetime_str = now.strftime("%Y-%m-%dT%H:%M")
+            monday = now.date() - timedelta(days=now.weekday())
+            week_of = f"{monday.strftime('%A, %B')} {monday.day}"
+            date_message = f"The current time is {datetime_str} {tz_name}, the week of {week_of}."
+            sys_message = Message(
+                role="system",
+                content=[TextContent(text=date_message, type="text")],
+                type=MessageType.NORMAL,
+            )
+            self.messages.append(sys_message)
+            self._store_message(sys_message)
+
         self.messages.append(message)
         message.print(info=LOGGER.info, debug=LOGGER.debug)
+        self._store_message(message)
 
+    def _store_message(self, message: Message):
         if self.store and self._file_handle:
             json_str = json.dumps(converter.unstructure(message))
             self._file_handle.write(json_str + "\n")
