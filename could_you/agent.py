@@ -20,6 +20,7 @@ from .message import (
     ToolResultInnerTextContent,
     ToolUseContent,
 )
+from .stop_turn_tool import MCPStopTurnTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
@@ -37,7 +38,9 @@ class Agent:
         self.tools: dict[str, MCPTool] = {}
 
     async def __aenter__(self):
-        # TODO: should this use asyncio.create_task or TaskGroup?
+        stop_turn = MCPStopTurnTool()
+        self.tools[stop_turn.name] = stop_turn
+
         for s in self.servers:
             await s.connect(exit_stack=self.exit_stack)
 
@@ -123,12 +126,14 @@ class Agent:
 
     async def __use_tools(self, llm_message: Message):
         tool_content: list[Content] = []
+        stop_turn = False
 
         for content in llm_message.content:
             if not isinstance(content, ToolUseContent):
                 continue
 
             tool_use = content.tool_use
+            stop_turn |= tool_use.name == "__stop_turn__"
 
             if tool := self.tools.get(tool_use.name, None):
                 try:
@@ -188,4 +193,6 @@ class Agent:
             tool_message = Message(role="tool", content=tool_content, type=MessageType.TOOL_RESULT)
             self.dialogue.add(tool_message)
 
-        return bool(tool_content)
+        # using |= means that if stop_turn was sent, we'll stop even if there were other tool calls.
+        stop_turn |= not bool(tool_content)
+        return not stop_turn

@@ -28,6 +28,9 @@ class OpenAILLM(BaseLLM):
             return self.client.chat.completions.create(
                 tools=self._converted_tools,
                 messages=self._convert_messages(),  # type: ignore
+                # use tool_choice required to force LLM to provide a tool response and the LLM runner (ollama/flm)
+                # capture tool calls.
+                tool_choice="required",
                 **(self.config.llm.args or {}),
             )
         except Exception as err:
