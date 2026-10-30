@@ -112,6 +112,11 @@ class Agent:
                 self.dialogue.add(pending_user_message)
 
             llm_message = await self.llm.converse()
+            stopped, final_message = MCPStopTurnTool.transform_response(llm_message)
+            if stopped:
+                if final_message is not None:
+                    self.dialogue.add(final_message)
+                return
 
             # Determine message type based on content
             message_type = (
@@ -126,14 +131,12 @@ class Agent:
 
     async def __use_tools(self, llm_message: Message):
         tool_content: list[Content] = []
-        stop_turn = False
 
         for content in llm_message.content:
             if not isinstance(content, ToolUseContent):
                 continue
 
             tool_use = content.tool_use
-            stop_turn |= tool_use.name == "__stop_turn__"
 
             if tool := self.tools.get(tool_use.name, None):
                 try:
@@ -193,6 +196,4 @@ class Agent:
             tool_message = Message(role="tool", content=tool_content, type=MessageType.TOOL_RESULT)
             self.dialogue.add(tool_message)
 
-        # using |= means that if stop_turn was sent, we'll stop even if there were other tool calls.
-        stop_turn |= not bool(tool_content)
-        return not stop_turn
+        return bool(tool_content)
