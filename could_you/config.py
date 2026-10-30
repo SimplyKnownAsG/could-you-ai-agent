@@ -46,6 +46,7 @@ class MCPServerProps:
 class DialogueProps:
     load: bool = True
     store: bool = True
+    name: str = ""
 
 
 @define

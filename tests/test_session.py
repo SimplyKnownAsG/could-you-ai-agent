@@ -1,7 +1,6 @@
 from unittest.mock import mock_open, patch
 
-from could_you.config import Config, DialogueProps, LLMProps
-from could_you.session import Session, SessionManager
+from could_you.session import SessionManager
 
 
 # Dummy config object
@@ -55,23 +54,3 @@ def test_list_logs_all_session_roots():
         calls = [call.args[0] for call in mock_logger.info.call_args_list]
         assert "Session root: /foo" in calls
         assert "Session root: /bar" in calls
-
-
-def test_session_dialogue_uses_config_dialogue_defaults(tmp_path):
-    config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=True))
-    session = Session(tmp_path / ".could-you", None, config)
-
-    dialogue = session.dialogue()
-
-    assert dialogue.load is False
-    assert dialogue.store is True
-
-
-def test_session_dialogue_allows_overrides(tmp_path):
-    config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=True, store=True))
-    session = Session(tmp_path / ".could-you", None, config)
-
-    dialogue = session.dialogue(load=False, store=False)
-
-    assert dialogue.load is False
-    assert dialogue.store is False

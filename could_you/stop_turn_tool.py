@@ -24,7 +24,7 @@ class MCPStopTurnTool(MCPTool):
             StopTurnTool(
                 name="__stop_turn__",
                 description="Stop own turn. If you must call a tool, call this, and only this, to stop your turn",
-                input_schema={},
+                input_schema={"message": {"type": "string", "description": "final turn message"}},
             ),
         )
 

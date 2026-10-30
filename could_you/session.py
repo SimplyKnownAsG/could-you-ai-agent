@@ -25,8 +25,8 @@ class Session:
         self.script_name = script_name
         self.config = config
 
-    def dialogue(self, *, load: bool | None = None, store: bool | None = None):
-        return Dialogue(self.w_config_dir, props=self.config.dialogue, load=load, store=store)
+    def dialogue(self):
+        return Dialogue(self.w_config_dir, props=self.config.dialogue)
 
 
 class SessionManager:

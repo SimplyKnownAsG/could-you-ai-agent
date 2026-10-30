@@ -14,10 +14,9 @@ converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class Dialogue:
+    props: DialogueProps
     path: Path
     messages: list[Message]
-    load: bool
-    store: bool
     _file_handle: IO | None = None
 
     def __init__(
@@ -25,17 +24,16 @@ class Dialogue:
         w_config_dir: Path,
         *,
         props: DialogueProps | None = None,
-        load: bool | None = None,
-        store: bool | None = None,
     ):
-        props = props or DialogueProps()
-        self.path = w_config_dir / "dialogue.jsonl"
+        self.props = props or DialogueProps()
+        suffix = props.name
+        if suffix:
+            suffix = "-" + suffix
+        self.path = w_config_dir / f"dialogue{suffix}.jsonl"
         self.messages = []
-        self.load = props.load if load is None else load
-        self.store = props.store if store is None else store
 
     def __enter__(self):
-        if self.load:
+        if self.props.load:
             if self.path.exists():
                 with open(self.path) as f:
                     self.messages = [converter.structure(json.loads(line), Message) for line in f if line.strip()]
@@ -45,7 +43,7 @@ class Dialogue:
         else:
             LOGGER.debug("Dialogue loading disabled, not attempting to load")
 
-        if self.store:
+        if self.props.store:
             # Open the file in append mode and keep it open for the life of the context
             self._file_handle = open(self.path, "a")
 
@@ -55,7 +53,7 @@ class Dialogue:
         if self._file_handle:
             self._file_handle.close()
             self._file_handle = None
-        if not self.store:
+        if not self.props.store:
             LOGGER.debug("Dialogue storage disabled, not writing dialogue")
 
     def add(self, message: Message):
@@ -79,7 +77,7 @@ class Dialogue:
         self._store_message(message)
 
     def _store_message(self, message: Message):
-        if self.store and self._file_handle:
+        if self.props.store and self._file_handle:
             json_str = json.dumps(converter.unstructure(message))
             self._file_handle.write(json_str + "\n")
             self._file_handle.flush()

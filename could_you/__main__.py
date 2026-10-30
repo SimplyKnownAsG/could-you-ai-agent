@@ -9,7 +9,7 @@ import yaml
 from cattrs import Converter
 
 from .agent import Agent
-from .config import _find_workspace_config_dir, load
+from .config import Config, _find_workspace_config_dir, load
 from .cy_error import CYError
 from .dialogue import Dialogue
 from .inspect_memory import dump_memory_inspection_yaml, inspect_memory
@@ -55,6 +55,11 @@ def create_parser():
     log_group = parser.add_mutually_exclusive_group()
     log_group.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output (DEBUG level logging)")
     log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
+    parser.add_argument(
+        "--dialogue-name",
+        dest="dialogue_name",
+        help="Dialogue name",
+    )
     parser.add_argument(
         "-L",
         "--no-dialogue-load",
@@ -197,7 +202,11 @@ async def amain(parser, args):
             session_manager.sync_workspace()
         elif args.command == "dialogue" and args.dialogue_command == "print":
             session = session_manager.load_session(None)
-            with session.dialogue(load=True, store=False) as dialogue:
+            _override_config(session.config, args)
+            session.config.dialogue.load = True
+            session.config.dialogue.name = False
+
+            with session.dialogue() as dialogue:
                 dialogue.print(info=LOGGER.info, debug=LOGGER.debug)
         elif args.command == "memory" and args.memory_command == "archive":
             w_config_dir = _find_workspace_config_dir(Path.cwd())
@@ -222,29 +231,31 @@ async def amain(parser, args):
                     print(json.dumps(results, indent=2))  # noqa: T201
         elif args.command == "test" and args.test_command == "connect":
             session = session_manager.load_session(None)
-            with session.dialogue(load=False, store=False) as dialogue:
+            _override_config(session.config, args)
+            session.config.dialogue.load = False
+            session.config.dialogue.store = False
+
+            with session.dialogue() as dialogue:
                 async with Agent(config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(args.message)
         else:
             session = session_manager.load_session(_get_script_name(args))
+            _override_config(session.config, args)
 
-            dialogue_load = session.config.dialogue.load if args.dialogue_load is None else args.dialogue_load
-            dialogue_store = session.config.dialogue.store if args.dialogue_store is None else args.dialogue_store
+            with session.dialogue() as dialogue:
+                query = (
+                    query
+                    if query
+                    else session.config.query
+                    if session.config.query
+                    else _get_editor_input(session.w_config_dir, dialogue=dialogue)
+                )
 
-            query = (
-                query
-                if query
-                else session.config.query
-                if session.config.query
-                else _get_editor_input(session.w_config_dir, dialogue_load=dialogue_load)
-            )
+                if not query:
+                    LOGGER.warning("no input provided")
+                    parser.print_help()
+                    return
 
-            if not query:
-                LOGGER.warning("no input provided")
-                parser.print_help()
-                return
-
-            with session.dialogue(load=dialogue_load, store=dialogue_store) as dialogue:
                 async with Agent(config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(query)
                     _remove_query_md(session.w_config_dir)
@@ -260,20 +271,26 @@ def _get_script_name(args):
     return None
 
 
-def _get_editor_input(w_config_dir: Path, *, dialogue_load: bool = True):
+def _override_config(config: Config, args):
+    dialogue_props = config.dialogue
+    dialogue_props.load = dialogue_props.load if args.dialogue_load is None else args.dialogue_load
+    dialogue_props.store = dialogue_props.store if args.dialogue_store is None else args.dialogue_store
+    dialogue_props.name = dialogue_props.name if args.dialogue_name is None else args.dialogue_name
+
+
+def _get_editor_input(w_config_dir: Path, *, dialogue: Dialogue):
     """Open a temporary file in the user's preferred editor and return the content."""
     query_md_path = w_config_dir / "query.md"
     existing_query = _load_query(query_md_path)
 
     with query_md_path.open("w") as tf:
         tf.write("# Previous dialogue\n\n")
+
         # Write dialogue history to the file
-        with Dialogue(w_config_dir, load=dialogue_load, store=False) as dialogue:
+        def printer(msg):
+            print(msg, file=tf)
 
-            def printer(msg):
-                print(msg, file=tf)
-
-            dialogue.print(info=printer, debug=printer)
+        dialogue.print(info=printer, debug=printer)
 
         # Write the special editor input marker - this exact line is used to find user input
         tf.write(f"\n{MARKER}\n\n")

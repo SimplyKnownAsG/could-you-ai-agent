@@ -6,6 +6,8 @@ from unittest.mock import patch
 import pytest
 
 from could_you.__main__ import _get_editor_input, create_parser
+from could_you.config import DialogueProps
+from could_you.dialogue import Dialogue
 
 
 def test_dialogue_cli_flags_default_to_none(monkeypatch):
@@ -164,8 +166,11 @@ def test_get_editor_input_with_dialogue_load_true_shows_prior_dialogue(tmp_works
         query_md = Path(cmd[1])
         captured_content.append(query_md.read_text())
 
-    with patch("subprocess.call", side_effect=fake_editor_call):
-        _get_editor_input(tmp_workspace)
+    with (
+        patch("subprocess.call", side_effect=fake_editor_call),
+        Dialogue(tmp_workspace, props=DialogueProps(load=True, store=False)) as dialogue,
+    ):
+        _get_editor_input(tmp_workspace, dialogue=dialogue)
 
     assert len(captured_content) == 1
     assert "hello from prior run" in captured_content[0]
@@ -186,8 +191,11 @@ def test_get_editor_input_with_dialogue_load_false_omits_prior_dialogue(tmp_work
         query_md = Path(cmd[1])
         captured_content.append(query_md.read_text())
 
-    with patch("subprocess.call", side_effect=fake_editor_call):
-        _get_editor_input(tmp_workspace, dialogue_load=False)
+    with (
+        patch("subprocess.call", side_effect=fake_editor_call),
+        Dialogue(tmp_workspace, props=DialogueProps(load=False, store=False)) as dialogue,
+    ):
+        _get_editor_input(tmp_workspace, dialogue=dialogue)
 
     assert len(captured_content) == 1
     assert "hello from prior run" not in captured_content[0], (

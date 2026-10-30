@@ -82,7 +82,7 @@ def inspect_memory_from_parts(*, config: Config, w_config_dir: Path) -> MemoryIn
 
     dialogue_bytes = dialogue_path.stat().st_size if dialogue_path.is_file() else 0
 
-    with Dialogue(w_config_dir, load=True, store=False) as dialogue:
+    with Dialogue(w_config_dir, props=config.dialogue) as dialogue:
         dialogue_turn_count = len(dialogue.messages)
         latest_token_percent_used = current_token_percent_used(dialogue.messages)
 
