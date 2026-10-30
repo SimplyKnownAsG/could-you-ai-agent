@@ -20,7 +20,7 @@ from .message import (
     ToolResultInnerTextContent,
     ToolUseContent,
 )
-from .stop_turn_tool import MCPStopTurnTool
+from .tools import MCPStopTurnTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
 

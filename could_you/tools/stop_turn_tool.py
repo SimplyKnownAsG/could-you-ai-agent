@@ -3,8 +3,8 @@ from typing import Any
 from mcp import Tool
 from mcp.types import CallToolResult, TextContent
 
-from .config import MCPServerProps
-from .mcp_server import MCPServer, MCPTool
+from ..config import MCPServerProps
+from ..mcp_server import MCPServer, MCPTool
 
 
 class StopTurnTool(Tool):
