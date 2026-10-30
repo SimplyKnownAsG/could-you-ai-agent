@@ -236,7 +236,7 @@ async def amain(parser, args):
             session.config.dialogue.store = False
 
             with session.dialogue() as dialogue:
-                async with Agent(config=session.config, dialogue=dialogue) as agent:
+                async with Agent(session_manager=session_manager, config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(args.message)
         else:
             session = session_manager.load_session(_get_script_name(args))
@@ -256,7 +256,7 @@ async def amain(parser, args):
                     parser.print_help()
                     return
 
-                async with Agent(config=session.config, dialogue=dialogue) as agent:
+                async with Agent(session_manager=session_manager, config=session.config, dialogue=dialogue) as agent:
                     await agent.orchestrate(query)
                     _remove_query_md(session.w_config_dir)
 

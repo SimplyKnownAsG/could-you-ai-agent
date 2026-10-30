@@ -2,6 +2,8 @@ from contextlib import AsyncExitStack
 
 from cattrs import Converter
 
+from could_you.session import SessionManager
+
 from .config import Config
 from .cy_error import CYError, FaultOwner
 from .dialogue import Dialogue
@@ -16,18 +18,18 @@ from .message import (
     TextContent,
     ToolResult,
     ToolResultContent,
-    ToolResultInnerJsonContent,
     ToolResultInnerTextContent,
     ToolUseContent,
 )
-from .tools import MCPStopTurnTool
+from .tools import MCPCallCouldYouTool, MCPStopTurnTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class Agent:
-    def __init__(self, *, config: Config, dialogue: Dialogue):
+    def __init__(self, *, session_manager: SessionManager, config: Config, dialogue: Dialogue):
         # Initialize session and client objects
+        self.session_manager = session_manager
         self.servers: list[MCPServer] = [
             MCPServer(name=name, props=props) for name, props in config.mcp_servers.items()
         ]
@@ -38,8 +40,8 @@ class Agent:
         self.tools: dict[str, MCPTool] = {}
 
     async def __aenter__(self):
-        stop_turn = MCPStopTurnTool()
-        self.tools[stop_turn.name] = stop_turn
+        for local_tool in [MCPStopTurnTool(), MCPCallCouldYouTool(self.session_manager)]:
+            self.tools[local_tool.name] = local_tool
 
         for s in self.servers:
             await s.connect(exit_stack=self.exit_stack)
@@ -140,31 +142,8 @@ class Agent:
 
             if tool := self.tools.get(tool_use.name, None):
                 try:
-                    tool_response = await tool(converter.unstructure(tool_use.input))
-                    # XXX: I'm not sure why this does not work.
-                    # ccc = [converter.structure(c, ToolResultInnerContent) for c in tool_response.content]
-                    ccc = []
-                    for c in tool_response.content:
-                        if hasattr(c, "text"):
-                            ccc.append(ToolResultInnerTextContent(text=c.text))
-                        elif hasattr(c, "json"):
-                            ccc.append(ToolResultInnerJsonContent(json=c.json))
-                        else:
-                            raise CYError(  # noqa: TRY301
-                                message=f"Do not know how to handle response: {c}",
-                                retriable=False,
-                                fault_owner=FaultOwner.INTERNAL,
-                            )
-
-                    tool_content.append(
-                        ToolResultContent(
-                            toolResult=ToolResult(
-                                toolUseId=tool_use.tool_use_id,
-                                content=ccc,
-                                status="success",
-                            )
-                        )
-                    )
+                    tool_result = await tool(tool_use, converter.unstructure(tool_use.input))
+                    tool_content.append(tool_result)
 
                 except CYError:
                     raise

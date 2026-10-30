@@ -9,12 +9,6 @@ from ..cy_error import CYError, FaultOwner
 from ..mcp_server import MCPServer, MCPTool
 from ..message import Message, MessageType, TextContent, ToolUseContent
 
-
-class StopTurnTool(Tool):
-    async def __call__(self, tool_args: dict[str, Any]):  # noqa: ARG002
-        return CallToolResult(content=[MCPTextContent(type="text", text="Stopping assistant turn")])
-
-
 # XXX: this does not actually get used, the two __call__ methods short circuit the whole thing.
 RESPONSE = '{"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"__stop_turn__","title":"stop turn","description":"Stop own turn. If you must call a tool, call this, and only this, to stopyour turn","inputSchema":{}}],"nextCursor":null}}'
 
@@ -24,7 +18,7 @@ class MCPStopTurnTool(MCPTool):
         super().__init__(
             # XXX: this does not actually get used, the two __call__ methods short circuit the whole thing.
             MCPServer(name="__self__", props=MCPServerProps(command="echo", args=[RESPONSE])),
-            StopTurnTool(
+            Tool(
                 name="__stop_turn__",
                 description="Stop own turn. If you must call a tool, call this, and only this, to stop your turn",
                 input_schema={

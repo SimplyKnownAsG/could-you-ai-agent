@@ -5,6 +5,15 @@ from typing import Any
 from mcp import ClientSession, StdioServerParameters, Tool
 from mcp.client.stdio import stdio_client
 
+from could_you.cy_error import CYError, FaultOwner
+from could_you.message import (
+    ToolResult,
+    ToolResultContent,
+    ToolResultInnerJsonContent,
+    ToolResultInnerTextContent,
+    ToolUse,
+)
+
 from .config import MCPServerProps
 from .logging_config import LOGGER
 
@@ -17,8 +26,30 @@ class MCPTool:
         self.tool = tool
         self.enabled = enabled
 
-    async def __call__(self, tool_args: dict[str, Any]):
-        return await self.server.call_tool(self.name, tool_args)
+    async def __call__(self, tool_use: ToolUse, tool_args: dict[str, Any]):
+        tool_response = await self.server.call_tool(self.name, tool_args)
+        # XXX: I'm not sure why this does not work.
+        # ccc = [converter.structure(c, ToolResultInnerContent) for c in tool_response.content]
+        ccc = []
+        for c in tool_response.content:
+            if hasattr(c, "text"):
+                ccc.append(ToolResultInnerTextContent(text=c.text))
+            elif hasattr(c, "json"):
+                ccc.append(ToolResultInnerJsonContent(json=c.json))
+            else:
+                raise CYError(
+                    message=f"Do not know how to handle response: {c}",
+                    retriable=False,
+                    fault_owner=FaultOwner.INTERNAL,
+                )
+
+        return ToolResultContent(
+            toolResult=ToolResult(
+                toolUseId=tool_use.tool_use_id,
+                content=ccc,
+                status="success",
+            )
+        )
 
     def __getattr__(self, name):
         # Delegate any other attribute access to the underlying tool

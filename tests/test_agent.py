@@ -36,7 +36,7 @@ async def test_stop_turn_does_not_store_tool_calls_or_results(tmp_path, text, ar
     metadata = MessageMetadata(inputTokens=12)
 
     with Dialogue(tmp_path, props=props) as dialogue:
-        agent = Agent(config=config, dialogue=dialogue)
+        agent = Agent(session_manager=AsyncMock(), config=config, dialogue=dialogue)
         agent.llm = AsyncMock()
         agent.llm.converse.return_value = Message(role="assistant", content=content, metadata=metadata)
 
@@ -60,7 +60,7 @@ async def test_stop_turn_does_not_store_tool_calls_or_results(tmp_path, text, ar
 async def test_stop_turn_rejects_mixed_tool_calls_before_persisting_or_executing(tmp_path):
     config = Config(llm=LLMProps(provider="openai"))
     with Dialogue(tmp_path, props=DialogueProps(load=False, store=True)) as dialogue:
-        agent = Agent(config=config, dialogue=dialogue)
+        agent = Agent(session_manager=AsyncMock(), config=config, dialogue=dialogue)
         agent.llm = AsyncMock()
         agent.llm.converse.return_value = Message(
             role="assistant",
@@ -84,7 +84,7 @@ async def test_stop_turn_rejects_mixed_tool_calls_before_persisting_or_executing
 async def test_stop_turn_rejects_invalid_arguments(tmp_path, arguments):
     config = Config(llm=LLMProps(provider="openai"))
     with Dialogue(tmp_path, props=DialogueProps(load=False, store=True)) as dialogue:
-        agent = Agent(config=config, dialogue=dialogue)
+        agent = Agent(session_manager=AsyncMock(), config=config, dialogue=dialogue)
         agent.llm = AsyncMock()
         agent.llm.converse.return_value = Message(role="assistant", content=[tool_call("__stop_turn__", arguments)])
 
@@ -98,7 +98,7 @@ async def test_stop_turn_rejects_invalid_arguments(tmp_path, arguments):
 async def test_normal_tool_calls_still_receive_results(tmp_path):
     config = Config(llm=LLMProps(provider="openai"))
     with Dialogue(tmp_path, props=DialogueProps(load=False, store=True)) as dialogue:
-        agent = Agent(config=config, dialogue=dialogue)
+        agent = Agent(session_manager=AsyncMock(), config=config, dialogue=dialogue)
         agent.llm = AsyncMock()
         agent.llm.converse.side_effect = [
             Message(role="assistant", content=[tool_call("missing_tool", {})]),
