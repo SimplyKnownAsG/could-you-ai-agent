@@ -10,7 +10,7 @@ from ..cy_error import CYError, FaultOwner
 from ..mcp_server import MCPServer, MCPTool
 
 
-class MCPCallCouldYouTool(MCPTool):
+class CallCouldYouTool(MCPTool):
     def __init__(self, session_manager: SessionManager):
         super().__init__(
             # XXX: this does not actually get used, the two __call__ methods short circuit the whole thing.

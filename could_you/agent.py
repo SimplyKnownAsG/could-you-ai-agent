@@ -21,7 +21,7 @@ from .message import (
     ToolResultInnerTextContent,
     ToolUseContent,
 )
-from .tools import MCPCallCouldYouTool, MCPStopTurnTool
+from .tools import CallCouldYouTool, StopTurnTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
@@ -40,7 +40,7 @@ class Agent:
         self.tools: dict[str, MCPTool] = {}
 
     async def __aenter__(self):
-        for local_tool in [MCPStopTurnTool(), MCPCallCouldYouTool(self.session_manager)]:
+        for local_tool in [StopTurnTool(), CallCouldYouTool(self.session_manager)]:
             self.tools[local_tool.name] = local_tool
 
         for s in self.servers:
@@ -114,7 +114,7 @@ class Agent:
                 self.dialogue.add(pending_user_message)
 
             llm_message = await self.llm.converse()
-            stopped, final_message = MCPStopTurnTool.transform_response(llm_message)
+            stopped, final_message = StopTurnTool.transform_response(llm_message)
             if stopped:
                 if final_message is not None:
                     self.dialogue.add(final_message)

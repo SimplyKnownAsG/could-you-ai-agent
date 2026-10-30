@@ -13,7 +13,7 @@ from ..message import Message, MessageType, TextContent, ToolUseContent
 RESPONSE = '{"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"__stop_turn__","title":"stop turn","description":"Stop own turn. If you must call a tool, call this, and only this, to stopyour turn","inputSchema":{}}],"nextCursor":null}}'
 
 
-class MCPStopTurnTool(MCPTool):
+class StopTurnTool(MCPTool):
     def __init__(self):
         super().__init__(
             # XXX: this does not actually get used, the two __call__ methods short circuit the whole thing.
