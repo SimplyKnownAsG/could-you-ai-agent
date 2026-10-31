@@ -3,6 +3,7 @@
 import asyncio
 import uuid
 from collections.abc import Awaitable
+from typing import Literal
 
 from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
@@ -27,15 +28,15 @@ class SubagentJobs:
             raise CYError(message="Expected nonempty string 'job_id'", retriable=False, fault_owner=FaultOwner.LLM)
         task = self.tasks.get(job_id)
         if task is None:
-            return {"status": "failed", "text": f"Unknown sub-agent job id: {job_id}"}
+            return _format_response(status="failed", text=f"Unknown sub-agent job id: {job_id}")
         if not task.done():
-            return {"status": "pending"}
+            return _format_response(status="pending")
         try:
-            return {"status": "succeeded", "text": task.result()}
+            return _format_response(status="success", text=task.result())
         except asyncio.CancelledError:
-            return {"status": "failed", "error": "Sub-agent job was cancelled"}
+            return _format_response(status="failed", text="Sub-agent job was cancelled")
         except Exception as err:
-            return {"status": "failed", "error": str(err)}
+            return _format_response(status="failed", text=str(err))
 
     async def close(self):
         self.closed = True
@@ -52,3 +53,15 @@ class SubagentJobs:
             error = task.exception()
             if error is not None:
                 LOGGER.warning("Sub-agent job %s failed: %s", job_id, error)
+
+
+def _format_response(*, status: Literal["failed", "pending", "success"], text: str = ""):
+    response = f"status: {status}"
+
+    if text:
+        if status == "failed":
+            response += f"\nerror: {text}"
+        else:
+            response += f"\n\n{text}"
+
+    return response

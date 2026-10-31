@@ -6,7 +6,7 @@ import pytest
 
 from could_you.agent import Agent
 from could_you.config import Config, DialogueProps, LLMProps
-from could_you.cy_error import CYError, FaultOwner
+from could_you.cy_error import CYError
 from could_you.dialogue import Dialogue
 from could_you.message import Message, TextContent, ToolUse
 from could_you.session import SessionManager
@@ -17,6 +17,10 @@ from could_you.tools.poll_could_you_tool import PollCouldYouTool
 
 def result_json(result):
     return json.loads(result.tool_result.content[0].text)
+
+
+def result_text(result):
+    return result.tool_result.content[0].text
 
 
 @pytest.mark.asyncio
@@ -57,21 +61,18 @@ async def test_async_call_poll_and_descendant_shares_registry(tmp_path):
             )
             job_id = result_json(response)["job_id"]
             poll_use = ToolUse(toolUseId="poll_1", name=poll_tool.name, input={})
-            assert result_json(await poll_tool(poll_use, {"job_id": job_id})) == {"status": "pending"}
+            assert result_text(await poll_tool(poll_use, {"job_id": job_id})) == "status: pending"
             await entered.wait()
             assert descendants[0].session_manager is root.session_manager
             assert not hasattr(descendants[0], "jobs")
             gate.set()
             assert await manager.jobs.tasks[job_id] == "ready"
-            assert result_json(await poll_tool(poll_use, {"job_id": job_id})) == {
-                "status": "succeeded",
-                "text": "ready",
-            }
+            assert result_text(await poll_tool(poll_use, {"job_id": job_id})) == "status: success\n\nready"
             await root.__aexit__(None, None, None)
 
 
 @pytest.mark.asyncio
-async def test_poll_tool_reports_failures_and_rejects_unknown_ids(tmp_path):
+async def test_poll_tool_reports_failures_and_unknown_ids(tmp_path):
     async with SessionManager(cache_path=tmp_path) as manager:
         poll_tool = PollCouldYouTool(manager)
         use = ToolUse(toolUseId="poll_1", name=poll_tool.name, input={})
@@ -81,10 +82,10 @@ async def test_poll_tool_reports_failures_and_rejects_unknown_ids(tmp_path):
 
         job_id = manager.jobs.start(fail())
         await asyncio.sleep(0)
-        assert result_json(await poll_tool(use, {"job_id": job_id})) == {"status": "failed", "error": "broken"}
-        with pytest.raises(CYError, match="Unknown sub-agent job id") as exc:
-            await poll_tool(use, {"job_id": "missing"})
-        assert exc.value.fault_owner is FaultOwner.LLM
+        assert result_text(await poll_tool(use, {"job_id": job_id})) == "status: failed\nerror: broken"
+        assert result_text(await poll_tool(use, {"job_id": "missing"})) == (
+            "status: failed\nerror: Unknown sub-agent job id: missing"
+        )
 
 
 @pytest.mark.asyncio
@@ -110,7 +111,7 @@ async def test_manager_exit_cancels_and_awaits_descendant_jobs(tmp_path):
             await root.__aexit__(None, None, None)
             assert not finished.is_set()
     assert finished.is_set()
-    assert manager.jobs.poll(job_id) == {"status": "failed", "error": "Sub-agent job was cancelled"}
+    assert manager.jobs.poll(job_id) == "status: failed\nerror: Sub-agent job was cancelled"
     assert manager.jobs.closed
 
 
