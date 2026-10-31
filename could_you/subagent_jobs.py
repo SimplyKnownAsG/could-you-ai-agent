@@ -27,7 +27,7 @@ class SubagentJobs:
             raise CYError(message="Expected nonempty string 'job_id'", retriable=False, fault_owner=FaultOwner.LLM)
         task = self.tasks.get(job_id)
         if task is None:
-            raise CYError(message=f"Unknown sub-agent job id: {job_id}", retriable=False, fault_owner=FaultOwner.LLM)
+            return {"status": "failed", "text": f"Unknown sub-agent job id: {job_id}"}
         if not task.done():
             return {"status": "pending"}
         try:
