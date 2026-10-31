@@ -1,4 +1,7 @@
+import asyncio
 from unittest.mock import mock_open, patch
+
+import pytest
 
 from could_you.session import SessionManager
 
@@ -9,7 +12,8 @@ class DummyConfig:
         self.root = root
 
 
-def test_enter_exit_loads_and_saves_sessions():
+@pytest.mark.asyncio
+async def test_enter_exit_loads_and_saves_sessions():
     sessions_dict = {"/project/root": {}}
     m = mock_open(read_data='{"/project/root": {}}')
     with (
@@ -18,9 +22,33 @@ def test_enter_exit_loads_and_saves_sessions():
         patch("json.load", return_value=sessions_dict),
         patch("json.dump") as mock_dump,
     ):
-        with SessionManager() as mgr:
+        async with SessionManager() as mgr:
             assert mgr.sessions == sessions_dict
         mock_dump.assert_called_once_with(sessions_dict, m(), indent=2)
+
+
+@pytest.mark.asyncio
+async def test_exit_cancels_jobs_even_if_saving_sessions_fails(tmp_path):
+    started = asyncio.Event()
+    finished = asyncio.Event()
+
+    async def work():
+        try:
+            started.set()
+            await asyncio.Event().wait()
+        finally:
+            finished.set()
+
+    manager = SessionManager(cache_path=tmp_path)
+    with patch("json.dump", side_effect=OSError("disk full")):
+        await manager.__aenter__()
+        manager.jobs.start(work())
+        await started.wait()
+        with pytest.raises(OSError, match="disk full"):
+            await manager.__aexit__(None, None, None)
+
+    assert finished.is_set()
+    assert manager.jobs.closed
 
 
 # def test_init_session_creates_new_session_and_calls_init():

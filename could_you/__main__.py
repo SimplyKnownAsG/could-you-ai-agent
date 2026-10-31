@@ -195,7 +195,7 @@ async def amain(parser, args):
 
         return
 
-    with SessionManager() as session_manager:
+    async with SessionManager() as session_manager:
         if args.command == "workspace" and args.workspace_command == "init":
             session_manager.init_session()
         elif args.command == "workspace" and args.workspace_command == "sync":

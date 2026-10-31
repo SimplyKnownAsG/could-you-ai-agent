@@ -5,6 +5,7 @@ from pathlib import Path
 from .config import Config, init, load, sync_workspace
 from .dialogue import Dialogue
 from .logging_config import LOGGER
+from .subagent_jobs import SubagentJobs
 
 # Constants for XDG paths
 XDG_CONFIG_HOME = os.getenv("XDG_CONFIG_HOME", Path.home() / ".config")
@@ -36,17 +37,20 @@ class SessionManager:
     def __init__(self, *, cache_path: Path = CACHE_PATH):
         self.sessions_file = cache_path / "sessions.json"
         self.sessions = {}
+        self.jobs = SubagentJobs()
 
-    def __enter__(self):
+    async def __aenter__(self):
         if os.path.exists(self.sessions_file):
-            with open(self.sessions_file) as f:
+            with open(self.sessions_file) as f:  # noqa: ASYNC230 - small local metadata file
                 self.sessions = json.load(f)
-
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        with open(self.sessions_file, "w") as f:
-            json.dump(self.sessions, f, indent=2)
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        try:
+            await self.jobs.close()
+        finally:
+            with open(self.sessions_file, "w") as f:  # noqa: ASYNC230 - small local metadata file
+                json.dump(self.sessions, f, indent=2)
 
     def init_session(self):
         w_config_dir = init()

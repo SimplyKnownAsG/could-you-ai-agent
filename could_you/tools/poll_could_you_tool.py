@@ -4,7 +4,7 @@ from typing import Any
 from mcp import Tool
 
 from could_you.message import ToolUse
-from could_you.subagent_jobs import SubagentJobs
+from could_you.session import SessionManager
 
 from ..config import MCPServerProps
 from ..cy_error import CYError, FaultOwner
@@ -13,7 +13,7 @@ from .call_could_you_tool import _text_result
 
 
 class PollCouldYouTool(MCPTool):
-    def __init__(self, jobs: SubagentJobs):
+    def __init__(self, session_manager: SessionManager):
         super().__init__(
             MCPServer(name="__self__", props=MCPServerProps(command="echo", args=["poll tool"])),
             Tool(
@@ -28,9 +28,9 @@ class PollCouldYouTool(MCPTool):
                 },
             ),
         )
-        self.jobs = jobs
+        self.session_manager = session_manager
 
     async def __call__(self, tool_use: ToolUse, tool_args: dict[str, Any]):
         if not isinstance(tool_args, dict):
             raise CYError(message="Expected polling arguments object", retriable=False, fault_owner=FaultOwner.LLM)
-        return _text_result(tool_use, json.dumps(self.jobs.poll(tool_args.get("job_id"))))
+        return _text_result(tool_use, json.dumps(self.session_manager.jobs.poll(tool_args.get("job_id"))))

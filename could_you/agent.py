@@ -21,19 +21,13 @@ from .message import (
     ToolResultInnerTextContent,
     ToolUseContent,
 )
-from .subagent_jobs import SubagentJobs
 from .tools import CallCouldYouTool, PollCouldYouTool, StopTurnTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class Agent:
-    def __init__(
-        self, *, session_manager: SessionManager, config: Config, dialogue: Dialogue, jobs: SubagentJobs | None = None
-    ):
-        # The root owns the registry; descendants inherit it and must not close it.
-        self.owns_jobs = jobs is None
-        self.jobs = jobs if jobs is not None else SubagentJobs()
+    def __init__(self, *, session_manager: SessionManager, config: Config, dialogue: Dialogue):
         self.session_manager = session_manager
         self.servers: list[MCPServer] = [
             MCPServer(name=name, props=props) for name, props in config.mcp_servers.items()
@@ -47,8 +41,8 @@ class Agent:
     async def __aenter__(self):
         for local_tool in [
             StopTurnTool(),
-            CallCouldYouTool(self.session_manager, self.jobs),
-            PollCouldYouTool(self.jobs),
+            CallCouldYouTool(self.session_manager),
+            PollCouldYouTool(self.session_manager),
         ]:
             self.tools[local_tool.name] = local_tool
 
@@ -73,12 +67,7 @@ class Agent:
         return self
 
     async def __aexit__(self, *args):
-        """Cancel outstanding jobs before closing root resources."""
-        try:
-            if self.owns_jobs:
-                await self.jobs.close()
-        finally:
-            await self.exit_stack.aclose()
+        await self.exit_stack.aclose()
 
     async def orchestrate(self, query: str) -> None:
         """
