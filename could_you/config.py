@@ -1,6 +1,7 @@
 import importlib.resources
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -8,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from attrs import define, field
+from attrs import define, field, validators
 from cattrs import ClassValidationError, Converter
 
 import could_you.resources
@@ -17,6 +18,11 @@ from .cy_error import CYError, FaultOwner
 from .logging_config import LOGGER
 from .model_limits import infer_token_limit
 from .prompt import enrich_raw_prompt
+
+
+def _nonempty_string_list(instance, attribute, value):  # noqa: ARG001
+    if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
+        raise ValueError(f"{attribute.name} must be a list of nonempty strings")
 
 
 @define
@@ -43,6 +49,18 @@ class MCPServerProps:
 
 
 @define
+class SkillSourceProps:
+    directory: str = field(validator=validators.and_(validators.instance_of(str), validators.min_len(1)))
+    include: list[str] = field(factory=lambda: ["*"], validator=_nonempty_string_list)
+    exclude: list[str] = field(factory=list, validator=_nonempty_string_list)
+
+
+@define
+class SkillsProps:
+    sources: list[SkillSourceProps] = field(factory=list, validator=validators.instance_of(list))
+
+
+@define
 class DialogueProps:
     load: bool = True
     store: bool = True
@@ -54,6 +72,7 @@ class Config:
     llm: LLMProps
     system_prompt: str = field(factory=lambda: "COULD_YOU_DEFAULT_PROMPT", alias="systemPrompt")
     mcp_servers: dict[str, MCPServerProps] = field(factory=dict, alias="mcpServers")
+    skills: SkillsProps = field(factory=SkillsProps, validator=validators.instance_of(SkillsProps))
     memory: MemoryProps = field(factory=MemoryProps)
     dialogue: DialogueProps = field(factory=DialogueProps)
     env: dict[str, str] = field(factory=dict)
@@ -181,6 +200,16 @@ def _validate_config(config: Config, w_config_dir: Path):
     for key, value in (config.env or {}).items():
         if value is not None:
             os.environ[key] = value
+
+    for index, source in enumerate(config.skills.sources):
+        unresolved = re.findall(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))", source.directory)
+        for braced, simple in unresolved:
+            name = braced or simple
+            if name not in os.environ:
+                raise InvalidConfigError(f"skills.sources[{index}].directory has unset environment variable: {name}")
+        expanded = os.path.expanduser(os.path.expandvars(source.directory))
+        path = Path(expanded)
+        source.directory = str((path if path.is_absolute() else w_config_dir.parent / path).resolve())
 
     # Query may contain COULD_YOU_EXPAND_ENV(NAME) directives. Expand them
     # after COULD_YOU_WORKSPACE and config.env have been applied to the
@@ -321,7 +350,7 @@ def _copy_global_config(w_config_dir: Path, *, overwrite: bool = False):
         dest = w_config_dir / resource.name
 
         if _should_skip_workspace_template(Path(dest.name)):
-            LOGGER.info(f"Skipping protected packaged workspace template {resource}")
+            LOGGER.info(f"Skipping protected workspace template {dest}")
             continue
 
         if dest.exists() and not overwrite:

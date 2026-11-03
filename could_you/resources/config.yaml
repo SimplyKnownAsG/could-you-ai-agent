@@ -41,6 +41,15 @@ memory:
   # Reject the next query when prior assistant token usage is at or above this percentage.
   rejectionThresholdPercent: 90
 
+# Agent Skills: scan configured directories for SKILL.md. These files can contain
+# instructions and executable scripts; scripts run with could-you's OS permissions.
+# Uncomment to enable a workspace-local skills directory.
+# skills:
+#   sources:
+#     - directory: "$COULD_YOU_WORKSPACE/.agents/skills"
+#       include: ["*"]
+#       exclude: ["experimental-*"]
+
 # MCP Servers
 mcpServers:
   git-mcp:

@@ -21,7 +21,9 @@ from .message import (
     ToolResultInnerTextContent,
     ToolUseContent,
 )
+from .skills import SkillRegistry
 from .tools import CallCouldYouTool, PollCouldYouTool, StopTurnTool
+from .tools.skill_tools import LoadSkillResourceTool, LoadSkillTool, RunSkillScriptTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
@@ -45,6 +47,15 @@ class Agent:
             PollCouldYouTool(self.session_manager),
         ]:
             self.tools[local_tool.name] = local_tool
+
+        registry = SkillRegistry.discover(self.config.skills.sources)
+        if registry.skills:
+            for local_tool in [
+                LoadSkillTool(registry),
+                LoadSkillResourceTool(registry),
+                RunSkillScriptTool(registry),
+            ]:
+                self.tools[local_tool.name] = local_tool
 
         for s in self.servers:
             await s.connect(exit_stack=self.exit_stack)
