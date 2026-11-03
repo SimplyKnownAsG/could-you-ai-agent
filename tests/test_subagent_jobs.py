@@ -11,8 +11,8 @@ from could_you.dialogue import Dialogue
 from could_you.message import Message, TextContent, ToolUse
 from could_you.session import SessionManager
 from could_you.subagent_jobs import SubagentJobs
-from could_you.tools.call_could_you_tool import CallCouldYouTool
-from could_you.tools.poll_could_you_tool import PollCouldYouTool
+from could_you.tools.call_subagent_tool import CallSubagentTool
+from could_you.tools.poll_subagent_tool import PollSubagentTool
 
 
 def result_json(result):
@@ -53,8 +53,8 @@ async def test_async_call_poll_and_descendant_shares_registry(tmp_path):
             Dialogue(tmp_path, props=DialogueProps(load=False, store=False)) as dialogue,
         ):
             root = Agent(session_manager=manager, config=Session().config, dialogue=dialogue)
-            call = CallCouldYouTool(manager)
-            poll_tool = PollCouldYouTool(manager)
+            call = CallSubagentTool(manager)
+            poll_tool = PollSubagentTool(manager)
             response = await call(
                 ToolUse(toolUseId="call_1", name=call.name, input={}),
                 {"dialogue_name": "test", "message": "go", "async": True},
@@ -74,7 +74,7 @@ async def test_async_call_poll_and_descendant_shares_registry(tmp_path):
 @pytest.mark.asyncio
 async def test_poll_tool_reports_failures_and_unknown_ids(tmp_path):
     async with SessionManager(cache_path=tmp_path) as manager:
-        poll_tool = PollCouldYouTool(manager)
+        poll_tool = PollSubagentTool(manager)
         use = ToolUse(toolUseId="poll_1", name=poll_tool.name, input={})
 
         async def fail():

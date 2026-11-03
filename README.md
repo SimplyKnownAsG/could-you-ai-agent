@@ -292,7 +292,7 @@ Enabled tools are registered in a global `tools` map on the agent and advertised
 
 ### In-process async sub-agent jobs
 
-Call `__call_could_you__` with `message`, `dialogue_name`, and `async=true` to start a sub-agent and receive `{"job_id": "..."}` immediately. Poll with `__poll_could_you__` using that `job_id`: it returns `{"status": "pending"}`, `{"status": "succeeded", "text": "..."}`, or `{"status": "failed", "error": "..."}`.
+Call `__call_subagent__` with `message`, `dialogue_name`, and `async=true` to start a sub-agent and receive `{"job_id": "..."}` immediately. Poll with `__poll_subagent__` using that `job_id`: it returns `{"status": "pending"}`, `{"status": "succeeded", "text": "..."}`, or `{"status": "failed", "error": "..."}`.
 
 Jobs are in-process and scoped to the same root invocation (including its sub-agents); IDs cannot be polled from a later invocation. Exiting the root invocation cancels outstanding jobs. Synchronous provider I/O may delay job progress and cancellation.
 

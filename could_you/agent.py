@@ -22,7 +22,7 @@ from .message import (
     ToolUseContent,
 )
 from .skills import SkillRegistry
-from .tools import CallCouldYouTool, PollCouldYouTool, StopTurnTool
+from .tools import CallSubagentTool, PollSubagentTool, StopTurnTool
 from .tools.skill_tools import LoadSkillResourceTool, LoadSkillTool, RunSkillScriptTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
@@ -45,8 +45,8 @@ class Agent:
         local_tools = [StopTurnTool()]
 
         if self.config.subagent.enable and self.depth < self.config.subagent.max_depth:
-            local_tools.append(CallCouldYouTool(self.session_manager, depth=self.depth))
-            local_tools.append(PollCouldYouTool(self.session_manager))
+            local_tools.append(CallSubagentTool(self.session_manager, depth=self.depth))
+            local_tools.append(PollSubagentTool(self.session_manager))
 
         for local_tool in local_tools:
             self.tools[local_tool.name] = local_tool

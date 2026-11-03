@@ -130,7 +130,7 @@ async def test_subagent_tools_respect_depth(tmp_path, enable, max_depth, depth, 
         patch("could_you.agent.create_llm", return_value=AsyncMock()),
     ):
         async with Agent(session_manager=AsyncMock(), config=config, dialogue=dialogue, depth=depth) as agent:
-            assert ("__call_could_you__" in agent.tools) is can_delegate
-            assert ("__poll_could_you__" in agent.tools) is can_delegate
+            assert ("__call_subagent__" in agent.tools) is can_delegate
+            assert ("__poll_subagent__" in agent.tools) is can_delegate
             if can_delegate:
-                assert agent.tools["__call_could_you__"].depth == depth
+                assert agent.tools["__call_subagent__"].depth == depth

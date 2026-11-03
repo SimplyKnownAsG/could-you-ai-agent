@@ -7,7 +7,7 @@ from could_you.cy_error import CYError
 from could_you.dialogue import Dialogue
 from could_you.llm.openai import OpenAILLM
 from could_you.message import Message, TextContent, ToolResultInnerTextContent, ToolUse
-from could_you.tools.call_could_you_tool import CallCouldYouTool
+from could_you.tools.call_subagent_tool import CallSubagentTool
 
 
 class DummyOpenAILLM(OpenAILLM):
@@ -27,7 +27,7 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
     session = Session()
     manager = AsyncMock()
     manager.load_session = lambda _name: session
-    tool = CallCouldYouTool(manager, depth=1)
+    tool = CallSubagentTool(manager, depth=1)
 
     async def orchestrate(agent, _query):
         agent.dialogue.add(Message(role="assistant", content=[TextContent(text="Hello"), TextContent(text="there")]))
@@ -69,7 +69,7 @@ async def test_call_could_you_without_final_answer_reports_error(tmp_path):
 
     manager = AsyncMock()
     manager.load_session = lambda _name: Session()
-    tool = CallCouldYouTool(manager)
+    tool = CallSubagentTool(manager)
 
     async def enter(agent):
         return agent

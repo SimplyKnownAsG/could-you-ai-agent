@@ -21,12 +21,12 @@ def _text_result(tool_use: ToolUse, text: str) -> ToolResultContent:
     )
 
 
-class CallCouldYouTool(MCPTool):
+class CallSubagentTool(MCPTool):
     def __init__(self, session_manager: SessionManager, *, depth: int = 0):
         super().__init__(
             MCPServer(name="__self__", props=MCPServerProps(command="echo", args=["call tool"])),
             Tool(
-                name="__call_could_you__",
+                name="__call_subagent__",
                 description="Call a sub-agent. Separate memory, same directory and Config. With async=true returns a job id to poll; otherwise returns only the final message.",
                 input_schema={
                     "type": "object",
@@ -60,7 +60,7 @@ class CallCouldYouTool(MCPTool):
 
         if not isinstance(dialogue_name, str) or not dialogue_name or not isinstance(message, str) or not message:
             raise CYError(
-                message="__call_could_you__ expects nonempty string 'dialogue_name' and 'message'",
+                message="__call_subagent__ expects nonempty string 'dialogue_name' and 'message'",
                 retriable=False,
                 fault_owner=FaultOwner.LLM,
             )
