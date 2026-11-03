@@ -22,7 +22,7 @@ def _text_result(tool_use: ToolUse, text: str) -> ToolResultContent:
 
 
 class CallCouldYouTool(MCPTool):
-    def __init__(self, session_manager: SessionManager):
+    def __init__(self, session_manager: SessionManager, *, depth: int = 0):
         super().__init__(
             MCPServer(name="__self__", props=MCPServerProps(command="echo", args=["call tool"])),
             Tool(
@@ -47,6 +47,7 @@ class CallCouldYouTool(MCPTool):
             ),
         )
         self.session_manager = session_manager
+        self.depth = depth
 
     async def __call__(self, tool_use: ToolUse, tool_args: dict[str, Any]):
         if not isinstance(tool_args, dict):
@@ -90,7 +91,9 @@ class CallCouldYouTool(MCPTool):
 
         with session.dialogue() as dialogue:
             prior_count = len(dialogue.messages)
-            async with Agent(session_manager=self.session_manager, config=session.config, dialogue=dialogue) as agent:
+            async with Agent(
+                session_manager=self.session_manager, config=session.config, dialogue=dialogue, depth=self.depth + 1
+            ) as agent:
                 await agent.orchestrate(message)
 
             final_message = dialogue.messages[-1] if len(dialogue.messages) > prior_count else None

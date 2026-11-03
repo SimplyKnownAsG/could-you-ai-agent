@@ -68,6 +68,12 @@ class DialogueProps:
 
 
 @define
+class SubagentProps:
+    enable: bool = True
+    max_depth: int = 1
+
+
+@define
 class Config:
     llm: LLMProps
     system_prompt: str = field(factory=lambda: "COULD_YOU_DEFAULT_PROMPT", alias="systemPrompt")
@@ -75,6 +81,7 @@ class Config:
     skills: SkillsProps = field(factory=SkillsProps, validator=validators.instance_of(SkillsProps))
     memory: MemoryProps = field(factory=MemoryProps)
     dialogue: DialogueProps = field(factory=DialogueProps)
+    subagent: SubagentProps = field(factory=SubagentProps)
     env: dict[str, str] = field(factory=dict)
     # default query for a script.
     query: str | None = field(factory=lambda: None)

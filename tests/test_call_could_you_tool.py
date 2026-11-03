@@ -27,7 +27,7 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
     session = Session()
     manager = AsyncMock()
     manager.load_session = lambda _name: session
-    tool = CallCouldYouTool(manager)
+    tool = CallCouldYouTool(manager, depth=1)
 
     async def orchestrate(agent, _query):
         agent.dialogue.add(Message(role="assistant", content=[TextContent(text="Hello"), TextContent(text="there")]))
@@ -46,6 +46,7 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
         )
 
     assert session.config.dialogue.name == "temp"
+    assert session.config.subagent.enable is True
     assert result.tool_result.content == [ToolResultInnerTextContent(text="Hello\n\nthere")]
     assert result.tool_result.tool_use_id == "call_1"
     llm = DummyOpenAILLM(

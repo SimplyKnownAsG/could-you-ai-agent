@@ -1,10 +1,10 @@
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from could_you.agent import Agent
-from could_you.config import Config, DialogueProps, LLMProps
+from could_you.config import Config, DialogueProps, LLMProps, SubagentProps
 from could_you.cy_error import CYError, FaultOwner
 from could_you.dialogue import Dialogue
 from could_you.message import Message, MessageMetadata, MessageType, TextContent, ToolUse, ToolUseContent
@@ -109,3 +109,28 @@ async def test_normal_tool_calls_still_receive_results(tmp_path):
 
         assert [entry.role for entry in dialogue.messages] == ["system", "user", "assistant", "tool", "assistant"]
         assert agent.llm.converse.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("enable", "max_depth", "depth", "can_delegate"),
+    [
+        (True, 0, 0, False),
+        (True, 1, 0, True),
+        (True, 1, 1, False),
+        (True, 2, 1, True),
+        (True, 2, 2, False),
+        (False, 2, 0, False),
+    ],
+)
+async def test_subagent_tools_respect_depth(tmp_path, enable, max_depth, depth, can_delegate):
+    config = Config(llm=LLMProps(provider="openai"), subagent=SubagentProps(enable=enable, max_depth=max_depth))
+    with (
+        Dialogue(tmp_path, props=DialogueProps(load=False, store=False)) as dialogue,
+        patch("could_you.agent.create_llm", return_value=AsyncMock()),
+    ):
+        async with Agent(session_manager=AsyncMock(), config=config, dialogue=dialogue, depth=depth) as agent:
+            assert ("__call_could_you__" in agent.tools) is can_delegate
+            assert ("__poll_could_you__" in agent.tools) is can_delegate
+            if can_delegate:
+                assert agent.tools["__call_could_you__"].depth == depth

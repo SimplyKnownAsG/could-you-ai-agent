@@ -29,7 +29,7 @@ converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class Agent:
-    def __init__(self, *, session_manager: SessionManager, config: Config, dialogue: Dialogue):
+    def __init__(self, *, session_manager: SessionManager, config: Config, dialogue: Dialogue, depth: int = 0):
         self.session_manager = session_manager
         self.servers: list[MCPServer] = [
             MCPServer(name=name, props=props) for name, props in config.mcp_servers.items()
@@ -37,18 +37,22 @@ class Agent:
         self.exit_stack = AsyncExitStack()
         self.config = config
         self.dialogue = dialogue
+        self.depth = depth
         self.llm: BaseLLM | None = None
         self.tools: dict[str, MCPTool] = {}
 
     async def __aenter__(self):
-        for local_tool in [
-            StopTurnTool(),
-            CallCouldYouTool(self.session_manager),
-            PollCouldYouTool(self.session_manager),
-        ]:
+        local_tools = [StopTurnTool()]
+
+        if self.config.subagent.enable and self.depth < self.config.subagent.max_depth:
+            local_tools.append(CallCouldYouTool(self.session_manager, depth=self.depth))
+            local_tools.append(PollCouldYouTool(self.session_manager))
+
+        for local_tool in local_tools:
             self.tools[local_tool.name] = local_tool
 
         registry = SkillRegistry.discover(self.config.skills.sources)
+
         if registry.skills:
             for local_tool in [
                 LoadSkillTool(registry),
