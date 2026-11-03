@@ -36,6 +36,10 @@ class CallCouldYouTool(MCPTool):
                             "type": "string",
                             "description": "dialogue-name-used-as-suffix-short-snake-case",
                         },
+                        "dialogue_load": {
+                            "type": "boolean",
+                            "description": "Load previous conversation that used this same dialogue_name, if it exists. Default is True",
+                        },
                         "async": {"type": "boolean", "description": "Return a job id immediately instead of waiting"},
                     },
                     "required": ["message", "dialogue_name"],
@@ -49,28 +53,40 @@ class CallCouldYouTool(MCPTool):
             raise CYError(message="Expected sub-agent arguments object", retriable=False, fault_owner=FaultOwner.LLM)
 
         dialogue_name = tool_args.get("dialogue_name")
+        dialogue_load = tool_args.get("dialogue_load", True)
         message = tool_args.get("message")
         async_mode = tool_args.get("async", False)
+
         if not isinstance(dialogue_name, str) or not dialogue_name or not isinstance(message, str) or not message:
             raise CYError(
                 message="__call_could_you__ expects nonempty string 'dialogue_name' and 'message'",
                 retriable=False,
                 fault_owner=FaultOwner.LLM,
             )
+
         if not isinstance(async_mode, bool):
             raise CYError(message="'async' must be a boolean", retriable=False, fault_owner=FaultOwner.LLM)
 
-        if async_mode:
-            job_id = self.session_manager.jobs.start(self._run(dialogue_name, message))
-            return _text_result(tool_use, json.dumps({"job_id": job_id}))
-        return _text_result(tool_use, await self._run(dialogue_name, message))
+        if not isinstance(dialogue_load, bool):
+            raise CYError(message="'dialogue_load' must be a boolean", retriable=False, fault_owner=FaultOwner.LLM)
 
-    async def _run(self, dialogue_name: str, message: str) -> str:
+        if async_mode:
+            job_id = self.session_manager.jobs.start(
+                self._run(dialogue_name=dialogue_name, dialogue_load=dialogue_load, message=message)
+            )
+            return _text_result(tool_use, json.dumps({"job_id": job_id}))
+
+        return _text_result(
+            tool_use, await self._run(dialogue_name=dialogue_name, dialogue_load=dialogue_load, message=message)
+        )
+
+    async def _run(self, *, dialogue_name: str, dialogue_load: bool, message: str) -> str:
         # Deferred import avoids circular dependency with Agent registering this tool.
         from could_you.agent import Agent  # noqa: PLC0415
 
         session = self.session_manager.load_session(None)
         session.config.dialogue.name = dialogue_name
+        session.config.dialogue.load = dialogue_load
 
         with session.dialogue() as dialogue:
             prior_count = len(dialogue.messages)
