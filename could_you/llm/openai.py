@@ -25,13 +25,14 @@ class OpenAILLM(BaseLLM):
 
     async def _call_client(self) -> Message:
         try:
+            args = self.config.llm.args or {}
+            # use tool_choice required to force LLM to provide a tool response and the LLM runner (ollama/flm)
+            # capture tool calls.
+            args["tool_choice"] = args.get("tool_choice", "required")
             return self.client.chat.completions.create(
                 tools=self._converted_tools,
                 messages=self._convert_messages(),  # type: ignore
-                # use tool_choice required to force LLM to provide a tool response and the LLM runner (ollama/flm)
-                # capture tool calls.
-                # tool_choice="required",
-                **(self.config.llm.args or {}),
+                **args,
             )
         except Exception as err:
             msg = f"Error while calling LLM: {err}"

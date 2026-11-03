@@ -20,10 +20,18 @@ class StopTurnTool(MCPTool):
             MCPServer(name="__self__", props=MCPServerProps(command="echo", args=[RESPONSE])),
             Tool(
                 name="__stop_turn__",
-                description="Stop own turn. If you must call a tool, call this, and only this, to stop your turn",
+                description=(
+                    "Finish your turn when no more tools are needed. Call this tool alone, not alongside other tools. "
+                    "Put your final answer in 'message'; omit it if you already gave the answer in response text."
+                ),
                 input_schema={
                     "type": "object",
-                    "properties": {"message": {"type": "string", "description": "final turn message"}},
+                    "properties": {
+                        "message": {
+                            "type": "string",
+                            "description": "Your final answer to the user, if not already in response text.",
+                        }
+                    },
                 },
             ),
         )
