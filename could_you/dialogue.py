@@ -26,8 +26,9 @@ class Dialogue:
         *,
         props: DialogueProps | None = None,
     ):
+        LOGGER.debug(f"Dialogue initialized with: {props}")
         self.props = props or DialogueProps()
-        self.suffix = props.name
+        self.suffix = self.props.name or ""
         if self.suffix:
             self.suffix = "-" + self.suffix
         self.path = w_config_dir / f"dialogue{self.suffix}.jsonl"
@@ -38,11 +39,11 @@ class Dialogue:
             if self.path.exists():
                 with open(self.path) as f:
                     self.messages = [converter.structure(json.loads(line), Message) for line in f if line.strip()]
-                LOGGER.debug("Dialogue loaded from %s", self.path)
+                LOGGER.info("Dialogue loaded from %s", self.path)
             else:
-                LOGGER.debug("Dialogue file could not be found at %s", self.path)
+                LOGGER.info("Dialogue file could not be found at %s", self.path)
         else:
-            LOGGER.debug("Dialogue loading disabled, not attempting to load")
+            LOGGER.info("Dialogue loading disabled, not attempting to load")
 
         if self.props.store:
             # Open the file in append mode and keep it open for the life of the context
@@ -51,11 +52,11 @@ class Dialogue:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        LOGGER.debug(f"Closing dialogue; storage {'en' if self.props.store else 'dis'}abled")
+
         if self._file_handle:
             self._file_handle.close()
             self._file_handle = None
-        if not self.props.store:
-            LOGGER.debug("Dialogue storage disabled, not writing dialogue")
 
     def add(self, message: Message):
         if message.role == "user":

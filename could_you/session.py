@@ -1,5 +1,6 @@
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
 
 from .config import Config, init, load, sync_workspace
@@ -20,18 +21,24 @@ class Session:
     w_config_dir: Path
     config: Config
     script_name: str | None
+    dialogue: Dialogue
 
     def __init__(self, w_config_dir: Path, script_name: str | None, config: Config):
         self.w_config_dir = w_config_dir
         self.script_name = script_name
         self.config = config
+        self.dialogue = Dialogue(self.w_config_dir, props=self.config.dialogue)
 
     @property
     def workspace(self) -> Path:
         return self.w_config_dir.parent
 
-    def dialogue(self):
-        return Dialogue(self.w_config_dir, props=self.config.dialogue)
+    def __enter__(self):
+        self.dialogue.__enter__()
+        return self
+
+    def __exit__(self, ex_type, ex_val, ex_tb):
+        self.dialogue.__exit__(ex_type, ex_val, ex_tb)
 
 
 class SessionManager:
@@ -68,8 +75,9 @@ class SessionManager:
         LOGGER.info(f"synced config dir: {w_config_dir}")
         return w_config_dir
 
-    def load_session(self, script_name: str | None):
+    def load_session(self, script_name: str | None, override: Callable[[Config], None]):
         config, w_config_dir = load(script_name)
+        override(config)
         session = Session(w_config_dir, script_name, config)
         self.sessions[str(w_config_dir.parent)] = {}
         return session

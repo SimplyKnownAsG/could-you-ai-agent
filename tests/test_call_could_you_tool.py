@@ -4,9 +4,9 @@ import pytest
 
 from could_you.config import Config, DialogueProps, LLMProps
 from could_you.cy_error import CYError
-from could_you.dialogue import Dialogue
 from could_you.llm.openai import OpenAILLM
 from could_you.message import Message, TextContent, ToolResultInnerTextContent, ToolUse
+from could_you.session import Session
 from could_you.tools.call_subagent_tool import CallSubagentTool
 
 
@@ -17,17 +17,15 @@ class DummyOpenAILLM(OpenAILLM):
 
 @pytest.mark.asyncio
 async def test_call_could_you_returns_final_text_as_provider_compatible_tool_result(tmp_path):
-    class Session:
-        def __init__(self):
-            self.config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
-            self.workspace = tmp_path
-
-        def dialogue(self):
-            return Dialogue(tmp_path, props=self.config.dialogue)
-
-    session = Session()
+    config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
+    session = Session(tmp_path / ".could-you", None, config)
     manager = AsyncMock()
-    manager.load_session = lambda _name: session
+
+    def load_session(_name, override):
+        override(config)
+        return session
+
+    manager.load_session = load_session
     tool = CallSubagentTool(manager, depth=1)
 
     async def orchestrate(agent, _query):
@@ -63,15 +61,15 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
 
 @pytest.mark.asyncio
 async def test_call_could_you_without_final_answer_reports_error(tmp_path):
-    class Session:
-        config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
-        workspace = tmp_path
-
-        def dialogue(self):
-            return Dialogue(tmp_path, props=self.config.dialogue)
-
+    config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
+    session = Session(tmp_path / ".could-you", None, config)
     manager = AsyncMock()
-    manager.load_session = lambda _name: Session()
+
+    def load_session(_name, override):
+        override(config)
+        return session
+
+    manager.load_session = load_session
     tool = CallSubagentTool(manager)
 
     async def enter(agent):

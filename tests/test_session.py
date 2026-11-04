@@ -3,17 +3,12 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
+from could_you.config import Config
 from could_you.session import Session, SessionManager
 
 
-# Dummy config object
-class DummyConfig:
-    def __init__(self, root):
-        self.root = root
-
-
 def test_session_workspace_is_config_directory_parent(tmp_path):
-    session = Session(tmp_path / ".could-you", None, DummyConfig(tmp_path))
+    session = Session(tmp_path / ".could-you", None, Config(llm={}))
     assert session.workspace == tmp_path
 
 

@@ -6,7 +6,7 @@ from mcp import Tool
 from could_you.message import Message, TextContent, ToolResult, ToolResultContent, ToolResultInnerTextContent, ToolUse
 from could_you.session import SessionManager
 
-from ..config import MCPServerProps
+from ..config import Config, MCPServerProps
 from ..cy_error import CYError, FaultOwner
 from ..mcp_server import MCPServer, MCPTool
 
@@ -85,11 +85,12 @@ class CallSubagentTool(MCPTool):
         # Deferred import avoids circular dependency with Agent registering this tool.
         from could_you.agent import Agent  # noqa: PLC0415
 
-        session = self.session_manager.load_session(None)
-        session.config.dialogue.name = dialogue_name
-        session.config.dialogue.load = dialogue_load
+        def __override_config(config: Config):
+            config.dialogue.name = dialogue_name
+            config.dialogue.load = dialogue_load
 
-        with session.dialogue() as dialogue:
+        with self.session_manager.load_session(None, __override_config) as session:
+            dialogue = session.dialogue
             prior_count = len(dialogue.messages)
             async with Agent(session_manager=self.session_manager, session=session, depth=self.depth + 1) as agent:
                 agent.dialogue = dialogue

@@ -28,27 +28,29 @@ def tool_use():
         {"command": "pwd", "extra": 1},
     ],
 )
-async def test_invalid_arguments_do_not_execute(tmp_path, arguments):  # noqa: ARG001
+async def test_invalid_arguments_do_not_execute(tmp_path, arguments):
     if not shutil.which("srt"):
         pytest.skip("srt is not installed")
 
-    session = Session(Path.cwd(), None, Config(llm={}))
-    tool = RunBashTool(session)
-    with patch.object(tool, "_run", new_callable=AsyncMock) as run:
-        with pytest.raises(CYError):
-            await tool(tool_use(), arguments)
-        run.assert_not_awaited()
+    with Session(tmp_path, None, Config(llm={})) as session:
+        tool = RunBashTool(session)
+        with patch.object(tool, "_run", new_callable=AsyncMock) as run:
+            with pytest.raises(CYError):
+                await tool(tool_use(), arguments)
+            run.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_result_status_and_timeout_are_forwarded(tmp_path):  # noqa: ARG001
+async def test_result_status_and_timeout_are_forwarded(tmp_path):
     if not shutil.which("srt"):
         pytest.skip("srt is not installed")
 
-    session = Session(Path.cwd(), None, Config(llm={}))
-    tool = RunBashTool(session)
-    with patch.object(tool, "_run", new_callable=AsyncMock, return_value=("failed\n[exit code: 3]", "error")) as run:
-        result = await tool(tool_use(), {"command": "exit 3", "timeout": 4.5})
-    run.assert_awaited_once_with("exit 3", 4.5)
-    assert result.tool_result.status == "error"
-    assert result.tool_result.content[0].text == "failed\n[exit code: 3]"
+    with Session(tmp_path, None, Config(llm={})) as session:
+        tool = RunBashTool(session)
+        with patch.object(
+            tool, "_run", new_callable=AsyncMock, return_value=("failed\n[exit code: 3]", "error")
+        ) as run:
+            result = await tool(tool_use(), {"command": "exit 3", "timeout": 4.5})
+        run.assert_awaited_once_with("exit 3", 4.5)
+        assert result.tool_result.status == "error"
+        assert result.tool_result.content[0].text == "failed\n[exit code: 3]"

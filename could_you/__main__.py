@@ -202,13 +202,14 @@ async def amain(parser, args):
         elif args.command == "workspace" and args.workspace_command == "sync":
             session_manager.sync_workspace()
         elif args.command == "dialogue" and args.dialogue_command == "print":
-            session = session_manager.load_session(None)
-            _override_config(session.config, args)
-            session.config.dialogue.load = True
-            session.config.dialogue.name = False
 
-            with session.dialogue() as dialogue:
-                dialogue.print(info=LOGGER.info, debug=LOGGER.debug)
+            def __override_config(config: Config):
+                __apply_args_to_config(config, args)
+                config.dialogue.load = True
+                config.dialogue.store = False
+
+            with session_manager.load_session(None, __override_config) as session:
+                session.dialogue.print(info=LOGGER.info, debug=LOGGER.debug)
         elif args.command == "memory" and args.memory_command == "archive":
             w_config_dir = _find_workspace_config_dir(Path.cwd())
             result = archive_dialogue(w_config_dir, topic=args.topic)
@@ -231,25 +232,27 @@ async def amain(parser, args):
                 else:
                     print(json.dumps(results, indent=2))  # noqa: T201
         elif args.command == "test" and args.test_command == "connect":
-            session = session_manager.load_session(None)
-            _override_config(session.config, args)
-            session.config.dialogue.load = False
-            session.config.dialogue.store = False
 
-            with session.dialogue() as dialogue:
+            def __override_config(config: Config):
+                __apply_args_to_config(config, args)
+                config.dialogue.load = False
+                config.dialogue.store = False
+
+            with session_manager.load_session(None, __override_config) as session:
                 async with Agent(session_manager=session_manager, session=session) as agent:
                     await agent.orchestrate(args.message)
         else:
-            session = session_manager.load_session(_get_script_name(args))
-            _override_config(session.config, args)
 
-            with session.dialogue() as dialogue:
+            def __override_config(config: Config):
+                __apply_args_to_config(config, args)
+
+            with session_manager.load_session(_get_script_name(args), __override_config) as session:
                 query = (
                     query
                     if query
                     else session.config.query
                     if session.config.query
-                    else _get_editor_input(session.w_config_dir, dialogue=dialogue)
+                    else _get_editor_input(session.w_config_dir, dialogue=session.dialogue)
                 )
 
                 if not query:
@@ -259,7 +262,7 @@ async def amain(parser, args):
 
                 async with Agent(session_manager=session_manager, session=session) as agent:
                     await agent.orchestrate(query)
-                    _remove_query_md(session.w_config_dir, dialogue)
+                    _remove_query_md(session.w_config_dir, session.dialogue)
 
 
 MARKER = "# *** PROVIDE_INPUT_AFTER_THIS_LINE ***"
@@ -272,7 +275,7 @@ def _get_script_name(args):
     return None
 
 
-def _override_config(config: Config, args):
+def __apply_args_to_config(config: Config, args):
     dialogue_props = config.dialogue
     dialogue_props.load = dialogue_props.load if args.dialogue_load is None else args.dialogue_load
     dialogue_props.store = dialogue_props.store if args.dialogue_store is None else args.dialogue_store

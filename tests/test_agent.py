@@ -35,9 +35,9 @@ async def test_stop_turn_does_not_store_tool_calls_or_results(tmp_path, text, ar
     content = [*[TextContent(text=item) for item in text], tool_call("__stop_turn__", arguments)]
     metadata = MessageMetadata(inputTokens=12)
 
-    with session.dialogue() as dialogue:
+    with session:
         agent = Agent(session_manager=AsyncMock(), session=session)
-        agent.dialogue = dialogue
+        dialogue = agent.dialogue = session.dialogue
         agent.llm = AsyncMock()
         agent.llm.converse.return_value = Message(role="assistant", content=content, metadata=metadata)
 
@@ -60,10 +60,9 @@ async def test_stop_turn_does_not_store_tool_calls_or_results(tmp_path, text, ar
 @pytest.mark.asyncio
 async def test_stop_turn_rejects_mixed_tool_calls_before_persisting_or_executing(tmp_path):
     config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=True))
-    session = Session(tmp_path, None, config)
-    with session.dialogue() as dialogue:
+    with Session(tmp_path, None, config) as session:
         agent = Agent(session_manager=AsyncMock(), session=session)
-        agent.dialogue = dialogue
+        dialogue = agent.dialogue = session.dialogue
         agent.llm = AsyncMock()
         agent.llm.converse.return_value = Message(
             role="assistant",
@@ -86,10 +85,9 @@ async def test_stop_turn_rejects_mixed_tool_calls_before_persisting_or_executing
 @pytest.mark.parametrize("arguments", [{"message": 42}, {"message": "ok", "extra": 1}, []])
 async def test_stop_turn_rejects_invalid_arguments(tmp_path, arguments):
     config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=True))
-    session = Session(tmp_path, None, config)
-    with session.dialogue() as dialogue:
+    with Session(tmp_path, None, config) as session:
         agent = Agent(session_manager=AsyncMock(), session=session)
-        agent.dialogue = dialogue
+        dialogue = agent.dialogue = session.dialogue
         agent.llm = AsyncMock()
         agent.llm.converse.return_value = Message(role="assistant", content=[tool_call("__stop_turn__", arguments)])
 
@@ -102,10 +100,9 @@ async def test_stop_turn_rejects_invalid_arguments(tmp_path, arguments):
 @pytest.mark.asyncio
 async def test_normal_tool_calls_still_receive_results(tmp_path):
     config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=True))
-    session = Session(tmp_path, None, config)
-    with session.dialogue() as dialogue:
+    with Session(tmp_path, None, config) as session:
         agent = Agent(session_manager=AsyncMock(), session=session)
-        agent.dialogue = dialogue
+        dialogue = agent.dialogue = session.dialogue
         agent.llm = AsyncMock()
         agent.llm.converse.side_effect = [
             Message(role="assistant", content=[tool_call("missing_tool", {})]),
