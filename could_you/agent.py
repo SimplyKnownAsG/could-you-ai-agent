@@ -44,7 +44,7 @@ class Agent:
     async def __aenter__(self):
         local_tools = [StopTurnTool()]
 
-        if self.config.subagent.enable and self.depth < self.config.subagent.max_depth:
+        if self.config.tools.subagent.enable and self.depth < self.config.tools.subagent.max_depth:
             local_tools.append(CallSubagentTool(self.session_manager, depth=self.depth))
             local_tools.append(PollSubagentTool(self.session_manager))
 
