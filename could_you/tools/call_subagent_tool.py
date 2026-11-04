@@ -91,9 +91,8 @@ class CallSubagentTool(MCPTool):
 
         with session.dialogue() as dialogue:
             prior_count = len(dialogue.messages)
-            async with Agent(
-                session_manager=self.session_manager, config=session.config, dialogue=dialogue, depth=self.depth + 1
-            ) as agent:
+            async with Agent(session_manager=self.session_manager, session=session, depth=self.depth + 1) as agent:
+                agent.dialogue = dialogue
                 await agent.orchestrate(message)
 
             final_message = dialogue.messages[-1] if len(dialogue.messages) > prior_count else None

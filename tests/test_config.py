@@ -61,6 +61,17 @@ memory:
     assert config.memory.rejection_threshold_percent == 85
 
 
+def test_load_workspace_run_bash_opt_in(tmp_workspace: Path):
+    w_config_path = tmp_workspace / "config.yaml"
+    w_config_path.write_text("llm:\n  provider: openai\n")
+    config, _ = load()
+    assert config.tools.bash.enable is False
+
+    w_config_path.write_text("llm:\n  provider: openai\ntools:\n  bash:\n    enable: true\n")
+    config, _ = load()
+    assert config.tools.bash.enable is True
+
+
 def test_load_workspace_dialogue_defaults(tmp_workspace: Path):
     w_config_path = tmp_workspace / "config.yaml"
     w_config_path.write_text("""

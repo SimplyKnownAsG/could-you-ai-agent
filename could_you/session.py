@@ -26,6 +26,10 @@ class Session:
         self.script_name = script_name
         self.config = config
 
+    @property
+    def workspace(self) -> Path:
+        return self.w_config_dir.parent
+
     def dialogue(self):
         return Dialogue(self.w_config_dir, props=self.config.dialogue)
 

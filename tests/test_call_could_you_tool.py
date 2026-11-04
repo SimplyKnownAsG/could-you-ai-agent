@@ -20,6 +20,7 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
     class Session:
         def __init__(self):
             self.config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
+            self.workspace = tmp_path
 
         def dialogue(self):
             return Dialogue(tmp_path, props=self.config.dialogue)
@@ -30,6 +31,7 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
     tool = CallSubagentTool(manager, depth=1)
 
     async def orchestrate(agent, _query):
+        assert agent.workspace == tmp_path
         agent.dialogue.add(Message(role="assistant", content=[TextContent(text="Hello"), TextContent(text="there")]))
 
     async def enter(agent):
@@ -63,6 +65,7 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
 async def test_call_could_you_without_final_answer_reports_error(tmp_path):
     class Session:
         config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
+        workspace = tmp_path
 
         def dialogue(self):
             return Dialogue(tmp_path, props=self.config.dialogue)

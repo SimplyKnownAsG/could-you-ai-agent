@@ -2,11 +2,9 @@ from contextlib import AsyncExitStack
 
 from cattrs import Converter
 
-from could_you.session import SessionManager
+from could_you.session import Session, SessionManager
 
-from .config import Config
 from .cy_error import CYError, FaultOwner
-from .dialogue import Dialogue
 from .llm import BaseLLM, create_llm
 from .logging_config import LOGGER
 from .mcp_server import MCPServer, MCPTool
@@ -22,27 +20,29 @@ from .message import (
     ToolUseContent,
 )
 from .skills import SkillRegistry
-from .tools import CallSubagentTool, PollSubagentTool, StopTurnTool
+from .tools import CallSubagentTool, PollSubagentTool, RunBashTool, StopTurnTool
 from .tools.skill_tools import LoadSkillResourceTool, LoadSkillTool, RunSkillScriptTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class Agent:
-    def __init__(self, *, session_manager: SessionManager, config: Config, dialogue: Dialogue, depth: int = 0):
+    def __init__(self, *, session_manager: SessionManager, session: Session, depth: int = 0):
         self.session_manager = session_manager
+        self.session = session
+        self.config = session.config
+        self.dialogue = session.dialogue()
+        self.workspace = session.workspace
         self.servers: list[MCPServer] = [
-            MCPServer(name=name, props=props) for name, props in config.mcp_servers.items()
+            MCPServer(name=name, props=props) for name, props in self.config.mcp_servers.items()
         ]
         self.exit_stack = AsyncExitStack()
-        self.config = config
-        self.dialogue = dialogue
         self.depth = depth
         self.llm: BaseLLM | None = None
         self.tools: dict[str, MCPTool] = {}
 
     async def __aenter__(self):
-        local_tools = [StopTurnTool()]
+        local_tools = [StopTurnTool(), RunBashTool(self.session)]
 
         if self.config.tools.subagent.enable and self.depth < self.config.tools.subagent.max_depth:
             local_tools.append(CallSubagentTool(self.session_manager, depth=self.depth))

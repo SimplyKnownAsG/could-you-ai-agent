@@ -7,9 +7,8 @@ import pytest
 from could_you.agent import Agent
 from could_you.config import Config, DialogueProps, LLMProps
 from could_you.cy_error import CYError
-from could_you.dialogue import Dialogue
 from could_you.message import Message, TextContent, ToolUse
-from could_you.session import SessionManager
+from could_you.session import Session, SessionManager
 from could_you.subagent_jobs import SubagentJobs
 from could_you.tools.call_subagent_tool import CallSubagentTool
 from could_you.tools.poll_subagent_tool import PollSubagentTool
@@ -25,12 +24,11 @@ def result_text(result):
 
 @pytest.mark.asyncio
 async def test_async_call_poll_and_descendant_shares_registry(tmp_path):
-    class Session:
-        def __init__(self):
-            self.config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
-
-        def dialogue(self):
-            return Dialogue(tmp_path, props=self.config.dialogue)
+    config_dir = tmp_path / ".could-you"
+    config_dir.mkdir()
+    session = Session(
+        config_dir, None, Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
+    )
 
     gate = asyncio.Event()
     entered = asyncio.Event()
@@ -47,12 +45,11 @@ async def test_async_call_poll_and_descendant_shares_registry(tmp_path):
 
     async with SessionManager(cache_path=tmp_path) as manager:
         with (
-            patch.object(manager, "load_session", side_effect=lambda _name: Session()),
+            patch.object(manager, "load_session", return_value=session),
             patch("could_you.agent.Agent.__aenter__", new=enter),
             patch("could_you.agent.Agent.orchestrate", new=orchestrate),
-            Dialogue(tmp_path, props=DialogueProps(load=False, store=False)) as dialogue,
         ):
-            root = Agent(session_manager=manager, config=Session().config, dialogue=dialogue)
+            root = Agent(session_manager=manager, session=session)
             call = CallSubagentTool(manager)
             poll_tool = PollSubagentTool(manager)
             response = await call(
@@ -101,15 +98,15 @@ async def test_manager_exit_cancels_and_awaits_descendant_jobs(tmp_path):
             finished.set()
 
     async with SessionManager(cache_path=tmp_path) as manager:
-        with Dialogue(tmp_path, props=DialogueProps(load=False, store=False)) as dialogue:
-            root = Agent(session_manager=manager, config=Config(llm=LLMProps(provider="openai")), dialogue=dialogue)
-            child = Agent(session_manager=manager, config=root.config, dialogue=dialogue)
-            job_id = child.session_manager.jobs.start(work())
-            await started.wait()
-            await child.__aexit__(None, None, None)
-            assert not finished.is_set()
-            await root.__aexit__(None, None, None)
-            assert not finished.is_set()
+        session = Session(tmp_path, None, Config(llm=LLMProps(provider="openai")))
+        root = Agent(session_manager=manager, session=session)
+        child = Agent(session_manager=manager, session=session)
+        job_id = child.session_manager.jobs.start(work())
+        await started.wait()
+        await child.__aexit__(None, None, None)
+        assert not finished.is_set()
+        await root.__aexit__(None, None, None)
+        assert not finished.is_set()
     assert finished.is_set()
     assert manager.jobs.poll(job_id) == "status: failed\nerror: Sub-agent job was cancelled"
     assert manager.jobs.closed

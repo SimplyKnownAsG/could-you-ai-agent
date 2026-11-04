@@ -41,6 +41,13 @@ memory:
   # Reject the next query when prior assistant token usage is at or above this percentage.
   rejectionThresholdPercent: 90
 
+# Run Bash inside a Linux bubblewrap container via srt. Requires srt, bwrap installed and
+# user namespaces enabled. The workspace is writable and may contain secrets.
+# No execution confirmation. Disabled by default.
+# tools:
+#   bash:
+#     enable: true
+
 # Agent Skills: scan configured directories for SKILL.md. These files can contain
 # instructions and executable scripts; scripts run with could-you's OS permissions.
 # Uncomment to enable a workspace-local skills directory.

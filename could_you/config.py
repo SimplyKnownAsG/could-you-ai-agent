@@ -74,8 +74,16 @@ class SubagentProps:
 
 
 @define
+class BashProps:
+    enable: bool = False
+    # path to srt-settiongs file (optioanl, omit to use whatver srt defaults to)
+    srt_settings: str = field(factory=str, alias="srtSettings")
+
+
+@define
 class ToolsProps:
     subagent: SubagentProps = field(factory=SubagentProps)
+    bash: BashProps = field(factory=BashProps)
 
 
 @define

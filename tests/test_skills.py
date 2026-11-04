@@ -6,8 +6,8 @@ import pytest
 
 from could_you.agent import Agent
 from could_you.config import Config, LLMProps, SkillSourceProps, SkillsProps
-from could_you.dialogue import Dialogue
 from could_you.message import ToolUse
+from could_you.session import Session
 from could_you.skills import MAX_FRONTMATTER_CHARS, SkillError, SkillRegistry, _read_skill
 from could_you.tools.skill_tools import LoadSkillResourceTool, LoadSkillTool, RunSkillScriptTool
 
@@ -149,10 +149,9 @@ async def test_agent_registers_skills_in_tool_description_not_system_prompt(tmp_
         systemPrompt="base",
         skills=SkillsProps(sources=[SkillSourceProps(directory=str(tmp_path))]),
     )
+    session = Session(tmp_path, None, config)
     with patch("could_you.agent.create_llm", return_value=AsyncMock()) as create_llm:
-        async with Agent(
-            session_manager=AsyncMock(), config=config, dialogue=Dialogue(tmp_path, props=config.dialogue)
-        ) as agent:
+        async with Agent(session_manager=AsyncMock(), session=session) as agent:
             assert {"load_skill", "load_skill_resource", "run_skill_script"} <= agent.tools.keys()
             description = agent.tools["load_skill"].description
             assert "- pdf-tools: Extract PDF text" in description
