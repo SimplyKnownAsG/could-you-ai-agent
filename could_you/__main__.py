@@ -57,6 +57,7 @@ def create_parser():
     log_group.add_argument("-q", "--quiet", action="store_true", help="Enable quiet mode (WARNING level logging only)")
     parser.add_argument(
         "--dialogue-name",
+        "-n",
         dest="dialogue_name",
         help="Dialogue name",
     )
