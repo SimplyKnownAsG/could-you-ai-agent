@@ -16,6 +16,7 @@ converter = Converter(use_alias=True, omit_if_default=True)
 class Dialogue:
     props: DialogueProps
     path: Path
+    suffix: str
     messages: list[Message]
     _file_handle: IO | None = None
 
@@ -26,10 +27,10 @@ class Dialogue:
         props: DialogueProps | None = None,
     ):
         self.props = props or DialogueProps()
-        suffix = props.name
-        if suffix:
-            suffix = "-" + suffix
-        self.path = w_config_dir / f"dialogue{suffix}.jsonl"
+        self.suffix = props.name
+        if self.suffix:
+            self.suffix = "-" + self.suffix
+        self.path = w_config_dir / f"dialogue{self.suffix}.jsonl"
         self.messages = []
 
     def __enter__(self):

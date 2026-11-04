@@ -258,7 +258,7 @@ async def amain(parser, args):
 
                 async with Agent(session_manager=session_manager, session=session) as agent:
                     await agent.orchestrate(query)
-                    _remove_query_md(session.w_config_dir)
+                    _remove_query_md(session.w_config_dir, dialogue)
 
 
 MARKER = "# *** PROVIDE_INPUT_AFTER_THIS_LINE ***"
@@ -280,7 +280,7 @@ def _override_config(config: Config, args):
 
 def _get_editor_input(w_config_dir: Path, *, dialogue: Dialogue):
     """Open a temporary file in the user's preferred editor and return the content."""
-    query_md_path = w_config_dir / "query.md"
+    query_md_path = w_config_dir / f"query{dialogue.suffix}.md"
     existing_query = _load_query(query_md_path)
 
     with query_md_path.open("w") as tf:
@@ -329,8 +329,8 @@ def _load_query(query_md_path: Path):
     return "".join(input_lines)
 
 
-def _remove_query_md(w_config_dir: Path):
-    query_md_path = w_config_dir / "query.md"
+def _remove_query_md(w_config_dir: Path, dialogue: Dialogue):
+    query_md_path = w_config_dir / f"query{dialogue.suffix}.md"
     query_md_path.unlink(missing_ok=True)
 
 
