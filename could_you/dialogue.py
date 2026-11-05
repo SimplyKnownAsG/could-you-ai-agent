@@ -8,7 +8,7 @@ from cattrs import Converter
 
 from .config import DialogueProps
 from .logging_config import LOGGER
-from .message import Message, MessageType, TextContent
+from .message import Message, MessageMetadata, MessageType, TextContent
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
@@ -59,20 +59,13 @@ class Dialogue:
             self._file_handle = None
 
     def add(self, message: Message):
+        # Inject a system message for every user message. The assumption is that this
+        # does not happen too frequently (relative to assistant and tools), and that these
+        # can serve as good achor points.
+        #
+        # it's may be backwards though, it's telling the story from my perspective.
         if message.role == "user":
-            now = datetime.now().astimezone()
-            tz_name = now.strftime("%Z")
-            datetime_str = now.strftime("%Y-%m-%dT%H:%M")
-            monday = now.date() - timedelta(days=now.weekday())
-            week_of = f"{monday.strftime('%A, %B')} {monday.day}"
-            date_message = f"The current time is {datetime_str} {tz_name}, the week of {week_of}."
-            sys_message = Message(
-                role="system",
-                content=[TextContent(text=date_message, type="text")],
-                type=MessageType.NORMAL,
-            )
-            self.messages.append(sys_message)
-            self._store_message(sys_message)
+            self._inject_system_message()
 
         self.messages.append(message)
         message.print(info=LOGGER.info, debug=LOGGER.debug)
@@ -93,3 +86,29 @@ class Dialogue:
         debug = debug or LOGGER.debug
         for message in self.messages:
             message.print(info=info, debug=debug)
+
+    def _inject_system_message(self):
+        message_number = 0
+
+        for m in reversed(self.messages):
+            if not m.metadata or m.metadata.message_number is None:
+                continue
+
+            message_number = m.metadata.message_number + 1
+            break
+
+        now = datetime.now().astimezone()
+        tz_name = now.strftime("%Z")
+        datetime_str = now.strftime("%Y-%m-%dT%H:%M")
+        monday = now.date() - timedelta(days=now.weekday())
+        week_of = f"{monday.strftime('%A, %B')} {monday.day}"
+        text = f"message_number: {message_number}\n"
+        text += f"The current time is {datetime_str} {tz_name}, the week of {week_of}."
+        sys_message = Message(
+            role="system",
+            content=[TextContent(text=text, type="text")],
+            type=MessageType.NORMAL,
+            metadata=MessageMetadata(message_number=message_number),
+        )
+        self.messages.append(sys_message)
+        self._store_message(sys_message)

@@ -127,13 +127,17 @@ class MessageType(str, Enum):
 
 
 @define
-class MessageMetadata:
+class MessageMetadata(AttrsAllowAliasKeyword):
+    message_number: int | None = field(default=None, alias="messageNumber")
     input_tokens: int | None = field(default=None, alias="inputTokens")
     output_tokens: int | None = field(default=None, alias="outputTokens")
     total_tokens: int | None = field(default=None, alias="totalTokens")
     token_limit: int | None = field(default=None, alias="tokenLimit")
     provider: str | None = None
     model: str | None = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def format(self) -> str:
         details = []
