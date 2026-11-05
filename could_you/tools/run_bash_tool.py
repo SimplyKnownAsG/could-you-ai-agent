@@ -3,7 +3,6 @@ Run Bash in srt (@anthropic-ai/sandbox-runtime).
 """
 
 import asyncio
-import math
 import os
 import signal
 import subprocess
@@ -33,7 +32,7 @@ class RunBashTool(MCPTool):
                 description=(
                     "Run Bash in an isolated Linux bubblewrap container with no network. "
                     "The workspace is writable; commands can read its contents, including secrets. "
-                    "No execution confirmation."
+                    "No execution confirmation. Use .could-you.tmp/ for temp work"
                 ),
                 input_schema={
                     "type": "object",
@@ -44,7 +43,8 @@ class RunBashTool(MCPTool):
                         },
                         "timeout": {
                             "type": "number",
-                            "description": f"Seconds (default: {session.config.tools.bash.default_timeout}, max: {session.config.tools.bash.max_timeout})"},
+                            "description": f"Seconds (default: {session.config.tools.bash.default_timeout}, max: {session.config.tools.bash.max_timeout})",
+                        },
                     },
                     "required": ["command"],
                     "additionalProperties": False,
@@ -53,6 +53,7 @@ class RunBashTool(MCPTool):
             enabled=session.config.tools.bash.enable and is_srt_executable(),
         )
         self.session = session
+        self._made_temp = False
 
     async def __call__(self, tool_use: ToolUse, tool_args: dict[str, Any]) -> ToolResultContent:
         if not isinstance(tool_args, dict) or set(tool_args) - {"command", "timeout"}:
@@ -68,10 +69,13 @@ class RunBashTool(MCPTool):
 
             if timeout > self.session.config.tools.bash.max_timeout:
                 timeout = self.session.config.tools.bash.max_timeout
-                LOGGER.warning(f'__run_bash__ provided timeout "{raw_timeout}" overriden to use max "{timeout}"'),
+                LOGGER.warning(f'__run_bash__ provided timeout "{raw_timeout}" overriden to use max "{timeout}"')
+            elif timeout <= 0:
+                timeout = self.session.config.tools.bash.default_timeout
+                LOGGER.warning(f'__run_bash__ provided timeout "{raw_timeout}" overriden to use max "{timeout}"')
         except Exception as ex:
             timeout = self.session.config.tools.bash.default_timeout
-            LOGGER.warning(f'__run_bash__ could not cast "{raw_timeout}" to int: {str(ex)}, using default: {timeout}'),
+            LOGGER.warning(f'__run_bash__ could not cast "{raw_timeout}" to int: {ex!s}, using default: {timeout}')
 
         if not isinstance(command, str) or not command.strip():
             raise CYError(
@@ -88,6 +92,10 @@ class RunBashTool(MCPTool):
         )
 
     async def _run(self, command: str, seconds: float) -> tuple[str, str]:
+        if not self._made_temp:
+            (self.session.workspace / ".could-you.tmp").mkdir()
+            self._made_temp = True
+
         args = ["srt"]
 
         if srt_settings := self.session.config.tools.bash.srt_settings:
