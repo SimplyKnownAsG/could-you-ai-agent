@@ -86,6 +86,13 @@ class SkillRegistry:
                                 todo.append((entry, depth + 1))
                 except OSError as exc:
                     LOGGER.warning("Cannot scan skill directory %s: %s", directory, exc)
+
+        LOGGER.info(f"Discovered {len(skills)} skills:")
+
+        for skill in skills.values():
+            short = skill.description.replace("\n", " ")[:30] + " ..."
+            LOGGER.info(f"    {skill.name}: {short}")
+
         return cls(skills)
 
     def load_skill_description(self) -> str:
