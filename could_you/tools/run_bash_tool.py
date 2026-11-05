@@ -42,7 +42,9 @@ class RunBashTool(MCPTool):
                             "type": "string",
                             "description": "Bash command; pipes and shell operators are supported",
                         },
-                        "timeout": {"type": "number", "description": "Seconds (default 30)"},
+                        "timeout": {
+                            "type": "number",
+                            "description": f"Seconds (default: {session.config.tools.bash.default_timeout}, max: {session.config.tools.bash.max_timeout})"},
                     },
                     "required": ["command"],
                     "additionalProperties": False,
@@ -59,24 +61,24 @@ class RunBashTool(MCPTool):
             )
 
         command = tool_args.get("command")
-        seconds = tool_args.get("timeout", 30)
+        raw_timeout = tool_args.get("timeout", self.session.config.tools.bash.default_timeout)
+
+        try:
+            timeout = int(float(raw_timeout))
+
+            if timeout > self.session.config.tools.bash.max_timeout:
+                timeout = self.session.config.tools.bash.max_timeout
+                LOGGER.warning(f'__run_bash__ provided timeout "{raw_timeout}" overriden to use max "{timeout}"'),
+        except Exception as ex:
+            timeout = self.session.config.tools.bash.default_timeout
+            LOGGER.warning(f'__run_bash__ could not cast "{raw_timeout}" to int: {str(ex)}, using default: {timeout}'),
+
         if not isinstance(command, str) or not command.strip():
             raise CYError(
                 message="__run_bash__ expects a nonempty command", retriable=False, fault_owner=FaultOwner.LLM
             )
-        if (
-            isinstance(seconds, bool)
-            or not isinstance(seconds, (int, float))
-            or not math.isfinite(seconds)
-            or not seconds > 0
-        ):
-            raise CYError(
-                message="__run_bash__ timeout must be a positive finite number",
-                retriable=False,
-                fault_owner=FaultOwner.LLM,
-            )
 
-        text, status = await self._run(command, seconds)
+        text, status = await self._run(command, timeout)
         return ToolResultContent(
             toolResult=ToolResult(
                 toolUseId=tool_use.tool_use_id,

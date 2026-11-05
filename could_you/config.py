@@ -78,6 +78,8 @@ class BashProps:
     enable: bool = False
     # path to srt-settiongs file (optioanl, omit to use whatver srt defaults to)
     srt_settings: str = field(factory=str, alias="srtSettings")
+    default_timeout: int = 60
+    max_timeout: int = 60
 
 
 @define
