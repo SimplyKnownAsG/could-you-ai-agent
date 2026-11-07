@@ -2,6 +2,7 @@ import os
 import stat
 import subprocess
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -204,11 +205,22 @@ def test_bad_provider(tmp_workspace: Path):
 
 
 def test_not_in_workspace(tmp_dir: Path):
-    with pytest.raises(InvalidConfigError, match="within a workspace"):
-        _find_workspace_config_dir(tmp_dir)
+    # pytest's temp directory lives inside this repository workspace.
+    # Hide only that workspace for this test, leaving path traversal untouched.
+    repository_workspace = Path(__file__).resolve().parent.parent / ".could-you"
+    real_exists = Path.exists
 
-    with pytest.raises(InvalidConfigError, match="within a workspace"):
-        load()
+    def exists_without_repository_workspace(path):
+        if path == repository_workspace:
+            return False
+        return real_exists(path)
+
+    with patch.object(Path, "exists", exists_without_repository_workspace):
+        with pytest.raises(InvalidConfigError, match="within a workspace"):
+            _find_workspace_config_dir(tmp_dir)
+
+        with pytest.raises(InvalidConfigError, match="within a workspace"):
+            load()
 
 
 def test_load_config_invalid_json(tmp_workspace: Path):

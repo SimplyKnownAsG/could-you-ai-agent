@@ -30,11 +30,16 @@ class Session:
         self.dialogue = Dialogue(self.w_config_dir, props=self.config.dialogue)
 
     @property
-    def workspace(self) -> Path:
+    def workspace_dir(self) -> Path:
         return self.w_config_dir.parent
+
+    @property
+    def tmp_dir(self) -> Path:
+        return self.w_config_dir / "tmp"
 
     def __enter__(self):
         self.dialogue.__enter__()
+        self.tmp_dir.mkdir(exist_ok=True)
         return self
 
     def __exit__(self, ex_type, ex_val, ex_tb):

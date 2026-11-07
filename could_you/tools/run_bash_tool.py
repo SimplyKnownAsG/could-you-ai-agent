@@ -30,9 +30,10 @@ class RunBashTool(MCPTool):
             Tool(
                 name="__run_bash__",
                 description=(
-                    "Run Bash in an isolated Linux bubblewrap container with no network. "
+                    "Run Bash in an isolated secure runtime container with no network. "
                     "The workspace is writable; commands can read its contents, including secrets. "
-                    "No execution confirmation. Use .could-you.tmp/ for temp work"
+                    "No execution confirmation. All commands run relative to the workspace. "
+                    f"Use {session.tmp_dir} for temp work"
                 ),
                 input_schema={
                     "type": "object",
@@ -92,10 +93,6 @@ class RunBashTool(MCPTool):
         )
 
     async def _run(self, command: str, seconds: float) -> tuple[str, str]:
-        if not self._made_temp:
-            (self.session.workspace / ".could-you.tmp").mkdir()
-            self._made_temp = True
-
         args = ["srt"]
 
         if srt_settings := self.session.config.tools.bash.srt_settings:

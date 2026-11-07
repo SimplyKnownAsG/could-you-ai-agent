@@ -32,7 +32,6 @@ class Agent:
         self.session = session
         self.config = session.config
         self.dialogue = session.dialogue
-        self.workspace = session.workspace
         self.servers: list[MCPServer] = [
             MCPServer(name=name, props=props) for name, props in self.config.mcp_servers.items()
         ]

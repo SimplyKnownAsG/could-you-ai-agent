@@ -9,7 +9,7 @@ from could_you.session import Session, SessionManager
 
 def test_session_workspace_is_config_directory_parent(tmp_path):
     session = Session(tmp_path / ".could-you", None, Config(llm={}))
-    assert session.workspace == tmp_path
+    assert session.workspace_dir == tmp_path
 
 
 @pytest.mark.asyncio

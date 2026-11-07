@@ -18,7 +18,9 @@ class DummyOpenAILLM(OpenAILLM):
 @pytest.mark.asyncio
 async def test_call_could_you_returns_final_text_as_provider_compatible_tool_result(tmp_path):
     config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
-    session = Session(tmp_path / ".could-you", None, config)
+    config_dir = tmp_path / ".could-you"
+    config_dir.mkdir()
+    session = Session(config_dir, None, config)
     manager = AsyncMock()
 
     def load_session(_name, override):
@@ -29,7 +31,7 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
     tool = CallSubagentTool(manager, depth=1)
 
     async def orchestrate(agent, _query):
-        assert agent.workspace == tmp_path
+        assert agent.session.workspace_dir == tmp_path
         agent.dialogue.add(Message(role="assistant", content=[TextContent(text="Hello"), TextContent(text="there")]))
 
     async def enter(agent):
@@ -62,7 +64,9 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
 @pytest.mark.asyncio
 async def test_call_could_you_without_final_answer_reports_error(tmp_path):
     config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=False))
-    session = Session(tmp_path / ".could-you", None, config)
+    config_dir = tmp_path / ".could-you"
+    config_dir.mkdir()
+    session = Session(config_dir, None, config)
     manager = AsyncMock()
 
     def load_session(_name, override):
