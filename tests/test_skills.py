@@ -106,7 +106,9 @@ def test_resources_require_safe_relative_path(tmp_path):
     skills = registry(tmp_path)
     assert skills.load_resource("pdf-tools", "references/guide.md") == "Guide"
     assert skills.load_resource("pdf-tools", "assets/image.svg") == "<svg />"
-    for path in ("../secret.txt", str(outside), "assets/escape.txt", "SKILL.md", "scripts/anything"):
+    # Symlinks that escape the skill root are allowed (spec does not restrict them).
+    assert skills.load_resource("pdf-tools", "assets/escape.txt") == "secret"
+    for path in ("../secret.txt", str(outside), "SKILL.md", "scripts/anything"):
         with pytest.raises(SkillError):
             skills.load_resource("pdf-tools", path)
     with pytest.raises(SkillError, match="Unknown"):

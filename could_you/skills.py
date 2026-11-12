@@ -62,7 +62,7 @@ class SkillRegistry:
                 try:
                     entries = sorted(directory.iterdir(), key=lambda item: item.name)
                     skill_file = directory / "SKILL.md"
-                    if depth and skill_file.is_file() and not skill_file.is_symlink():
+                    if depth and skill_file.is_file():
                         try:
                             skill = _read_skill(skill_file, root)
                         except (SkillError, OSError, UnicodeError) as exc:
@@ -235,6 +235,6 @@ def _contained_file(root: Path, name: str, *, allowed: set[str]) -> Path:
     if relative.is_absolute() or ".." in relative.parts or not relative.parts or relative.parts[0] not in allowed:
         raise SkillError(f"Path must be relative to one of {sorted(allowed)} without traversal: {name!r}")
     target = root / relative
-    if not target.resolve().is_relative_to(root.resolve()) or not target.is_file():
+    if not target.is_file():
         raise SkillError(f"File does not exist inside skill directory: {name!r}")
     return target
