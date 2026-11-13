@@ -106,11 +106,6 @@ class RunBashTool(MCPTool):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 start_new_session=True,
-                env={
-                    **os.environ,
-                    "TMPDIR": str(self.session.tmp_dir),
-                    "CLAUDE_CODE_TMPDIR": str(self.session.tmp_dir),
-                },
             )
         except OSError as exc:
             return f"Failed to start sandbox: {exc}", "error"
