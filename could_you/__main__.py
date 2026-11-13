@@ -3,13 +3,14 @@ import asyncio
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import yaml
 from cattrs import Converter
 
 from .agent import Agent
-from .config import Config, _find_workspace_config_dir, load
+from .config import Config, _find_workspace_config_dir, get_config_path, load
 from .cy_error import CYError
 from .dialogue import Dialogue
 from .inspect_memory import dump_memory_inspection_yaml, inspect_memory
@@ -184,15 +185,25 @@ def create_parser():
 async def amain(parser, args):
     query = args.query
 
-    if args.command == "config" and args.config_command == "dump":
-        config = load(_get_script_name(args))[0]
-        converter = Converter(use_alias=True)
-        config_dict = converter.unstructure(config)
+    if args.command in {"config", "c"}:
+        if args.config_command == "dump":
+            config = load(_get_script_name(args))[0]
+            converter = Converter(use_alias=True)
+            config_dict = converter.unstructure(config)
 
-        if args.config_format == "yaml":
-            print(yaml.safe_dump(config_dict, sort_keys=False, default_flow_style=False))  # noqa: T201
+            if args.config_format == "yaml":
+                print(yaml.safe_dump(config_dict, sort_keys=False, default_flow_style=False))  # noqa: T201
+            else:
+                print(json.dumps(config_dict, indent=2))  # noqa: T201
         else:
-            print(json.dumps(config_dict, indent=2))  # noqa: T201
+            editor = os.environ.get("EDITOR", "vim")
+            config_path = get_config_path(_get_script_name(args))
+            LOGGER.info(f"Editing config: {config_path!s}")
+            sys.stdout.flush()
+            sys.stderr.flush()
+
+            # S606: Launching user-configured local editor; no untrusted input
+            os.execvp(editor, [editor, str(config_path)])  # noqa: S606
 
         return
 

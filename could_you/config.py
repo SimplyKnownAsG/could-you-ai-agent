@@ -148,10 +148,10 @@ def sync_workspace() -> Path:
 
 def load(script_name: str | None = None) -> tuple[Config, Path]:
     w_config_dir = _find_workspace_config_dir(Path.cwd())
-    config_dict = _load_dict(w_config_dir)
+    config_dict = _load_dict(_get_config_path(w_config_dir))
 
     if script_name:
-        s_config_dict = _load_dict(w_config_dir, script_name)
+        s_config_dict = _load_dict(_get_config_path(w_config_dir, script_name))
 
         for key, val in s_config_dict.items():
             config_dict[key] = val
@@ -162,17 +162,21 @@ def load(script_name: str | None = None) -> tuple[Config, Path]:
     return config, w_config_dir
 
 
-def _load_dict(w_config_dir: Path, script_name: str | None = None) -> dict[str, Any]:
-    base_name = "config.json" if not script_name else f"script.{script_name}.json"
-    full_name = w_config_dir / base_name
-    config_path = _get_preferred_path(full_name)
+def get_config_path(script_name: str | None = None) -> Path:
+    return _get_config_path(_find_workspace_config_dir(Path.cwd()), script_name)
 
-    if not config_path:
-        msg = f'Failed to find configuration file in "{w_config_dir}" (like "{base_name}")'
+
+def _get_config_path(w_config_dir: Path, script_name: str | None = None) -> Path:
+    base_name = "config.yaml" if not script_name else f"script.{script_name}.yaml"
+    return w_config_dir / base_name
+
+
+def _load_dict(config_path: Path) -> dict[str, Any]:
+    if not config_path.exists():
+        msg = f'Failed to find configuration file "{config_path!s}"'
         LOGGER.error(msg)
         raise InvalidConfigError(msg)
 
-    # config_dict = _load_raw_path(config_path)
     return _load_raw_path(config_path)
 
 
@@ -271,16 +275,6 @@ def _find_workspace_config_dir(current_path: Path) -> Path:
 
     # Recurse into the parent directory
     return _find_workspace_config_dir(parent_path)
-
-
-def _get_preferred_path(config_file: Path) -> Path | None:
-    for ext in (".json", ".yaml", ".yml"):
-        config_with_ext = config_file.with_suffix(ext)
-
-        if config_with_ext.is_file():
-            return config_with_ext
-
-    return None
 
 
 def _fix_permissions(root: Path) -> None:

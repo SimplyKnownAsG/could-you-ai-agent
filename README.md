@@ -102,8 +102,8 @@ Configuration is primarily managed by `could_you/config.py` and resolved via `Se
 ```text
 project-root/
   .could-you/
-    config.json (or .yaml / .yml)
-    script.<name>.json (or .yaml / .yml)
+    config.yaml
+    script.<name>.yaml
     dialogue.jsonl       # created automatically as you interact
   src/
   README.md
@@ -132,8 +132,8 @@ from your project root to refresh managed workspace templates. Sync only overwri
 Config loading works as follows (see `load()` in `could_you/config.py`):
 
 1. Locate the nearest `.could-you/` directory from the current working directory.
-2. Load the base config from `.could-you/config.(json|yaml|yml)`.
-3. If `script <name>` is provided, also load `.could-you/script.<name>.(json|yaml|yml)` and overlay its values on top of the base config.
+2. Load the base config from `.could-you/config.yaml`.
+3. If `script <name>` is provided, also load `.could-you/script.<name>.yaml` and overlay its values on top of the base config.
 4. Validate and normalize the config:
    - Ensure `llm.provider` is one of `"boto3"`, `"ollama"`, or `"openai"`.
    - Expand the `systemPrompt` via the prompt utilities (see below).
@@ -343,8 +343,8 @@ Script mode lets you run one-off operations, seemingly close to a SKILL
 ### How it works
 
 - A script config file is named:
-  - `$XDG_CONFIG_HOME/could-you/script.<script-name>.json` (user-global), or
-  - `.could-you/script.<script-name>.json` (project-local workspace).
+  - `$XDG_CONFIG_HOME/could-you/script.<script-name>.yaml` (user-global), or
+  - `.could-you/script.<script-name>.yaml` (project-local workspace).
 - When `script <script-name>` is used:
   - The base workspace config is loaded.
   - The script config is loaded and merged over it.
@@ -358,7 +358,7 @@ Script mode lets you run one-off operations, seemingly close to a SKILL
 
 #### 1. Minimal script for Conventional Commits
 
-`$XDG_CONFIG_HOME/could-you/script.git-commit.json`:
+`$XDG_CONFIG_HOME/could-you/script.git-commit.yaml`:
 
 ```json
 {
@@ -443,7 +443,7 @@ No remote is configured or pushed by `could-you`; the user owns that repo.
 When the memory repo is `.could-you/`, the archive commit also stages existing explicit prompt and memory files:
 
 ```text
-config.yaml / config.yml / config.json
+config.yaml
 SYSTEM_PROMPT.md
 TODO.md
 MEMORY.md

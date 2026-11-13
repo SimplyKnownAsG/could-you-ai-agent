@@ -17,7 +17,6 @@ from could_you.config import (
     sync_workspace,
 )
 
-MINIMAL_JSON = '{"llm": {"provider": "openai", "args": { "model": "gpt-4" } }}'
 MINIMAL_YAML = """
 llm:
   provider: boto3
@@ -26,23 +25,15 @@ llm:
 """
 
 
-def test_load_workspace_json_config(tmp_workspace: Path):
-    w_config_path = tmp_workspace / "config.json"
-    w_config_path.write_text(MINIMAL_JSON)
-    config, _ = load()
-    assert config.llm.provider == "openai"
-    assert config.llm.args["model"] == "gpt-4"
-
-
 def test_load_workspace_token_limit(tmp_workspace: Path):
-    w_config_path = tmp_workspace / "config.json"
+    w_config_path = tmp_workspace / "config.yaml"
     w_config_path.write_text('{"llm": {"provider": "openai", "tokenLimit": 128000}}')
     config, _ = load()
     assert config.llm.token_limit == 128000
 
 
 def test_load_workspace_infers_token_limit(tmp_workspace: Path):
-    w_config_path = tmp_workspace / "config.json"
+    w_config_path = tmp_workspace / "config.yaml"
     w_config_path.write_text('{"llm": {"provider": "openai", "args": {"model": "gpt-4o"}}}')
     config, _ = load()
     assert config.llm.token_limit == 128000
@@ -189,16 +180,15 @@ mcpServers:
     assert env["MODEL_PATH"] == "models/piper-voices/model.onnx"
 
 
-@pytest.mark.parametrize("ext", ["json", "yaml", "yml"])
-def test_empty_fails(tmp_workspace: Path, ext: str):
-    w_config_path = tmp_workspace / f"config.{ext}"
+def test_empty_fails(tmp_workspace: Path):
+    w_config_path = tmp_workspace / "config.yaml"
     w_config_path.write_text("{}")
     with pytest.raises(InvalidConfigError, match="Must specify"):
         load()
 
 
 def test_bad_provider(tmp_workspace: Path):
-    w_config_path = tmp_workspace / "config.json"
+    w_config_path = tmp_workspace / "config.yaml"
     w_config_path.write_text('{"llm": {"provider": "human", "model": "m40"}}')
     with pytest.raises(InvalidConfigError, match="Invalid provider"):
         load()
@@ -221,13 +211,6 @@ def test_not_in_workspace(tmp_dir: Path):
 
         with pytest.raises(InvalidConfigError, match="within a workspace"):
             load()
-
-
-def test_load_config_invalid_json(tmp_workspace: Path):
-    w_config_path = tmp_workspace / "config.json"
-    w_config_path.write_text("not json")
-    with pytest.raises(InvalidConfigError, match="Failed to load"):
-        load()
 
 
 def test_load_config_invalid_yaml(tmp_workspace: Path):
@@ -395,8 +378,8 @@ def test_load_compact_history_script_dialogue_settings(tmp_cy_config_dir: Path, 
 
 
 def test_load_nonexistent_script_raises(tmp_workspace: Path):
-    w_config_path = tmp_workspace / "config.json"
-    w_config_path.write_text(MINIMAL_JSON)
+    w_config_path = tmp_workspace / "config.yaml"
+    w_config_path.write_text(MINIMAL_YAML)
 
     # Enter workspace, expect failure
     with pytest.raises(InvalidConfigError, match="Failed to find"):
