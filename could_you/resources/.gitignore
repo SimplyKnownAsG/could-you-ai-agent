@@ -9,3 +9,4 @@ dialogue*.jsonl
 ## Temporary files
 *.tmp
 .*.tmp
+./tmp/
