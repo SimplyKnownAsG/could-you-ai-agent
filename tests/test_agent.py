@@ -35,7 +35,7 @@ async def test_stop_turn_does_not_store_tool_calls_or_results(tmp_path, text, ar
     content = [*[TextContent(text=item) for item in text], tool_call("__stop_turn__", arguments)]
     metadata = MessageMetadata(inputTokens=12)
 
-    with session:
+    async with session:
         agent = Agent(session_manager=AsyncMock(), session=session)
         dialogue = agent.dialogue = session.dialogue
         agent.llm = AsyncMock()
@@ -60,7 +60,7 @@ async def test_stop_turn_does_not_store_tool_calls_or_results(tmp_path, text, ar
 @pytest.mark.asyncio
 async def test_stop_turn_rejects_mixed_tool_calls_before_persisting_or_executing(tmp_path):
     config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=True))
-    with Session(tmp_path, None, config) as session:
+    async with Session(tmp_path, None, config) as session:
         agent = Agent(session_manager=AsyncMock(), session=session)
         dialogue = agent.dialogue = session.dialogue
         agent.llm = AsyncMock()
@@ -85,7 +85,7 @@ async def test_stop_turn_rejects_mixed_tool_calls_before_persisting_or_executing
 @pytest.mark.parametrize("arguments", [{"message": 42}, {"message": "ok", "extra": 1}, []])
 async def test_stop_turn_rejects_invalid_arguments(tmp_path, arguments):
     config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=True))
-    with Session(tmp_path, None, config) as session:
+    async with Session(tmp_path, None, config) as session:
         agent = Agent(session_manager=AsyncMock(), session=session)
         dialogue = agent.dialogue = session.dialogue
         agent.llm = AsyncMock()
@@ -100,7 +100,7 @@ async def test_stop_turn_rejects_invalid_arguments(tmp_path, arguments):
 @pytest.mark.asyncio
 async def test_normal_tool_calls_still_receive_results(tmp_path):
     config = Config(llm=LLMProps(provider="openai"), dialogue=DialogueProps(load=False, store=True))
-    with Session(tmp_path, None, config) as session:
+    async with Session(tmp_path, None, config) as session:
         agent = Agent(session_manager=AsyncMock(), session=session)
         dialogue = agent.dialogue = session.dialogue
         agent.llm = AsyncMock()
@@ -129,13 +129,13 @@ async def test_normal_tool_calls_still_receive_results(tmp_path):
 )
 async def test_subagent_tools_respect_depth(tmp_path, enable, max_depth, depth, can_delegate):
     config = Config(
-        llm=LLMProps(provider="openai"), tools=ToolsProps(subagent=SubagentProps(enable=enable, max_depth=max_depth))
+        llm=LLMProps(provider="openai"), tools=ToolsProps(subagent=SubagentProps(enabled=enable, max_depth=max_depth))
     )
-    session = Session(tmp_path, None, config)
+    session = Session(tmp_path, None, config, depth=depth)
     with (
         patch("could_you.agent.create_llm", return_value=AsyncMock()),
     ):
-        async with Agent(session_manager=AsyncMock(), session=session, depth=depth) as agent:
+        async with Agent(session_manager=AsyncMock(), session=session) as agent:
             assert ("__call_subagent__" in agent.tools) is can_delegate
             assert ("__poll_subagent__" in agent.tools) is can_delegate
             if can_delegate:

@@ -46,7 +46,7 @@ memory:
 # No execution confirmation. Disabled by default.
 # tools:
 #   bash:
-#     enable: true
+#     enabled: true
 
 # Agent Skills: scan configured directories for SKILL.md. These files can contain
 # instructions and executable scripts; scripts run with could-you's OS permissions.

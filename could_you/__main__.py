@@ -219,7 +219,7 @@ async def amain(parser, args):
                 config.dialogue.load = True
                 config.dialogue.store = False
 
-            with session_manager.load_session(None, __override_config) as session:
+            async with session_manager.load_session(None, __override_config) as session:
                 session.dialogue.print(info=LOGGER.info, debug=LOGGER.debug)
         elif args.command == "memory" and args.memory_command == "archive":
             w_config_dir = _find_workspace_config_dir(Path.cwd())
@@ -249,15 +249,17 @@ async def amain(parser, args):
                 config.dialogue.load = False
                 config.dialogue.store = False
 
-            with session_manager.load_session(None, __override_config) as session:
-                async with Agent(session_manager=session_manager, session=session) as agent:
-                    await agent.orchestrate(args.message)
+            async with (
+                session_manager.load_session(None, __override_config) as session,
+                Agent(session_manager=session_manager, session=session) as agent,
+            ):
+                await agent.orchestrate(args.message)
         else:
 
             def __override_config(config: Config):
                 __apply_args_to_config(config, args)
 
-            with session_manager.load_session(_get_script_name(args), __override_config) as session:
+            async with session_manager.load_session(_get_script_name(args), __override_config) as session:
                 query = (
                     query
                     if query

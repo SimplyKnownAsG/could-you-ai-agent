@@ -7,7 +7,7 @@ from could_you.cy_error import CYError
 from could_you.llm.openai import OpenAILLM
 from could_you.message import Message, TextContent, ToolResultInnerTextContent, ToolUse
 from could_you.session import Session
-from could_you.tools.call_subagent_tool import CallSubagentTool
+from could_you.tools.subagent_tools import CallSubagentTool
 
 
 class DummyOpenAILLM(OpenAILLM):
@@ -23,12 +23,13 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
     session = Session(config_dir, None, config)
     manager = AsyncMock()
 
-    def load_session(_name, override):
+    def load_session(_name, override, *, depth):
+        assert depth == session.depth + 1
         override(config)
         return session
 
     manager.load_session = load_session
-    tool = CallSubagentTool(manager, depth=1)
+    tool = CallSubagentTool(session.subagent_server, manager)
 
     async def orchestrate(agent, _query):
         assert agent.session.workspace_dir == tmp_path
@@ -48,7 +49,7 @@ async def test_call_could_you_returns_final_text_as_provider_compatible_tool_res
         )
 
     assert session.config.dialogue.name == "temp"
-    assert session.config.tools.subagent.enable is True
+    assert session.config.tools.subagent.enabled is True
     assert result.tool_result.content == [ToolResultInnerTextContent(text="Hello\n\nthere")]
     assert result.tool_result.tool_use_id == "call_1"
     llm = DummyOpenAILLM(
@@ -69,12 +70,13 @@ async def test_call_could_you_without_final_answer_reports_error(tmp_path):
     session = Session(config_dir, None, config)
     manager = AsyncMock()
 
-    def load_session(_name, override):
+    def load_session(_name, override, *, depth):
+        assert depth == session.depth + 1
         override(config)
         return session
 
     manager.load_session = load_session
-    tool = CallSubagentTool(manager)
+    tool = CallSubagentTool(session.subagent_server, manager)
 
     async def enter(agent):
         return agent

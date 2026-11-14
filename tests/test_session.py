@@ -28,7 +28,7 @@ async def test_enter_exit_loads_and_saves_sessions():
 
 
 @pytest.mark.asyncio
-async def test_exit_cancels_jobs_even_if_saving_sessions_fails(tmp_path):
+async def test_session_exit_cancels_jobs_even_if_dialogue_close_fails(tmp_path):
     started = asyncio.Event()
     finished = asyncio.Event()
 
@@ -39,16 +39,21 @@ async def test_exit_cancels_jobs_even_if_saving_sessions_fails(tmp_path):
         finally:
             finished.set()
 
-    manager = SessionManager(cache_path=tmp_path)
-    with patch("json.dump", side_effect=OSError("disk full")):
-        await manager.__aenter__()
-        manager.jobs.start(work())
-        await started.wait()
-        with pytest.raises(OSError, match="disk full"):
-            await manager.__aexit__(None, None, None)
+    session = Session(tmp_path, None, Config(llm={}))
+
+    async def run_session():
+        async with session:
+            session.subagent_server.start(work())
+            await started.wait()
+
+    with (
+        patch.object(session.dialogue, "__exit__", side_effect=OSError("disk full")),
+        pytest.raises(OSError, match="disk full"),
+    ):
+        await run_session()
 
     assert finished.is_set()
-    assert manager.jobs.closed
+    assert session.subagent_server.closed
 
 
 # def test_init_session_creates_new_session_and_calls_init():

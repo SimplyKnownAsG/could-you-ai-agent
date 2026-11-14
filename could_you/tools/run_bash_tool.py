@@ -2,23 +2,27 @@
 Run Bash in srt (@anthropic-ai/sandbox-runtime).
 """
 
+from __future__ import annotations
+
 import asyncio
 import os
 import signal
 import subprocess
 from contextlib import suppress
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mcp import Tool
 
 from could_you.logging_config import LOGGER
-from could_you.session import Session
 
 from ..config import MCPServerProps
 from ..cy_error import CYError, FaultOwner
 from ..mcp_server import MCPServer, MCPTool
 from ..message import ToolResult, ToolResultContent, ToolResultInnerTextContent, ToolUse
+
+if TYPE_CHECKING:
+    from ..session import Session
 
 MAX_OUTPUT_BYTES = 64_000
 
@@ -51,7 +55,7 @@ class RunBashTool(MCPTool):
                     "additionalProperties": False,
                 },
             ),
-            enabled=session.config.tools.bash.enable and is_srt_executable(),
+            enabled=session.config.tools.bash.enabled and is_srt_executable(),
         )
         self.session = session
         self._made_temp = False

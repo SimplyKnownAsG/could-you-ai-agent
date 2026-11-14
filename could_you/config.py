@@ -69,13 +69,13 @@ class DialogueProps:
 
 @define
 class SubagentProps:
-    enable: bool = True
+    enabled: bool = True
     max_depth: int = 1
 
 
 @define
 class BashProps:
-    enable: bool = False
+    enabled: bool = False
     # path to srt-settiongs file (optioanl, omit to use whatver srt defaults to)
     srt_settings: str = field(factory=str, alias="srtSettings")
     default_timeout: int = 60

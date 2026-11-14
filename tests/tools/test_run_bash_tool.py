@@ -26,7 +26,7 @@ async def test_invalid_arguments_do_not_execute(tmp_path, arguments):
     if not shutil.which("srt"):
         pytest.skip("srt is not installed")
 
-    with Session(tmp_path, None, Config(llm={})) as session:
+    async with Session(tmp_path, None, Config(llm={})) as session:
         tool = RunBashTool(session)
         with patch.object(tool, "_run", new_callable=AsyncMock) as run:
             with pytest.raises(CYError):
@@ -43,7 +43,7 @@ async def test_timeout_default(tmp_path, arguments):
     if not shutil.which("srt"):
         pytest.skip("srt is not installed")
 
-    with Session(tmp_path, None, Config(llm={})) as session:
+    async with Session(tmp_path, None, Config(llm={})) as session:
         tool = RunBashTool(session)
         timeout, expected = arguments
         with patch.object(
@@ -58,7 +58,7 @@ async def test_result_status_and_timeout_are_forwarded(tmp_path):
     if not shutil.which("srt"):
         pytest.skip("srt is not installed")
 
-    with Session(tmp_path, None, Config(llm={})) as session:
+    async with Session(tmp_path, None, Config(llm={})) as session:
         tool = RunBashTool(session)
         with patch.object(
             tool, "_run", new_callable=AsyncMock, return_value=("failed\n[exit code: 3]", "error")

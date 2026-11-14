@@ -2,8 +2,6 @@ from contextlib import AsyncExitStack
 
 from cattrs import Converter
 
-from could_you.session import Session, SessionManager
-
 from .cy_error import CYError, FaultOwner
 from .llm import BaseLLM, create_llm
 from .logging_config import LOGGER
@@ -19,15 +17,16 @@ from .message import (
     ToolResultInnerTextContent,
     ToolUseContent,
 )
+from .session import Session, SessionManager
 from .skills import SkillRegistry
-from .tools import CallSubagentTool, PollSubagentTool, RunBashTool, StopTurnTool
+from .tools import RunBashTool, StopTurnTool
 from .tools.skill_tools import LoadSkillResourceTool, LoadSkillTool, RunSkillScriptTool
 
 converter = Converter(use_alias=True, omit_if_default=True)
 
 
 class Agent:
-    def __init__(self, *, session_manager: SessionManager, session: Session, depth: int = 0):
+    def __init__(self, *, session_manager: SessionManager, session: Session):
         self.session_manager = session_manager
         self.session = session
         self.config = session.config
@@ -36,19 +35,20 @@ class Agent:
             MCPServer(name=name, props=props) for name, props in self.config.mcp_servers.items()
         ]
         self.exit_stack = AsyncExitStack()
-        self.depth = depth
         self.llm: BaseLLM | None = None
         self.tools: dict[str, MCPTool] = {}
 
     async def __aenter__(self):
-        local_tools = [StopTurnTool(), RunBashTool(self.session)]
+        local_tools = [
+            StopTurnTool(),
+            RunBashTool(self.session),
+        ]
 
-        if self.config.tools.subagent.enable and self.depth < self.config.tools.subagent.max_depth:
-            local_tools.append(CallSubagentTool(self.session_manager, depth=self.depth))
-            local_tools.append(PollSubagentTool(self.session_manager))
+        local_tools.extend(self.session.subagent_server.create_tools(self.session_manager))
 
         for local_tool in local_tools:
-            self.tools[local_tool.name] = local_tool
+            if local_tool.enabled:
+                self.tools[local_tool.name] = local_tool
 
         registry = SkillRegistry.discover(self.config.skills.sources)
 
